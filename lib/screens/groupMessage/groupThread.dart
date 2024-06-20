@@ -447,35 +447,20 @@ class _GpThreadMessageState extends State<GpThreadMessage> with RouteAware {
                                                       : Icon(Icons
                                                           .star_border_outlined),
                                                 ),
-                                                IconButton(
-                                                  onPressed: currentUser ==
-                                                          sendUserId
-                                                      ? () {
-                                                          GpThreadMsg()
-                                                              .deleteGpThread(
-                                                                  GpThreadID,
-                                                                  widget
-                                                                      .channelID,
-                                                                  widget
-                                                                      .messageID);
-                                                        }
-                                                      : () {
-                                                          ScaffoldMessenger.of(
-                                                                  context)
-                                                              .showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text(
-                                                                  'Cannot Delete the Message'),
-                                                              backgroundColor:
-                                                                  Colors.green,
-                                                            ),
-                                                          );
-                                                        },
-                                                  icon: Icon(
-                                                    Icons.delete,
-                                                    color: Colors.red,
+                                                if (currentUser == sendUserId)
+                                                  IconButton(
+                                                    onPressed: () {
+                                                      GpThreadMsg()
+                                                          .deleteGpThread(
+                                                              GpThreadID,
+                                                              widget.channelID,
+                                                              widget.messageID);
+                                                    },
+                                                    icon: Icon(
+                                                      Icons.delete,
+                                                      color: Colors.red,
+                                                    ),
                                                   ),
-                                                ),
                                               ],
                                             )
                                           ],

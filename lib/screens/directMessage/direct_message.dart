@@ -140,503 +140,504 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget>
 
   @override
   Widget build(BuildContext context) {
-    if(SessionStore.sessionData!.currentUser!.memberStatus == true) {
+    if (SessionStore.sessionData!.currentUser!.memberStatus == true) {
       return Scaffold(
-      backgroundColor: kPriamrybackground,
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () {
-            setState() {
-              isreading = !isreading;
-            }
+        backgroundColor: kPriamrybackground,
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          leading: IconButton(
+            onPressed: () {
+              setState() {
+                isreading = !isreading;
+              }
 
-            Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const Nav()));
-          },
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.white,
+              Navigator.pushReplacement(
+                  context, MaterialPageRoute(builder: (_) => const Nav()));
+            },
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Colors.white,
+            ),
           ),
-        ),
-        backgroundColor: navColor,
-        title: Row(
-          children: [
-            Stack(
-              children:[ Container(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.amber,
-                ),
-                height: 50,
-                width: 50,
-                child: Center(
-                  child: Text(
-                    widget.receiverName.isNotEmpty
-                        ? "${widget.receiverName.characters.first.toUpperCase()}"
-                        : "",
-                    style: const TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
+          backgroundColor: navColor,
+          title: Row(
+            children: [
+              Stack(children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.amber,
+                  ),
+                  height: 50,
+                  width: 50,
+                  child: Center(
+                    child: Text(
+                      widget.receiverName.isNotEmpty
+                          ? "${widget.receiverName.characters.first.toUpperCase()}"
+                          : "",
+                      style: const TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child:widget.user_status == true ?  Container(
-                  height: 14,
-                  width: 14,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(7),
-                    border: Border.all(color: Colors.white,width: 1),
-                    color: Colors.green
+                Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: widget.user_status == true
+                        ? Container(
+                            height: 14,
+                            width: 14,
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(7),
+                                border:
+                                    Border.all(color: Colors.white, width: 1),
+                                color: Colors.green),
+                          )
+                        : Container())
+              ]),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "${widget.receiverName.toUpperCase()}",
+                    style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold),
                   ),
-                ):Container() )]
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "${widget.receiverName.toUpperCase()}",
-                  style: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold),
-                ),
-              ],
-            )
-          ],
+                ],
+              )
+            ],
+          ),
         ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<DirectMessages>(
-              stream: _controller.stream,
-              builder: (context, snapshot) {
-                if (snapshot.hasError || !snapshot.hasData) {
-                  return const ProgressionBar(
+        body: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<DirectMessages>(
+                stream: _controller.stream,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError || !snapshot.hasData) {
+                    return const ProgressionBar(
                       imageName: 'dataSending.json',
                       height: 200,
                       size: 200,
-                     );
-                } else {
-                  final directMessages = snapshot.data!;
-                  
-                  int directMessage =
-                      directMessages.tDirectMessages!.length.toInt();
-                  return
-                      ListView.builder(
-                        controller: _scrollController,
-                        itemCount: directMessage,
-                        itemBuilder: (context, index) {
-                          var channelStar = directMessages.tDirectMessages;
-                          List<int> tempStar =
-                              directMessages.tDirectStarMsgids!.toList();
-                      
-                          bool isStared =
-                              tempStar.contains(channelStar![index].id);
-                      
-                          String message = directMessages
-                              .tDirectMessages![index].directmsg!
-                              .toString();
-                      
-                          int count = directMessages
-                              .tDirectMessages![index].count!
-                              .toInt();
-                          String time = directMessages
-                              .tDirectMessages![index].createdAt
-                              .toString();
-                          DateTime date = DateTime.parse(time).toLocal();
-                      
-                          String created_at =
-                              DateFormat('MMM d, yyyy hh:mm a').format(date);
-                      
-                          bool isMessageFromCurrentUser = currentUserName ==
-                              directMessages.tDirectMessages![index].name;
-                          int directMsgIds =
-                              directMessages.tDirectMessages![index].id!.toInt();
-                      
-                          return SingleChildScrollView(
-                            child: InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _selectedMessageIndex =
-                                      directMessages.tDirectMessages![index].id;
-                                  isSelected = !isSelected;
-                                });
-                              },
-                              child: Container(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 4.0, horizontal: 8.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if (isMessageFromCurrentUser)
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.end,
-                                          children: [
-                                            if (_selectedMessageIndex ==
-                                                    directMessages
-                                                        .tDirectMessages![index]
-                                                        .id &&
-                                                !isSelected)
-                                              Align(
-                                                child: Container(
+                    );
+                  } else {
+                    final directMessages = snapshot.data!;
+
+                    int directMessage =
+                        directMessages.tDirectMessages!.length.toInt();
+                    return ListView.builder(
+                      controller: _scrollController,
+                      itemCount: directMessage,
+                      itemBuilder: (context, index) {
+                        var channelStar = directMessages.tDirectMessages;
+                        List<int> tempStar =
+                            directMessages.tDirectStarMsgids!.toList();
+
+                        bool isStared =
+                            tempStar.contains(channelStar![index].id);
+
+                        String message = directMessages
+                            .tDirectMessages![index].directmsg!
+                            .toString();
+
+                        int count = directMessages
+                            .tDirectMessages![index].count!
+                            .toInt();
+                        String time = directMessages
+                            .tDirectMessages![index].createdAt
+                            .toString();
+                        DateTime date = DateTime.parse(time).toLocal();
+
+                        String created_at =
+                            DateFormat('MMM d, yyyy hh:mm a').format(date);
+
+                        bool isMessageFromCurrentUser = currentUserName ==
+                            directMessages.tDirectMessages![index].name;
+                        int directMsgIds =
+                            directMessages.tDirectMessages![index].id!.toInt();
+
+                        return SingleChildScrollView(
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedMessageIndex =
+                                    directMessages.tDirectMessages![index].id;
+                                isSelected = !isSelected;
+                              });
+                            },
+                            child: Container(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 4.0, horizontal: 8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (isMessageFromCurrentUser)
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          if (_selectedMessageIndex ==
+                                                  directMessages
+                                                      .tDirectMessages![index]
+                                                      .id &&
+                                              !isSelected)
+                                            Align(
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(3.0),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          10.0),
+                                                ),
+                                                child: Padding(
                                                   padding:
-                                                      const EdgeInsets.all(3.0),
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.circular(10.0),
+                                                      const EdgeInsets.only(
+                                                    bottom: 10,
                                                   ),
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.only(
-                                                      bottom: 10,
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceEvenly,
-                                                      children: [
-                                                        IconButton(
-                                                          onPressed: () async {
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceEvenly,
+                                                    children: [
+                                                      IconButton(
+                                                        onPressed: () async {
+                                                          await directMessageService
+                                                              .deleteMsg(
+                                                                  _selectedMessageIndex!);
+                                                        },
+                                                        icon: const Icon(
+                                                            Icons.delete),
+                                                        color: Colors.red,
+                                                      ),
+                                                      IconButton(
+                                                        onPressed: () async {
+                                                          Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                  builder: (_) => DirectMessageThreadWidget(
+                                                                      user_status:
+                                                                          widget
+                                                                              .user_status,
+                                                                      receiverId:
+                                                                          widget
+                                                                              .userId,
+                                                                      directMsgId:
+                                                                          directMsgIds,
+                                                                      receiverName:
+                                                                          widget
+                                                                              .receiverName)));
+                                                        },
+                                                        icon: const Icon(
+                                                            Icons.reply),
+                                                        color: const Color
+                                                            .fromARGB(
+                                                            255, 15, 15, 15),
+                                                      ),
+                                                      IconButton(
+                                                        icon: Icon(
+                                                          Icons.star,
+                                                          color: isStared
+                                                              ? Colors.yellow
+                                                              : Colors.grey,
+                                                        ),
+                                                        onPressed: () async {
+                                                          if (isStared) {
                                                             await directMessageService
-                                                                .deleteMsg(
+                                                                .directUnStarMsg(
                                                                     _selectedMessageIndex!);
-                                                          },
-                                                          icon: const Icon(
-                                                              Icons.delete),
-                                                          color: Colors.red,
-                                                        ),
-                                                        IconButton(
-                                                          onPressed: () async {
-                                                            Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                    builder: (_) => DirectMessageThreadWidget(
-                                                                      user_status: widget.user_status,
-                                                                        receiverId:
-                                                                            widget
-                                                                                .userId,
-                                                                        directMsgId:
-                                                                            directMsgIds,
-                                                                        receiverName:
-                                                                            widget
-                                                                                .receiverName)));
-                                                          },
-                                                          icon: const Icon(
-                                                              Icons.reply),
-                                                          color:
-                                                              const Color.fromARGB(
-                                                                  255, 15, 15, 15),
-                                                        ),
-                                                        IconButton(
-                                                          icon: Icon(
-                                                            Icons.star,
-                                                            color: isStared
-                                                                ? Colors.yellow
-                                                                : Colors.grey,
-                                                          ),
-                                                          onPressed: () async {
-                                                            if (isStared) {
-                                                              await directMessageService
-                                                                  .directUnStarMsg(
-                                                                      _selectedMessageIndex!);
-                                                            } else {
-                                                              await directMessageService
-                                                                  .directStarMsg(
-                                                                      widget.userId,
-                                                                      _selectedMessageIndex!);
-                                                            }
-                                                          },
-                                                        ),
-                                                      ],
-                                                    ),
+                                                          } else {
+                                                            await directMessageService
+                                                                .directStarMsg(
+                                                                    widget
+                                                                        .userId,
+                                                                    _selectedMessageIndex!);
+                                                          }
+                                                        },
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                               ),
-                                            Container(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width *
-                                                  0.5,
-                                              // constraints: const BoxConstraints(
-                                              //     maxWidth: 200),
-                                              decoration: const BoxDecoration(
-                                                borderRadius: BorderRadius.only(
-                                                    topLeft: Radius.circular(10),
-                                                    topRight: Radius.circular(10),
-                                                    bottomLeft: Radius.circular(10),
-                                                    bottomRight: Radius.zero),
-                                                color: Color.fromARGB(
-                                                    110, 121, 120, 124),
-                                              ),
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(8.0),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.end,
-                                                  children: [
-                                                    SelectableText(
-                                                      message,
-                                                      style: const TextStyle(
-                                                        color: Color.fromARGB(
-                                                            255, 0, 0, 0),
-                                                      ),
+                                            ),
+                                          Container(
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.5,
+                                            // constraints: const BoxConstraints(
+                                            //     maxWidth: 200),
+                                            decoration: const BoxDecoration(
+                                              borderRadius: BorderRadius.only(
+                                                  topLeft: Radius.circular(10),
+                                                  topRight: Radius.circular(10),
+                                                  bottomLeft:
+                                                      Radius.circular(10),
+                                                  bottomRight: Radius.zero),
+                                              color: Color.fromARGB(
+                                                  110, 121, 120, 124),
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.all(8.0),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  SelectableText(
+                                                    message,
+                                                    style: const TextStyle(
+                                                      color: Color.fromARGB(
+                                                          255, 0, 0, 0),
                                                     ),
-                                                    Text(
-                                                      created_at,
+                                                  ),
+                                                  Text(
+                                                    created_at,
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: Color.fromARGB(
+                                                          255, 15, 15, 15),
+                                                    ),
+                                                  ),
+                                                  RichText(
+                                                    text: TextSpan(
+                                                      text: '$count',
                                                       style: const TextStyle(
-                                                        fontSize: 10,
+                                                        fontSize: 12,
                                                         color: Color.fromARGB(
                                                             255, 15, 15, 15),
                                                       ),
-                                                    ),
-                                                    RichText(
-                                                      text: TextSpan(
-                                                        text: '$count',
-                                                        style: const TextStyle(
-                                                          fontSize: 12,
-                                                          color: Color.fromARGB(
-                                                              255, 15, 15, 15),
-                                                        ),
-                                                        children: const [
-                                                          WidgetSpan(
-                                                            child: Padding(
-                                                              padding:
-                                                                  EdgeInsets.only(
-                                                                      left: 4.0),
-                                                              child:
-                                                                  Icon(Icons.reply),
-                                                            ),
+                                                      children: const [
+                                                        WidgetSpan(
+                                                          child: Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    left: 4.0),
+                                                            child: Icon(
+                                                                Icons.reply),
                                                           ),
-                                                        ],
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      else
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          children: [
-                                            Container(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width *
-                                                  0.5,
-                                              // constraints: const BoxConstraints(
-                                              //     maxWidth: 200),
-                                              decoration: const BoxDecoration(
-                                                borderRadius: BorderRadius.only(
-                                                    topLeft: Radius.circular(10),
-                                                    topRight: Radius.circular(10),
-                                                    bottomRight:
-                                                        Radius.circular(10),
-                                                    bottomLeft: Radius.zero),
-                                                color: Color.fromARGB(
-                                                    111, 113, 81, 228),
-                                              ),
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(8.0),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    SelectableText(
-                                                      message,
-                                                      style: const TextStyle(
-                                                        color: Colors.black,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      created_at,
-                                                      style: const TextStyle(
-                                                        fontSize: 10,
-                                                        color: Colors.grey,
-                                                      ),
-                                                    ),
-                                                    RichText(
-                                                      text: TextSpan(
-                                                        text: '$count',
-                                                        style: const TextStyle(
-                                                          fontSize: 12,
-                                                          color: Color.fromARGB(
-                                                              255, 15, 15, 15),
-                                                        ),
-                                                        children: const [
-                                                          WidgetSpan(
-                                                            child: Padding(
-                                                              padding:
-                                                                  EdgeInsets.only(
-                                                                      left: 4.0),
-                                                              child:
-                                                                  Icon(Icons.reply),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                            if (_selectedMessageIndex ==
-                                                    directMessages
-                                                        .tDirectMessages![index]
-                                                        .id &&
-                                                !isSelected)
-                                              Align(
-                                                child: Container(
-                                                  padding:
-                                                      const EdgeInsets.all(3.0),
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.circular(10.0),
-                                                  ),
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.only(
-                                                      bottom: 8,
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceEvenly,
-                                                      children: [
-                                                        IconButton(
-                                                          icon: Icon(
-                                                            Icons.star,
-                                                            color: isStared
-                                                                ? Colors.yellow
-                                                                : Colors.grey,
-                                                          ),
-                                                          onPressed: () async {
-                                                            if (isStared) {
-                                                              await directMessageService
-                                                                  .directUnStarMsg(
-                                                                      _selectedMessageIndex!);
-                                                            } else {
-                                                              await directMessageService
-                                                                  .directStarMsg(
-                                                                      widget.userId,
-                                                                      _selectedMessageIndex!);
-                                                            }
-                                                          },
-                                                        ),
-                                                        IconButton(
-                                                          onPressed: () {
-                                                            Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                    builder: (_) => DirectMessageThreadWidget(
-                                                                      user_status: widget.user_status,
-                                                                        receiverId:
-                                                                            widget
-                                                                                .userId,
-                                                                        directMsgId:
-                                                                            _selectedMessageIndex!,
-                                                                        receiverName:
-                                                                            widget
-                                                                                .receiverName)));
-                                                          },
-                                                          icon: const Icon(
-                                                              Icons.reply),
-                                                          color:
-                                                              const Color.fromARGB(
-                                                                  255, 15, 15, 15),
-                                                        ),
-                                                        IconButton(
-                                                          onPressed: () async {
-                                                            await directMessageService
-                                                                .deleteMsg(
-                                                                    _selectedMessageIndex!);
-                                                          },
-                                                          icon: const Icon(
-                                                              Icons.delete),
-                                                          color: Colors.red,
                                                         ),
                                                       ],
                                                     ),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    else
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.5,
+                                            // constraints: const BoxConstraints(
+                                            //     maxWidth: 200),
+                                            decoration: const BoxDecoration(
+                                              borderRadius: BorderRadius.only(
+                                                  topLeft: Radius.circular(10),
+                                                  topRight: Radius.circular(10),
+                                                  bottomRight:
+                                                      Radius.circular(10),
+                                                  bottomLeft: Radius.zero),
+                                              color: Color.fromARGB(
+                                                  111, 113, 81, 228),
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.all(8.0),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  SelectableText(
+                                                    message,
+                                                    style: const TextStyle(
+                                                      color: Colors.black,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    created_at,
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                  RichText(
+                                                    text: TextSpan(
+                                                      text: '$count',
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        color: Color.fromARGB(
+                                                            255, 15, 15, 15),
+                                                      ),
+                                                      children: const [
+                                                        WidgetSpan(
+                                                          child: Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    left: 4.0),
+                                                            child: Icon(
+                                                                Icons.reply),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          if (_selectedMessageIndex ==
+                                                  directMessages
+                                                      .tDirectMessages![index]
+                                                      .id &&
+                                              !isSelected)
+                                            Align(
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(3.0),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          10.0),
+                                                ),
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                    bottom: 8,
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceEvenly,
+                                                    children: [
+                                                      IconButton(
+                                                        icon: Icon(
+                                                          Icons.star,
+                                                          color: isStared
+                                                              ? Colors.yellow
+                                                              : Colors.grey,
+                                                        ),
+                                                        onPressed: () async {
+                                                          if (isStared) {
+                                                            await directMessageService
+                                                                .directUnStarMsg(
+                                                                    _selectedMessageIndex!);
+                                                          } else {
+                                                            await directMessageService
+                                                                .directStarMsg(
+                                                                    widget
+                                                                        .userId,
+                                                                    _selectedMessageIndex!);
+                                                          }
+                                                        },
+                                                      ),
+                                                      IconButton(
+                                                        onPressed: () {
+                                                          Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                  builder: (_) => DirectMessageThreadWidget(
+                                                                      user_status:
+                                                                          widget
+                                                                              .user_status,
+                                                                      receiverId:
+                                                                          widget
+                                                                              .userId,
+                                                                      directMsgId:
+                                                                          _selectedMessageIndex!,
+                                                                      receiverName:
+                                                                          widget
+                                                                              .receiverName)));
+                                                        },
+                                                        icon: const Icon(
+                                                            Icons.reply),
+                                                        color: const Color
+                                                            .fromARGB(
+                                                            255, 15, 15, 15),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                               ),
-                                          ],
-                                        ),
-                                    ],
-                                  ),
+                                            ),
+                                        ],
+                                      ),
+                                  ],
                                 ),
                               ),
                             ),
-                          );
-                        },
-                      );
-                    
-                  
-                }
-              },
+                          ),
+                        );
+                      },
+                    );
+                  }
+                },
+              ),
             ),
-          ),
-          
-          TextFormField(
-      controller: messageTextController,
-      keyboardType: TextInputType.text,
-      textInputAction: TextInputAction.send,
-      maxLines: null,
-      cursorColor: kPrimaryColor,
-      decoration: InputDecoration(
-        hintText: "Sends Messages",
-        suffixIcon: GestureDetector(
-          onTap: () {
-            setState() {
-              isreading = !isreading;
-            }
-      
-            sendMessage();
-          },
-          child: const Icon(
-            Icons.telegram,
-            color: Colors.blue,
-            size: 35,
-          ),
-        ),
-      ),
-            ),
-        ],
-      ),
-      // bottomSheet: TextFormField(
-      //   controller: messageTextController,
-      //   keyboardType: TextInputType.text,
-      //   textInputAction: TextInputAction.send,
-      //   cursorColor: kPrimaryColor,
-      //   decoration: InputDecoration(
-      //     hintText: "Sends Messages",
-      //     suffixIcon: GestureDetector(
-      //       onTap: () {
-      //         setState() {
-      //           isreading = !isreading;
-      //         }
+            TextFormField(
+              controller: messageTextController,
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.send,
+              maxLines: null,
+              cursorColor: kPrimaryColor,
+              decoration: InputDecoration(
+                hintText: "Sends Messages",
+                suffixIcon: GestureDetector(
+                  onTap: () {
+                    setState() {
+                      isreading = !isreading;
+                    }
 
-      //         sendMessage();
-      //       },
-      //       child: const Icon(
-      //         Icons.telegram,
-      //         color: Colors.blue,
-      //         size: 35,
-      //       ),
-      //     ),
-      //   ),
-      // ),
-    );
-    }
-    else {
+                    sendMessage();
+                  },
+                  child: const Icon(
+                    Icons.telegram,
+                    color: Colors.blue,
+                    size: 35,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        // bottomSheet: TextFormField(
+        //   controller: messageTextController,
+        //   keyboardType: TextInputType.text,
+        //   textInputAction: TextInputAction.send,
+        //   cursorColor: kPrimaryColor,
+        //   decoration: InputDecoration(
+        //     hintText: "Sends Messages",
+        //     suffixIcon: GestureDetector(
+        //       onTap: () {
+        //         setState() {
+        //           isreading = !isreading;
+        //         }
+
+        //         sendMessage();
+        //       },
+        //       child: const Icon(
+        //         Icons.telegram,
+        //         color: Colors.blue,
+        //         size: 35,
+        //       ),
+        //     ),
+        //   ),
+        // ),
+      );
+    } else {
       return CustomLogOut();
     }
   }
