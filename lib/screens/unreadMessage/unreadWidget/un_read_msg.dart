@@ -33,13 +33,14 @@ class _UnReadDirectMsgState extends State<UnReadDirectMsg> {
 
   Future<void> _fetchData() async {
     int currentUserId = SessionStore.sessionData!.currentUser!.id!.toInt();
+    int workspaceId = SessionStore.sessionData!.mWorkspace!.id!.toInt();
     try {
       var token = await AuthController().getToken();
       var unreadListStore = await UnreadMessageService(Dio(BaseOptions(
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
-          }))).getAllUnreadMsg(currentUserId, token!);
+          }))).getAllUnreadMsg(currentUserId, workspaceId, token!);
       setState(() {
         snapshot = unreadListStore;
       });

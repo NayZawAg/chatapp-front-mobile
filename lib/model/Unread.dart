@@ -4,11 +4,13 @@ class UnreadMsg{
   List<Un_DirectMsg>? unreadDirectMsg;
   List<Un_G_message>? unreadGpMsg;
   List<Un_Thread>? unreadThreads;
+  List<Un_G_Thread>? unreadGpThreads;
 
   UnreadMsg({
     this.unreadDirectMsg,
     this.unreadGpMsg,
-    this.unreadThreads
+    this.unreadThreads,
+    this.unreadGpThreads
   });
 
   UnreadMsg.fromJson(Map<String,dynamic> json){
@@ -30,6 +32,12 @@ class UnreadMsg{
         unreadGpMsg!.add(new Un_G_message.fromJson(v));
       });
     }
+    if(json['t_group_threads'] != null) {
+      unreadGpThreads = <Un_G_Thread>[];
+      json['t_group_threads'].forEach((v){
+        unreadGpThreads!.add(new Un_G_Thread.fromJson(v));
+      });
+    }
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
@@ -42,7 +50,9 @@ class UnreadMsg{
     if(this.unreadGpMsg != null){
       data['t_group_messages'] = this.unreadGpMsg!.map((e) => e.toJson()).toList();
     }
-  
+    if (this.unreadGpThreads != null) {
+      data['t_group_threads'] = this.unreadGpThreads!.map((e)=>e.toJson()).toList();
+    }  
     return data;
   }
 }

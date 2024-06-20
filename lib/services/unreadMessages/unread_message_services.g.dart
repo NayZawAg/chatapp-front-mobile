@@ -7,7 +7,8 @@ part of 'unread_message_services.dart';
 // **************************************************************************
 
 // ignore_for_file: unnecessary_brace_in_string_interps,no_leading_underscores_for_local_identifiers
-
+List t_user_channel_ids=[];
+List t_user_channel_thread_ids=[];
 class _UnreadMessageService implements UnreadMessageService {
   _UnreadMessageService(
     this._dio, {
@@ -23,10 +24,11 @@ class _UnreadMessageService implements UnreadMessageService {
   @override
   Future<UnreadMsg> getAllUnreadMsg(
     int userId,
+    int workspaceId,
     String token,
   ) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{r'user_id': userId};
+    final queryParameters = <String, dynamic>{r'user_id': userId, r'workspace_id': workspaceId};
     final _headers = <String, dynamic>{r'Authorization': token};
     _headers.removeWhere((k, v) => v == null);
     const Map<String, dynamic>? _data = null;
@@ -48,6 +50,8 @@ class _UnreadMessageService implements UnreadMessageService {
               baseUrl,
             ))));
     final value = UnreadMsg.fromJson(_result.data!);
+    t_user_channel_ids = _result.data!['t_user_channelids'];
+    t_user_channel_thread_ids = _result.data!['t_user_channelthreadids'];
     return value;
   }
 

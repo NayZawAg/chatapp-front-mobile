@@ -10,5 +10,5 @@ abstract class UnreadMessageService {
 
   @GET('')
   Future<UnreadMsg> getAllUnreadMsg(
-      @Query('user_id') int userId, @Header('Authorization') String token);
+      @Query('user_id') int userId, @Query('workspace_id') int workspaceId, @Header('Authorization') String token);
 }
