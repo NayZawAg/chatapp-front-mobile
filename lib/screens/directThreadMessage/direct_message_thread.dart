@@ -296,9 +296,11 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget>
                             String name = messageInfo
                                 .tDirectThreads![index].name
                                 .toString();
-
                             int replyMessagesIds =
                                 messageInfo.tDirectThreads![index].id!.toInt();
+                            String currentUserName =
+                                SessionStore.sessionData!.currentUser!.name!;
+
                             List<int> replyStarMsgId =
                                 messageInfo.tDirectStarThreadMsgids!.toList();
                             bool isStar =
@@ -420,16 +422,17 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget>
                                                     ? Colors.yellow
                                                     : Colors.grey,
                                               ),
-                                              IconButton(
-                                                  onPressed: () async {
-                                                    await deleteReply(
-                                                        selectedIndex!);
-                                                  },
-                                                  icon: const Icon(
-                                                    Icons.delete,
-                                                    size: 20,
-                                                    color: Colors.red,
-                                                  )),
+                                              if (currentUserName == name)
+                                                IconButton(
+                                                    onPressed: () async {
+                                                      await deleteReply(
+                                                          selectedIndex!);
+                                                    },
+                                                    icon: const Icon(
+                                                      Icons.delete,
+                                                      size: 20,
+                                                      color: Colors.red,
+                                                    )),
                                             ],
                                           )
                                         ],
