@@ -29,8 +29,6 @@ class _ConfirmPageState extends State<ConfirmPage> {
   final confirmPasswordController = TextEditingController();
   final _apiService = MemberInvitation();
 
-  
-
   String? channelName;
   String? workspaceName;
 
@@ -39,7 +37,6 @@ class _ConfirmPageState extends State<ConfirmPage> {
       _formKey.currentState!.save();
 
       try {
-
         await _apiService.memberInvitationConfirm(
           passwordController.text,
           confirmPasswordController.text,
@@ -50,8 +47,6 @@ class _ConfirmPageState extends State<ConfirmPage> {
           widget.workspaceId!,
         );
 
-        
-
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text(
             'Sign Up Successful!',
@@ -59,11 +54,12 @@ class _ConfirmPageState extends State<ConfirmPage> {
           backgroundColor: Colors.green,
           duration: Duration(seconds: 3),
         ));
+
         Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const LoginForm(),
-            ));
+          context,
+          MaterialPageRoute(
+            builder: (context) => const LoginForm(),
+        ));
       } catch (e) {
         print("Error: $e");
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

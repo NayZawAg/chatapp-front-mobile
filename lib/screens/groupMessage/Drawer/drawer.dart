@@ -11,22 +11,22 @@ enum ChannelType { public, private }
 
 class DrawerPage extends StatefulWidget {
   final dynamic channelName,
-      memberCount,
-      channelStatus,
-      channelId,
-      memberName,
-      adminID;
+    memberCount,
+    channelStatus,
+    channelId,
+    memberName,
+    adminID;
   final member;
 
   DrawerPage(
-      {super.key,
-      this.channelName,
-      this.adminID,
-      this.memberCount,
-      this.channelStatus,
-      this.member,
-      this.channelId,
-      this.memberName});
+    {super.key,
+    this.channelName,
+    this.adminID,
+    this.memberCount,
+    this.channelStatus,
+    this.member,
+    this.channelId,
+    this.memberName});
 
   @override
   State<DrawerPage> createState() => _DrawerPageState();
@@ -34,8 +34,6 @@ class DrawerPage extends StatefulWidget {
 
 String workSpaceName =
     SessionStore.sessionData!.mWorkspace!.workspaceName.toString();
-
-    
 
 class _DrawerPageState extends State<DrawerPage> {
   bool light = false;
