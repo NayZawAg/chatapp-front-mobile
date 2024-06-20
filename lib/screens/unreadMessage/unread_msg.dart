@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/constants.dart';
+import 'package:flutter_frontend/screens/unreadMessage/unreadWidget/un_read_gp.dart';
+import 'package:flutter_frontend/screens/unreadMessage/unreadWidget/un_read_gp_thread.dart';
 import 'package:flutter_frontend/screens/unreadMessage/unreadWidget/un_read_msg.dart';
 import 'package:flutter_frontend/screens/unreadMessage/unreadWidget/un_read_thread.dart';
 
@@ -16,7 +18,8 @@ class _unreadMessageState extends State<unreadMessage> {
     
     const UnReadDirectMsg(),
     const UnReadDirectThread(),
-    // const unReadDirectGp()
+    const UnReadDirectGroup(),
+    const UnReadGroupThread(),
   ];
 
   @override
@@ -43,7 +46,7 @@ class _unreadMessageState extends State<unreadMessage> {
                 FilledButton(
                   onPressed: () {
                     setState(() {
-                      isSelected = 1;
+                      isSelected = 1;      
                     });
                   },
                    style: ButtonStyle(
@@ -63,7 +66,7 @@ class _unreadMessageState extends State<unreadMessage> {
                   child: FilledButton(
                     onPressed: () {
                       setState(() {
-                        isSelected = 2;
+                        isSelected = 2;                        
                       });
                     },
                      style: ButtonStyle(
@@ -79,24 +82,45 @@ class _unreadMessageState extends State<unreadMessage> {
                 const SizedBox(
                   width: 20.0,
                 ),
-                // Padding(
-                //   padding: const EdgeInsets.all(8.0),
-                //   child: FilledButton(
-                //     onPressed: () {
-                //       setState(() {
-                //         isSelected = 3;
-                //       });
-                //     },
-                //      style: ButtonStyle(
-                //       backgroundColor:isSelected==3 ? 
-                //       MaterialStateProperty.all<Color>(navColor):
-                //       MaterialStateProperty.all<Color>(kPrimarybtnColor)),
-                //     child: const  Padding(
-                //       padding:  EdgeInsets.all(15.0),
-                //       child:  Text("Unread Group Message",style: TextStyle(fontSize: 17)),
-                //     ),
-                //   ),
-                // ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        isSelected = 3;                        
+                      });
+                    },
+                     style: ButtonStyle(
+                      backgroundColor:isSelected==3 ? 
+                      MaterialStateProperty.all<Color>(navColor):
+                      MaterialStateProperty.all<Color>(kbtn)),
+                    child:const  Padding(
+                      padding:  EdgeInsets.all(15.0),
+                      child:  Text("Unread Group Message"),
+                    ),
+                  ),
+                ),
+                const SizedBox(
+                  width: 20.0,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        isSelected = 4;                        
+                      });
+                    },
+                     style: ButtonStyle(
+                      backgroundColor:isSelected==4 ? 
+                      MaterialStateProperty.all<Color>(navColor):
+                      MaterialStateProperty.all<Color>(kbtn)),
+                    child:const  Padding(
+                      padding:  EdgeInsets.all(15.0),
+                      child:  Text("Unread Group Threads"),
+                    ),
+                  ),
+                ),
                 
                 
               ],

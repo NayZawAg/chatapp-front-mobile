@@ -32,13 +32,14 @@ class _UnReadDirectThreadState extends State<UnReadDirectThread> {
 
   Future<void> _fetchData() async {
     int currentUserId = SessionStore.sessionData!.currentUser!.id!.toInt();
+    int workspaceId = SessionStore.sessionData!.mWorkspace!.id!.toInt();
     try {
       var token = await AuthController().getToken();
       var unreadListStore = await UnreadMessageService(Dio(BaseOptions(
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
-          }))).getAllUnreadMsg(currentUserId, token!);
+          }))).getAllUnreadMsg(currentUserId, workspaceId, token!);
       setState(() {
         snapshot = unreadListStore;
       });
@@ -63,7 +64,6 @@ class _UnReadDirectThreadState extends State<UnReadDirectThread> {
           child: ListView.builder(
               itemCount: snapshot!.unreadThreads!.length,
               itemBuilder: (context, index) {
-                
                 String directThreadName =
                     snapshot!.unreadThreads![index].name.toString();
                 List<String> initials = directThreadName.split(" ").map((e) => e.substring(0, 1)).toList();

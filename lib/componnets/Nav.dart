@@ -172,11 +172,12 @@ class _NavState extends State<Nav> {
     int currentUserId = SessionStore.sessionData!.currentUser!.id!.toInt();
     try {
       var token = await AuthController().getToken();
+      int workspaceId = SessionStore.sessionData!.mWorkspace!.id!.toInt();
       var unreadListStore = await UnreadMessageService(Dio(BaseOptions(
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
-          }))).getAllUnreadMsg(currentUserId, token!);
+          }))).getAllUnreadMsg(currentUserId, workspaceId, token!);
       UnreadStore.unreadMsg = unreadListStore;
     } catch (e) {
       rethrow;
