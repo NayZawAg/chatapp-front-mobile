@@ -5,7 +5,9 @@ class UnreadMsg {
   List<Un_G_message>? unreadGpMsg;
   List<Un_Thread>? unreadThreads;
   List<Un_G_Thread>? unreadGpThreads;
-  UnreadMsg({this.unreadDirectMsg, this.unreadGpMsg, this.unreadThreads, this.unreadGpThreads});
+  List<dynamic>? t_user_channel_ids;
+  List<dynamic>? t_user_channel_thread_ids;
+  UnreadMsg({this.unreadDirectMsg, this.unreadGpMsg, this.unreadThreads, this.unreadGpThreads, this.t_user_channel_ids, this.t_user_channel_thread_ids});
   UnreadMsg.fromJson(Map<String, dynamic> json) {
     if (json['t_direct_messages'] != null) {
       unreadDirectMsg = <Un_DirectMsg>[];
@@ -31,6 +33,9 @@ class UnreadMsg {
         unreadGpThreads!.add(new Un_G_Thread.fromJson(v));
       });
     }
+    t_user_channel_ids = json['t_user_channelids'];
+    t_user_channel_thread_ids = json['t_user_channelthreadids'];
+
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
@@ -50,6 +55,8 @@ class UnreadMsg {
       data['t_group_threads'] =
           this.unreadGpThreads!.map((e) => e.toJson()).toList();
     }
+    data['t_user_channelids'] = this.t_user_channel_ids;
+    data['t_user_channelthreadids'] = this.t_user_channel_thread_ids;
     return data;
   }
 }
