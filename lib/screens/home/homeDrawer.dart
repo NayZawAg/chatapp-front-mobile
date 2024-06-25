@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_frontend/screens/userEdit/user_edit.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 import 'package:flutter_frontend/constants.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
@@ -28,11 +29,12 @@ class _HomeDrawerState extends State<HomeDrawer> {
   }
 
   final _apiService = LoginService(Dio());
-  
+
   @override
   Widget build(BuildContext context) {
-     List<dynamic> initials = widget.workspacename.split(" ").map((e) => e.substring(0, 1)).toList();
-      String w_name = initials.join("");
+    List<dynamic> initials =
+        widget.workspacename.split(" ").map((e) => e.substring(0, 1)).toList();
+    String wName = initials.join("");
     return Drawer(
       backgroundColor: kPriamrybackground,
       child: Column(
@@ -71,12 +73,12 @@ class _HomeDrawerState extends State<HomeDrawer> {
                           child: Padding(
                             padding: const EdgeInsets.all(1.0),
                             child: Text(
-                             w_name,
+                              wName,
                               style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: kPriamrybackground),
-                                                    ),
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: kPriamrybackground),
+                            ),
                           ),
                         ),
                       ),
@@ -100,6 +102,28 @@ class _HomeDrawerState extends State<HomeDrawer> {
           Container(
             child: Column(
               children: [
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => UserEdit(
+                                  username: widget.username.toString(),
+                                  email: widget.useremail.toString(),
+                                  workspaceName:
+                                      widget.workspacename.toString(),
+                                )));
+                  },
+                  hoverColor: Colors.grey.withOpacity(0.3),
+                  child: ListTile(
+                    leading: Icon(Icons.person_outlined),
+                    title: Text("User Name Edit"),
+                  ),
+                ),
+                const SizedBox(
+                  height: 5,
+                ),
+                // ///////  User Management
                 InkWell(
                   onTap: () {
                     Navigator.push(
@@ -171,7 +195,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
                 ),
                 const Divider(),
                 /////// log out //////////////
-                Container(
+                SizedBox(
                     width: 180,
                     height: 50,
                     child: SlideAction(
@@ -210,6 +234,5 @@ class _HomeDrawerState extends State<HomeDrawer> {
         ],
       ),
     );
-  
   }
 }
