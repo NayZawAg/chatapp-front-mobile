@@ -59,6 +59,7 @@ class _UnReadDirectGpState extends State<UnReadDirectGroup> {
           itemCount:snapshot!.unreadGpMsg!.length,
           itemBuilder:(context,index){
             final groupMsgId = snapshot!.unreadGpMsg![index].id;
+            final tUserChannelIds = snapshot!.t_user_channel_ids!.toList();
             String name =
                   snapshot!.unreadGpMsg![index].name.toString();
                List<String> initials = name.split(" ").map((e) => e.substring(0, 1)).toList();
@@ -77,7 +78,7 @@ class _UnReadDirectGpState extends State<UnReadDirectGroup> {
               String createdAt =
                   DateFormat('MMM d, yyyy hh:mm a').format(time);
               bool shouldDisplay = false;
-            for(var tUserChannelId in t_user_channel_ids){
+            for(var tUserChannelId in tUserChannelIds){
               if(int.parse(tUserChannelId) == groupMsgId){  
                 shouldDisplay = true;
               }           

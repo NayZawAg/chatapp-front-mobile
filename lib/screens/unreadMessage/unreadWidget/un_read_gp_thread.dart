@@ -59,6 +59,7 @@ class _UnReadGroupThreadState extends State<UnReadGroupThread> {
             itemCount: snapshot!.unreadGpThreads!.length,
             itemBuilder: (context, index) {
               final groupThreadId = snapshot!.unreadGpThreads![index].id;
+              final tUserChannelThreadIds = snapshot!.t_user_channel_thread_ids!.toList();
               String name =
                   snapshot!.unreadGpThreads![index].name.toString();
                List<String> initials = name.split(" ").map((e) => e.substring(0, 1)).toList();
@@ -77,7 +78,7 @@ class _UnReadGroupThreadState extends State<UnReadGroupThread> {
               String createdAt =
                   DateFormat('MMM d, yyyy hh:mm a').format(time);
               bool shouldDisplay = false;
-              for(var tUserChannelThreadId in t_user_channel_thread_ids){
+              for(var tUserChannelThreadId in tUserChannelThreadIds){
                 if(int.parse(tUserChannelThreadId) == groupThreadId){
                   shouldDisplay = true;
                 }
