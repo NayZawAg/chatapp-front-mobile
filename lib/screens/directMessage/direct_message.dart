@@ -158,7 +158,8 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
             else if (messageContent.containsKey('messaged_star')) {
               var messageStarData = messageContent['messaged_star'];
 
-              if (messageStarData != null && messageStarData['userid'] == currentUserId) {
+              if (messageStarData != null &&
+                  messageStarData['userid'] == currentUserId) {
                 var starId = messageStarData['id'];
                 var directMsgId = messageStarData['directmsgid'];
 
@@ -168,7 +169,8 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                   tempStarMsgids!.add(directMsgId);
                 });
               } else {}
-            } else if (messageContent.containsKey('unstared_message') && messageContent['unstared_message']['userid'] == currentUserId) {
+            } else if (messageContent.containsKey('unstared_message') &&
+                messageContent['unstared_message']['userid'] == currentUserId) {
               var unstaredMsg = messageContent['unstared_message'];
               var directmsgid = unstaredMsg['directmsgid'];
 
@@ -351,7 +353,6 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
               bool isMessageFromCurrentUser =
                   currentUserName == channelStar[index].name;
               int directMsgIds = channelStar[index].id ?? 0;
-            
 
               return SingleChildScrollView(
                 child: InkWell(

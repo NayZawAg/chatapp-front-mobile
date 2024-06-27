@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/const/file_upload/download_file_web.dart';
 
-class BuildFilecontainer{
-  
-static Widget buildFileContainer(
-      String fileUrl, bool isExcel, bool isTxt, bool isPdf, BuildContext context) {
+class BuildFilecontainer {
+  static Widget buildFileContainer(String fileUrl, bool isExcel, bool isTxt,
+      bool isPdf, BuildContext context) {
     return Column(
       children: [
         const SizedBox(height: 8),

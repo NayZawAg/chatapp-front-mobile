@@ -51,6 +51,7 @@ class DirectMessages {
     return data;
   }
 }
+
 class MUser {
   int? id;
   String? name;
@@ -104,6 +105,7 @@ class MUser {
     return data;
   }
 }
+
 class TDirectMessages {
   String? name;
   String? directmsg;
@@ -112,7 +114,12 @@ class TDirectMessages {
   String? createdAt;
   int? count;
   TDirectMessages(
-      {this.name, this.directmsg, this.id, this.createdAt, this.count, this.fileUrls});
+      {this.name,
+      this.directmsg,
+      this.id,
+      this.createdAt,
+      this.count,
+      this.fileUrls});
   TDirectMessages.fromJson(Map<String, dynamic> json) {
     name = json['name'];
     directmsg = json['directmsg'];
@@ -132,6 +139,7 @@ class TDirectMessages {
     return data;
   }
 }
+
 class TempDirectStarMsgids {
   int? directmsgid;
   int? id;
@@ -147,19 +155,19 @@ class TempDirectStarMsgids {
     return data;
   }
 }
+
 class TDirectMessageDates {
   String? createdDate;
   int? id;
   TDirectMessageDates({this.createdDate, this.id});
-   TDirectMessageDates.fromJson(Map<String, dynamic> json) {
+  TDirectMessageDates.fromJson(Map<String, dynamic> json) {
     createdDate = json['created_date'];
     id = json['id'];
-}  Map<String, dynamic> toJson() {
+  }
+  Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['created_date'] = this.createdDate;
     data['id'] = this.id;
     return data;
   }
-
-  
-  }
+}

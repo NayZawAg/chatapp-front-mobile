@@ -4,7 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 class PermissionClass {
   TargetPlatform? platform;
 
- Future<bool> checkPermission() async {
+  Future<bool> checkPermission() async {
     if (platform == TargetPlatform.android) {
       final status = await Permission.storage.status;
       if (status != PermissionStatus.granted) {

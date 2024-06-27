@@ -399,7 +399,6 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                               mainAxisAlignment:
                                                   MainAxisAlignment.spaceEvenly,
                                               children: [
-                                               
                                                 IconButton(
                                                   onPressed: () async {
                                                     if (_selectedMessageIndex !=
@@ -503,10 +502,12 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.end,
                                           children: [
-                                            if(sendername.isNotEmpty)
-                                            Text(sendername, style: const TextStyle(
-                                              color: Colors.white
-                                            ) ,),
+                                            if (sendername.isNotEmpty)
+                                              Text(
+                                                sendername,
+                                                style: const TextStyle(
+                                                    color: Colors.white),
+                                              ),
                                             if (message.isNotEmpty)
                                               SelectableText(
                                                 message,
@@ -579,10 +580,12 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            if(sendername.isNotEmpty)
-                                            Text(sendername, style: TextStyle(
-                                              color: Colors.white
-                                            ),),
+                                            if (sendername.isNotEmpty)
+                                              Text(
+                                                sendername,
+                                                style: TextStyle(
+                                                    color: Colors.white),
+                                              ),
                                             if (message.isNotEmpty)
                                               SelectableText(
                                                 message,
@@ -719,21 +722,22 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                   color: const Color.fromARGB(
                                                       255, 15, 15, 15),
                                                 ),
-                                                if(sendUserId == currentUserId)
-                                                IconButton(
-                                                  onPressed: () async {
-                                                    if (_selectedMessageIndex !=
-                                                        null) {
-                                                      await _apiSerive.deleteGroupMessage(
-                                                          tGroupMessages![index]
-                                                              .id!,
-                                                          widget.channelID!);
-                                                    }
-                                                  },
-                                                  icon:
-                                                      const Icon(Icons.delete),
-                                                  color: Colors.red,
-                                                ),
+                                                if (sendUserId == currentUserId)
+                                                  IconButton(
+                                                    onPressed: () async {
+                                                      if (_selectedMessageIndex !=
+                                                          null) {
+                                                        await _apiSerive.deleteGroupMessage(
+                                                            tGroupMessages![
+                                                                    index]
+                                                                .id!,
+                                                            widget.channelID!);
+                                                      }
+                                                    },
+                                                    icon: const Icon(
+                                                        Icons.delete),
+                                                    color: Colors.red,
+                                                  ),
                                               ],
                                             ),
                                           ),

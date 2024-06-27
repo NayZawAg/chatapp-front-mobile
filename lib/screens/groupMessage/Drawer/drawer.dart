@@ -10,22 +10,22 @@ enum ChannelType { public, private }
 
 class DrawerPage extends StatefulWidget {
   final dynamic channelName,
-    memberCount,
-    channelStatus,
-    channelId,
-    memberName,
-    adminID;
+      memberCount,
+      channelStatus,
+      channelId,
+      memberName,
+      adminID;
   final member;
 
   DrawerPage(
-    {super.key,
-    this.channelName,
-    this.adminID,
-    this.memberCount,
-    this.channelStatus,
-    this.member,
-    this.channelId,
-    this.memberName});
+      {super.key,
+      this.channelName,
+      this.adminID,
+      this.memberCount,
+      this.channelStatus,
+      this.member,
+      this.channelId,
+      this.memberName});
 
   @override
   State<DrawerPage> createState() => _DrawerPageState();
@@ -50,7 +50,6 @@ class _DrawerPageState extends State<DrawerPage> {
 
   @override
   Widget build(BuildContext context) {
-   
     dynamic notAdded = [];
     widget.memberName.forEach((member) {
       if (!widget.member.map((e) => e.name).contains(member.name)) {
@@ -189,8 +188,8 @@ class _DrawerPageState extends State<DrawerPage> {
                                                       currentID == channelAdmin
                                                   ? IconButton(
                                                       onPressed: () {
-                                                        var response =
-                                                            _apiService.deleteMember(
+                                                        var response = _apiService
+                                                            .deleteMember(
                                                                 widget
                                                                     .member[
                                                                         index]
@@ -245,13 +244,15 @@ class _DrawerPageState extends State<DrawerPage> {
                                     ),
                                     memberNo == 0
                                         ? SizedBox(
-                                           height: MediaQuery.of(context)
+                                            height: MediaQuery.of(context)
                                                     .size
                                                     .height *
                                                 0.5,
-                                          
-                                                child: SvgPicture.asset("assets/images/null1.svg",color: navColor,),
-                                        )
+                                            child: SvgPicture.asset(
+                                              "assets/images/null1.svg",
+                                              color: navColor,
+                                            ),
+                                          )
                                         : SizedBox(
                                             height: MediaQuery.of(context)
                                                     .size
@@ -363,8 +364,8 @@ class _DrawerPageState extends State<DrawerPage> {
                         ))
                     : GestureDetector(
                         onTap: () {
-                          var response =
-                              _apiService.deleteMember(currentID!, widget.channelId);
+                          var response = _apiService.deleteMember(
+                              currentID!, widget.channelId);
                           response.whenComplete(() => Navigator.push(context,
                               MaterialPageRoute(builder: (context) => Nav())));
                         },
@@ -534,19 +535,19 @@ class _DrawerPageState extends State<DrawerPage> {
           channelAdmin == currentID
               ? GestureDetector(
                   onTap: () {
-                    _apiService.deleteChannel(widget.channelId)
+                    _apiService
+                        .deleteChannel(widget.channelId)
                         .then((value) => Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const Nav(),
-
                             )));
-                             ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Channel delete successfully'),
                         backgroundColor: Colors.green,
                       ),
-      );
+                    );
                   },
                   child: const ListTile(
                     leading: Icon(Icons.delete, color: Colors.red),
@@ -576,7 +577,8 @@ class _DrawerPageState extends State<DrawerPage> {
           currentOption == ChannelType.private ? false : true;
       final int workspace_id =
           SessionStore.sessionData!.mWorkspace!.id!.toInt();
-      await _apiService.updateChannel(channelId, channelStatus, channelName, workspace_id);
+      await _apiService.updateChannel(
+          channelId, channelStatus, channelName, workspace_id);
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

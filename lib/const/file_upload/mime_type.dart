@@ -4,8 +4,8 @@ import 'dart:typed_data';
 import 'package:mime/mime.dart';
 
 class MimeType {
-
-  static Future<String> checkMimeType({String? filePath, Uint8List? fileBytes}) async {
+  static Future<String> checkMimeType(
+      {String? filePath, Uint8List? fileBytes}) async {
     if (filePath != null) {
       // For mobile platforms
       String? mimetype = lookupMimeType(filePath);
@@ -19,7 +19,8 @@ class MimeType {
     }
   }
 
-  static Future<String> changeToBase64({String? imagePath, Uint8List? imageBytes}) async {
+  static Future<String> changeToBase64(
+      {String? imagePath, Uint8List? imageBytes}) async {
     if (imagePath != null) {
       // For mobile platforms
       File imageFile = File(imagePath);

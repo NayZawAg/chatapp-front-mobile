@@ -1,13 +1,11 @@
-
 import 'dart:convert';
 
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
 
-
 class WebsocketService {
   WebSocketChannel? _channel;
 
-  WebSocketChannel? get getChannel{
+  WebSocketChannel? get getChannel {
     return _channel;
   }
 
@@ -24,13 +22,13 @@ class WebsocketService {
   }
 
   void sendMessageToWs(Map<String, dynamic> message) {
-      if (_channel !=null) {
-          final jsonMessage = jsonEncode(message);
-          _channel!.sink.add(jsonMessage);
-      }
+    if (_channel != null) {
+      final jsonMessage = jsonEncode(message);
+      _channel!.sink.add(jsonMessage);
+    }
   }
 
-  void disconnectWs(){
+  void disconnectWs() {
     if (_channel != null) {
       _channel!.sink.close();
       _channel = null;

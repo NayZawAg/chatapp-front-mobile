@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_frontend/const/permissions.dart';
 import 'package:gallery_saver/gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
+
 class DownloadFile {
   static Future<void> downloadFile(
       String fileUrl, String filename, BuildContext context) async {
@@ -20,14 +21,19 @@ class DownloadFile {
             fileUrl.endsWith('.jpeg') ||
             fileUrl.endsWith('.gif') ||
             fileUrl.endsWith('.bmp')) {
-          await GallerySaver.saveImage(fileUrl, albumName: 'MiMo').then((success) {
-            if(success != null && success) {
+          await GallerySaver.saveImage(fileUrl, albumName: 'MiMo')
+              .then((success) {
+            if (success != null && success) {
               fullPath = 'saved to gallery';
             }
           });
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Download Completed: $fullPath", style: const TextStyle(fontSize: 14),)),
+          SnackBar(
+              content: Text(
+            "Download Completed: $fullPath",
+            style: const TextStyle(fontSize: 14),
+          )),
         );
       }
       // }

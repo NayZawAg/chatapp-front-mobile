@@ -385,8 +385,11 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                       child: SingleChildScrollView(
                                         scrollDirection: Axis.vertical,
                                         child: Text(
-                                          widget.message!.isNotEmpty ? widget.message.toString() : "",
-                                          maxLines: maxLiane == 0 ? 5 : maxLiane,
+                                          widget.message!.isNotEmpty
+                                              ? widget.message.toString()
+                                              : "",
+                                          maxLines:
+                                              maxLiane == 0 ? 5 : maxLiane,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),

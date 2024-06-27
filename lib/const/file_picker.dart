@@ -2,8 +2,9 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
-class PickFiles{
-  Future<void> _prepareSaveDir(String localpath, TargetPlatform platform) async {
+class PickFiles {
+  Future<void> _prepareSaveDir(
+      String localpath, TargetPlatform platform) async {
     localpath = (await _findLocalPath(platform))!;
     print(localpath);
     final saveDir = Directory(localpath);
@@ -21,5 +22,4 @@ class PickFiles{
       return '${directory.path}${Platform.pathSeparator}Download';
     }
   }
-
 }

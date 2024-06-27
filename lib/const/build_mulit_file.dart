@@ -4,14 +4,16 @@ import 'package:flutter_frontend/const/file_upload/download_file_web.dart';
 import 'package:flutter_frontend/dotenv.dart';
 
 class BuildMulitFile {
-   Widget buildMultipleFiles(List<dynamic> files, TargetPlatform? platform, BuildContext context) {
- 
-  String replaceMinioWithIP(String url) {
-    return url.replaceAll("http://minio:9000", "http://$ipAddressForMinio:9000");
-  }
+  Widget buildMultipleFiles(
+      List<dynamic> files, TargetPlatform? platform, BuildContext context) {
+    String replaceMinioWithIP(String url) {
+      return url.replaceAll(
+          "http://minio:9000", "http://$ipAddressForMinio:9000");
+    }
+
     List<dynamic> images = files.where((file) => _isImage(file!)).toList();
     List<dynamic> others = files.where((file) => !_isImage(file!)).toList();
-    
+
     return Column(
       children: [
         const SizedBox(
@@ -127,17 +129,15 @@ class BuildMulitFile {
               final isExcel = _isExcel(modifiedUrl);
               final isTxt = _isTxt(modifiedUrl);
               final isPdf = _isPdf(modifiedUrl);
-              return BuildFilecontainer.buildFileContainer(modifiedUrl, isExcel, isTxt, isPdf, context);
+              return BuildFilecontainer.buildFileContainer(
+                  modifiedUrl, isExcel, isTxt, isPdf, context);
             },
           ),
       ],
     );
-    
   }
-  
- 
 
-   bool _isImage(String fileUrl) {
+  bool _isImage(String fileUrl) {
     return fileUrl.endsWith('.png') ||
         fileUrl.endsWith('.jpg') ||
         fileUrl.endsWith('.jpeg') ||
