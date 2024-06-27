@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/model/direct_message_thread.dart';
 import 'package:retrofit/http.dart';
 
@@ -8,15 +9,15 @@ part 'direct_message_thread.g.dart';
 abstract class DirectMsgThreadService {
   factory DirectMsgThreadService(Dio dio) => _DirectMsgThreadService(dio);
 
-  @GET('https://cmmteam3-backend-api.onrender.com/directhread/{directMsgid}')
+  @GET('$baseUrl/directhread/{directMsgid}')
   Future<DirectMessageThread> getAllThread(
       @Path() int directMsgid, @Header('Authorization') String token);
 
-  @POST('https://cmmteam3-backend-api.onrender.com/directthreadmsg')
+  @POST('$baseUrl/directthreadmsg')
   Future<String> sentThread(@Body() Map<String, dynamic> requestBody,
       @Header('Authorization') String token);
 
-  @GET('https://cmmteam3-backend-api.onrender.com/starthread')
+  @GET('$baseUrl/starthread')
   Future<void> starThread(
       @Query('s_user_id') int receiveId,
       @Query('user_id') int currentUserid,
@@ -24,7 +25,7 @@ abstract class DirectMsgThreadService {
       @Query('s_direct_message_id') int directMessageId,
       @Header('Authorization') String token);
 
-  @GET('https://cmmteam3-backend-api.onrender.com/unstarthread')
+  @GET('$baseUrl/unstarthread')
   Future<void> unStarThread(
       @Query('s_direct_message_id') int directMsgId,
       @Query('s_user_id') int receiveId,
@@ -32,7 +33,7 @@ abstract class DirectMsgThreadService {
       @Query('user_id') int userId,
       @Header('Authorization') String token);
 
-  @GET('https://cmmteam3-backend-api.onrender.com/delete_directthread')
+  @GET('$baseUrl/delete_directthread')
   Future<void> deleteThread(
       @Query('s_direct_message_id') int directMsgId,
       @Query('s_user_id') int receiveUserId,

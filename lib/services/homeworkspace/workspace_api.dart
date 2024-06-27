@@ -1,11 +1,12 @@
 
 import 'dart:convert';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:http/http.dart' as http;
 
 
  Future<Map<String, dynamic>> getUser(int id) async {
   
-  final url = 'https://cmmteam3-backend-api.onrender.com/m_users';
+  final url = '$baseUrl/m_users';
   final response = await http.get(Uri.parse('$url/$id'));
   if (response.statusCode == 200) {
     Map<String, dynamic> data = jsonDecode(response.body);

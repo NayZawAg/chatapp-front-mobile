@@ -1,13 +1,13 @@
 
-class groupMessageData {
+class GroupMessgeModel{
   MChannel? mChannel;
   RetrieveGroupMessage? retrieveGroupMessage;
   Retrievehome? retrievehome;
 
-  groupMessageData(
+  GroupMessgeModel(
       {this.mChannel, this.retrieveGroupMessage, this.retrievehome});
 
-  groupMessageData.fromJson(Map<String, dynamic> json) {
+  GroupMessgeModel.fromJson(Map<String, dynamic> json) {
     mChannel = json['m_channel'] != null
         ? new MChannel.fromJson(json['m_channel'])
         : null;
@@ -356,18 +356,20 @@ class TGroupMessages {
   String? name;
   String? groupmsg;
   int? id;
+  List<dynamic>? fileUrls;
   String? createdAt;
   int? count;
   int? sendUserId;
 
   TGroupMessages(
-      {this.name, this.groupmsg, this.id, this.createdAt, this.count,this.sendUserId});
+      {this.name, this.groupmsg, this.id, this.createdAt, this.count,this.sendUserId, this.fileUrls});
 
   TGroupMessages.fromJson(Map<String, dynamic> json) {
     name = json['name'];
     groupmsg = json['groupmsg'];
     id = json['id'];
     createdAt = json['created_at'];
+    fileUrls = json['file_urls'] as List<dynamic>?;
     count = json['count'];
     sendUserId = json['send_user_id'];
   }
@@ -380,6 +382,7 @@ class TGroupMessages {
     data['created_at'] = this.createdAt;
     data['count'] = this.count;
     data['send_user_id'] = this.sendUserId;
+    data['file_urls'] = this.fileUrls;
     return data;
   }
 }

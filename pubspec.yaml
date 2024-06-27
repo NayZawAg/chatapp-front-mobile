@@ -35,14 +35,12 @@ dependencies:
   shared_preferences: 
   retrofit: 
   provider: ^5.0.0
-  lottie: ^3.1.0
+  lottie: ^3.0.0
   mailer: ^6.1.0
  
   popover: ^0.3.0
   go_router: ^6.2.0
-  flutter_localization: ^0.2.0
- 
-
+  # flutter_localization: ^0.2.0
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
@@ -50,12 +48,21 @@ dependencies:
   curved_navigation_bar: ^1.0.3
   slide_to_act: ^2.0.2
   dart_frog_web_socket: ^1.0.0
-  web_socket_channel: ^2.0.0
-  intl: ^0.19.0
+  web_socket_channel: ^2.4.5
+  intl: ^0.18.1
   uni_links: ^0.5.1
   fluttertoast: ^8.2.4
   url_strategy: ^0.2.0
   flutter_launcher_icons: ^0.13.1
+  mime: ^1.0.5
+  file_picker: ^8.0.5
+  open_file: ^3.3.2
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.3
+  html: ^0.15.4
+  image_gallery_saver: ^2.0.3
+  gallery: ^0.0.4
+  gallery_saver:
 
 dev_dependencies:
   flutter_test:
