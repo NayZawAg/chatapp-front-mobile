@@ -68,18 +68,21 @@ class gpThreads {
   String? name;
   int? sendUserId;
   String? groupthreadmsg;
+  List<dynamic>? fileUrls;
   String? created_at;
    gpThreads({
      this.id,
      this.groupthreadmsg,
      this.name,
      this.created_at,
+     this.fileUrls,
      this.sendUserId
   });
    gpThreads.fromJson(Map<String,dynamic> json){
     id = json['id'];
     name  = json ['name'];
     sendUserId = json['send_user_id'];
+    fileUrls = json['file_url'] as List<dynamic>;
     groupthreadmsg = json['groupthreadmsg'];
     created_at  = json ['created_at'];
    }
@@ -89,6 +92,7 @@ class gpThreads {
     data['groupthreadmsg'] = this.groupthreadmsg;
     data ['name'] = this.name;
     data['id'] = this.id;
+    data['file_url'] = this.fileUrls;
     data['send_user_id'] = this.sendUserId;
     return data;
    }

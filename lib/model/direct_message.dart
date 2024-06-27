@@ -4,7 +4,6 @@ class DirectMessages {
   List<TDirectMessages>? tDirectMessages;
   List<TempDirectStarMsgids>? tempDirectStarMsgids;
   List<int>? tDirectStarMsgids;
-
   DirectMessages({
     this.mUser,
     this.sUser,
@@ -12,7 +11,6 @@ class DirectMessages {
     this.tempDirectStarMsgids,
     this.tDirectStarMsgids,
   });
-
   DirectMessages.fromJson(Map<String, dynamic> json) {
     mUser = json['m_user'] != null ? MUser.fromJson(json['m_user']) : null;
     sUser = json['s_user'] != null ? MUser.fromJson(json['s_user']) : null;
@@ -33,7 +31,6 @@ class DirectMessages {
         ? List<int>.from(json['t_direct_star_msgids'])
         : [];
   }
-
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     if (mUser != null) {
@@ -54,7 +51,6 @@ class DirectMessages {
     return data;
   }
 }
-
 class MUser {
   int? id;
   String? name;
@@ -67,7 +63,6 @@ class MUser {
   bool? memberStatus;
   String? createdAt;
   String? updatedAt;
-
   MUser(
       {this.id,
       this.name,
@@ -80,7 +75,6 @@ class MUser {
       this.memberStatus,
       this.createdAt,
       this.updatedAt});
-
   MUser.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     name = json['name'];
@@ -94,7 +88,6 @@ class MUser {
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];
   }
-
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['id'] = this.id;
@@ -111,47 +104,42 @@ class MUser {
     return data;
   }
 }
-
 class TDirectMessages {
   String? name;
   String? directmsg;
+  List<dynamic>? fileUrls;
   int? id;
   String? createdAt;
   int? count;
-
   TDirectMessages(
-      {this.name, this.directmsg, this.id, this.createdAt, this.count});
-
+      {this.name, this.directmsg, this.id, this.createdAt, this.count, this.fileUrls});
   TDirectMessages.fromJson(Map<String, dynamic> json) {
     name = json['name'];
     directmsg = json['directmsg'];
+    fileUrls = json['file_urls'] as List<dynamic>?;
     id = json['id'];
     createdAt = json['created_at'];
     count = json['count'];
   }
-
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['name'] = this.name;
     data['directmsg'] = this.directmsg;
+    data['file_urls'] = this.fileUrls;
     data['id'] = this.id;
     data['created_at'] = this.createdAt;
     data['count'] = this.count;
     return data;
   }
 }
-
 class TempDirectStarMsgids {
   int? directmsgid;
   int? id;
-
   TempDirectStarMsgids({this.directmsgid, this.id});
-
   TempDirectStarMsgids.fromJson(Map<String, dynamic> json) {
     directmsgid = json['directmsgid'];
     id = json['id'];
   }
-
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['directmsgid'] = this.directmsgid;
@@ -159,22 +147,19 @@ class TempDirectStarMsgids {
     return data;
   }
 }
-
 class TDirectMessageDates {
   String? createdDate;
   int? id;
-
   TDirectMessageDates({this.createdDate, this.id});
-
-  TDirectMessageDates.fromJson(Map<String, dynamic> json) {
+   TDirectMessageDates.fromJson(Map<String, dynamic> json) {
     createdDate = json['created_date'];
     id = json['id'];
-  }
-
-  Map<String, dynamic> toJson() {
+}  Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['created_date'] = this.createdDate;
     data['id'] = this.id;
     return data;
   }
-}
+
+  
+  }

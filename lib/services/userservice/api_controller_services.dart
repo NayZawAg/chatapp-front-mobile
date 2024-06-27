@@ -1,10 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:retrofit/http.dart';
 
 
 part 'api_controller_services.g.dart';
 
-@RestApi(baseUrl: 'https://cmmteam3-backend-api.onrender.com')
+@RestApi(baseUrl: '$baseUrl')
 abstract class LoginService {
   factory LoginService(Dio dio) => _LoginService(dio);
 

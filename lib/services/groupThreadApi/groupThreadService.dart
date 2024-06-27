@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 // import 'package:dio/dio.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/model/group_thread_list.dart';
 import 'package:flutter_frontend/services/userservice/api_controller_service.dart';
 import 'package:http/http.dart' as http;
@@ -15,7 +16,7 @@ class GpThreadMsg{
   }
   final response = await http.get(
     Uri.parse(
-    'https://cmmteam3-backend-api.onrender.com/t_group_messages/${id}?s_channel_id=$channelID'),
+    '$baseUrl/t_group_messages/${id}?s_channel_id=$channelID'),
     headers: <String, String>{
       'Content-Type':'application/json',
       'Authorization': 'Bearer $token',
@@ -42,7 +43,7 @@ Future<void> sendGroupThreadData (
   var token = await AuthController().getToken();   
   // int id = SessionStore.sessionData!.currentUser!.id!.toInt();
   final response = await http.post(
-    Uri.parse('https://cmmteam3-backend-api.onrender.com/groupthreadmsg'),
+    Uri.parse('$baseUrl/groupthreadmsg'),
     headers:{
      'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
@@ -67,7 +68,7 @@ Future<void> sendGroupThreadData (
 
 Future<void> deleteGpThread(int threadID,int channelID,int groupMesssageID) async{
   var token = await AuthController().getToken();   
-  final url = 'https://cmmteam3-backend-api.onrender.com/delete_groupthread?id=${threadID}&s_channel_id=${channelID}&s_group_message_id=${groupMesssageID}';
+  final url = '$baseUrl/delete_groupthread?id=${threadID}&s_channel_id=${channelID}&s_group_message_id=${groupMesssageID}';
   final Response = await http.get(Uri.parse(url),
   headers: {
     'Content-Type':'application/json',
@@ -85,7 +86,7 @@ Future<void> deleteGpThread(int threadID,int channelID,int groupMesssageID) asyn
 
 Future<void> sendStarThread(int threadID,int channelID,int groupMesssageID) async{
   var token = await AuthController().getToken();   
-  final url = 'https://cmmteam3-backend-api.onrender.com/groupstarthread?id=${threadID}&s_channel_id=${channelID}&s_group_message_id=${groupMesssageID}';
+  final url = '$baseUrl/groupstarthread?id=${threadID}&s_channel_id=${channelID}&s_group_message_id=${groupMesssageID}';
   final Response = await http.get(Uri.parse(url),
   headers: {
     'Content-Type':'application/json',
@@ -103,7 +104,7 @@ Future<void> sendStarThread(int threadID,int channelID,int groupMesssageID) asyn
 
 Future<void> unStarThread(int threadID,int channelID,int groupMesssageID) async{
   var token = await AuthController().getToken();   
-  final url = 'https://cmmteam3-backend-api.onrender.com/groupunstarthread?id=${threadID}&s_channel_id=${channelID}&s_group_message_id=${groupMesssageID}';
+  final url = '$baseUrl/groupunstarthread?id=${threadID}&s_channel_id=${channelID}&s_group_message_id=${groupMesssageID}';
   final Response = await http.get(Uri.parse(url),
   headers: {
     'Content-Type':'application/json',

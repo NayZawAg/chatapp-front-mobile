@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_frontend/componnets/Nav.dart';
 import 'package:flutter_frontend/constants.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
-import 'package:flutter_frontend/progression.dart';
 import 'package:flutter_frontend/services/mChannelService/m_channel_services.dart';
 import 'package:flutter_frontend/services/groupMessageService/group_message_service.dart';
 import 'package:flutter_svg/svg.dart';
@@ -39,6 +38,7 @@ class _DrawerPageState extends State<DrawerPage> {
   bool light = false;
   final TextEditingController _channelNameController = TextEditingController();
   ChannelType? currentOption;
+  final _apiService = GroupMessageServiceImpl();
   @override
   void initState() {
     super.initState();
@@ -50,7 +50,7 @@ class _DrawerPageState extends State<DrawerPage> {
 
   @override
   Widget build(BuildContext context) {
-    // List<dynamic> notAdded1 = widget.memberName;
+   
     dynamic notAdded = [];
     widget.memberName.forEach((member) {
       if (!widget.member.map((e) => e.name).contains(member.name)) {
@@ -190,7 +190,7 @@ class _DrawerPageState extends State<DrawerPage> {
                                                   ? IconButton(
                                                       onPressed: () {
                                                         var response =
-                                                            deleteMember(
+                                                            _apiService.deleteMember(
                                                                 widget
                                                                     .member[
                                                                         index]
@@ -364,7 +364,7 @@ class _DrawerPageState extends State<DrawerPage> {
                     : GestureDetector(
                         onTap: () {
                           var response =
-                              deleteMember(currentID!, widget.channelId);
+                              _apiService.deleteMember(currentID!, widget.channelId);
                           response.whenComplete(() => Navigator.push(context,
                               MaterialPageRoute(builder: (context) => Nav())));
                         },
@@ -534,7 +534,7 @@ class _DrawerPageState extends State<DrawerPage> {
           channelAdmin == currentID
               ? GestureDetector(
                   onTap: () {
-                    deleteChannel(widget.channelId)
+                    _apiService.deleteChannel(widget.channelId)
                         .then((value) => Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
@@ -576,7 +576,7 @@ class _DrawerPageState extends State<DrawerPage> {
           currentOption == ChannelType.private ? false : true;
       final int workspace_id =
           SessionStore.sessionData!.mWorkspace!.id!.toInt();
-      await updateChannel(channelId, channelStatus, channelName, workspace_id);
+      await _apiService.updateChannel(channelId, channelStatus, channelName, workspace_id);
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

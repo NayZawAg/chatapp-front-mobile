@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/model/group_thread_list.dart';
 import 'package:retrofit/http.dart';
 
 part 'groupThread_services.g.dart';
 
 
-@RestApi(baseUrl: 'https://cmmteam3-backend-api.onrender.com')
+@RestApi(baseUrl: '$baseUrl')
 abstract class GroupThreadServices{
   factory GroupThreadServices(Dio dio) => _GroupThreadServices(dio);
 
