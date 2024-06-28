@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/constants.dart';
+import 'package:flutter_frontend/model/SessionStore.dart';
 import 'package:flutter_frontend/progression.dart';
 import 'package:flutter_frontend/services/userservice/api_controller_service.dart';
+import 'package:http/http.dart' as http;
 
 class ChangePassword extends StatefulWidget {
   final String? email;
@@ -15,16 +19,21 @@ class ChangePassword extends StatefulWidget {
 class _ChangePasswordState extends State<ChangePassword> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
+  bool _oldPasswordVisible = false;
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
+  TextEditingController _oldPasswordController = TextEditingController();
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
   late AuthController _authController;
   bool _isPasswordChanging = false;
+  bool _isTextBoxVisible = false;
+  String error = "";
 
   @override
   void initState() {
     super.initState();
+    _oldPasswordController = TextEditingController();
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
     _authController = AuthController();
@@ -32,6 +41,7 @@ class _ChangePasswordState extends State<ChangePassword> {
 
   @override
   void dispose() {
+    _oldPasswordController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -66,6 +76,43 @@ class _ChangePasswordState extends State<ChangePassword> {
                       ListTile(
                         leading: const Icon(Icons.email),
                         title: Text("${widget.email}"),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: defaultPadding),
+                        child: TextFormField(
+                          controller: _oldPasswordController,
+                          textInputAction: TextInputAction.done,
+                          obscureText: !_oldPasswordVisible,
+                          cursorColor: kPrimaryColor,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your old Password';
+                            } else if (value.length < 8) {
+                              return 'Password should have at least 8 characters';
+                            } else if (value.length > 10) {
+                              return 'Password should have less than 10 characters';
+                            }
+                            return null;
+                          },
+                          decoration: InputDecoration(
+                            hintText: "Enter Your current password",
+                            prefixIcon: const Padding(
+                              padding: EdgeInsets.all(defaultPadding),
+                              child: Icon(Icons.lock),
+                            ),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _oldPasswordVisible = !_oldPasswordVisible;
+                                });
+                              },
+                              icon: Icon(_oldPasswordVisible
+                                  ? Icons.visibility_off
+                                  : Icons.visibility),
+                            ),
+                          ),
+                        ),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
@@ -147,14 +194,38 @@ class _ChangePasswordState extends State<ChangePassword> {
                       const SizedBox(
                         height: defaultPadding / 2,
                       ),
+                      Visibility(
+                        visible: _isTextBoxVisible,
+                        child: Container(
+                          width: 450.0,
+                          color: const Color.fromARGB(
+                              255, 233, 201, 211), // Background color
+                          padding: const EdgeInsets.all(
+                              8.0), // Padding around the text
+                          child: Center(
+                            child: Text(
+                              error,
+                              style: const TextStyle(
+                                color: Color.fromARGB(
+                                    255, 223, 59, 47), // Text color
+                                // Add more text styling as needed
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                             vertical: defaultPadding),
                         child: ElevatedButton(
-                          onPressed:
-                              _isPasswordChanging ? null : handleChangePassword,
+                          onPressed: () {
+                            changePw(
+                                _oldPasswordController.text.trimRight(),
+                                _passwordController.text.trimRight(),
+                                _oldPasswordController.text.trimRight());
+                          },
                           style: ButtonStyle(
-                            backgroundColor: MaterialStateProperty.all<Color>(
+                            backgroundColor: WidgetStateProperty.all<Color>(
                                 kPrimarybtnColor),
                           ),
                           child: Stack(
@@ -176,30 +247,52 @@ class _ChangePasswordState extends State<ChangePassword> {
         ));
   }
 
-  Future<void> handleChangePassword() async {
+  Future<void> changePw(
+      String oldPassword, String password, String passwordConfirmation) async {
+    int currentUser = SessionStore.sessionData!.currentUser!.id!.toInt();
+    var token = await AuthController().getToken();
     if (formKey.currentState!.validate()) {
       formKey.currentState!.save();
       try {
         setState(() {
           _isPasswordChanging = true;
         });
-        await _authController.changePassword(
-          _passwordController.text.trimRight(),
-          _confirmPasswordController.text.trimRight(),
-        );
-        _passwordController.clear();
-        _confirmPasswordController.clear();
-        // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Password has been changed'),
-          backgroundColor: Colors.green,
-        ));
+        final response = await http.put(
+            Uri.parse("http://10.0.2.2:3000/m_users/$currentUser"),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode(<String, Map>{
+              "m_user": {
+                "old_password": oldPassword,
+                "password": password,
+                "password_confirmation": passwordConfirmation
+              }
+            }));
+
+        final body = json.decode(response.body);
+        if (response.statusCode == 200 && body["error"] == null) {
+          setState(() {
+            _isTextBoxVisible = false;
+
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Password has been successfully changed'),
+              backgroundColor: Colors.green,
+            ));
+          });
+        } else {
+          setState(() {
+            _isTextBoxVisible = true;
+            error = body["error"];
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Failed to change Password'),
+              backgroundColor: Colors.red,
+            ));
+          });
+        }
       } catch (e) {
-        // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Failed to change password'),
-          backgroundColor: Colors.red,
-        ));
+        rethrow;
       } finally {
         setState(() {
           _isPasswordChanging = false;
