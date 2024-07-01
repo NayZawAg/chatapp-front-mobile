@@ -7,6 +7,7 @@ import 'package:flutter_frontend/model/dataInsert/star_list.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:flutter_frontend/services/starlistsService/star_list.service.dart';
 import 'package:flutter_frontend/services/userservice/api_controller_service.dart';
+import 'package:flutter_html/flutter_html.dart' as flutter_html;
 
 class DirectStars extends StatefulWidget {
   const DirectStars({Key? key}) : super(key: key);
@@ -17,7 +18,10 @@ class DirectStars extends StatefulWidget {
 
 class _DirectStarsState extends State<DirectStars> {
   late Future<void> refreshFuture;
-  final _starListService = StarListsService(Dio(BaseOptions(headers: {'Content-Type': 'application/json', 'Accept': 'application/json'})));
+  final _starListService = StarListsService(Dio(BaseOptions(headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  })));
   int userId = SessionStore.sessionData!.currentUser!.id!.toInt();
 
   @override
@@ -70,7 +74,8 @@ class _DirectStarsState extends State<DirectStars> {
             final starList = StarListStore.starList!;
             final star = starList.directStar![index];
             String name = star.name.toString();
-            List<String> initials = name.split(" ").map((e) => e.substring(0, 1)).toList();
+            List<String> initials =
+                name.split(" ").map((e) => e.substring(0, 1)).toList();
             String ds_name = initials.join("");
             String directmsg = star.directmsg.toString();
             String dateFormat = star.createdAt.toString();
@@ -78,69 +83,112 @@ class _DirectStarsState extends State<DirectStars> {
             String time = DateFormat('MMM d, yyyy hh:mm a').format(dateTime);
             // String time = DateTImeFormatter.convertJapanToMyanmarTime(times);
             return Container(
-                padding: const  EdgeInsets.only(top: 10),
-                width: MediaQuery.of(context).size.width * 0.9,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [Container(
+              padding: const EdgeInsets.only(top: 10),
+              width: MediaQuery.of(context).size.width * 0.9,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
                         height: 50,
                         width: 50,
                         decoration: BoxDecoration(
                           color: Colors.amber,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                       
-                          child: FittedBox(
-                            alignment: Alignment.center,
-                            child: Padding(
-                              padding: const EdgeInsets.all(3.0),
-                              child: Text(ds_name.toUpperCase(),
-                              style: const  TextStyle(fontWeight: FontWeight.bold),),
+                        child: FittedBox(
+                          alignment: Alignment.center,
+                          child: Padding(
+                            padding: const EdgeInsets.all(3.0),
+                            child: Text(
+                              ds_name.toUpperCase(),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
-                      
+                        ),
                       ),
-                     const   SizedBox( height: 5)
-                      ],
-                    
-                    ), const SizedBox(width: 5),
-                    Container(
-                      width: MediaQuery.of(context).size.width*0.7,
-                      decoration: BoxDecoration(
+                      const SizedBox(height: 5)
+                    ],
+                  ),
+                  const SizedBox(width: 5),
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.7,
+                    decoration: BoxDecoration(
                         color: Colors.grey.shade300,
-                        borderRadius: const  BorderRadius.only(
-                                                topRight: Radius.circular(10),
-                                                bottomLeft: Radius.circular(10),
-                                                bottomRight:
-                                                    Radius.circular(10))
-
+                        borderRadius: const BorderRadius.only(
+                            topRight: Radius.circular(10),
+                            bottomLeft: Radius.circular(10),
+                            bottomRight: Radius.circular(10))),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(
+                                fontSize: 17, fontWeight: FontWeight.bold),
+                          ),
+                          Container(
+                            width: MediaQuery.of(context).size.width * 0.5,
+                            // child: Text(directmsg,
+                            //     style: const TextStyle(fontSize: 15)),
+                            child: flutter_html.Html(
+                              data: directmsg,
+                              style: {
+                                ".bq": flutter_html.Style(
+                                  // backgroundColor: Colors.purple
+                                  border: const Border(
+                                      left: BorderSide(
+                                          color: Colors.grey, width: 5.0)),
+                                  padding:
+                                      flutter_html.HtmlPaddings.only(left: 10),
+                                ),
+                                "blockquote": flutter_html.Style(
+                                  display: flutter_html.Display.inline,
+                                ),
+                                "code": flutter_html.Style(
+                                  backgroundColor: Colors.grey[200],
+                                  color: Colors.red,
+                                ),
+                                "ol": flutter_html.Style(
+                                  margin: flutter_html.Margins.all(0),
+                                  padding: flutter_html.HtmlPaddings.all(0),
+                                ),
+                                "ol li": flutter_html.Style(
+                                  display: flutter_html.Display.inlineBlock,
+                                ),
+                                "ul": flutter_html.Style(
+                                  display: flutter_html.Display.inlineBlock,
+                                  padding: flutter_html.HtmlPaddings.symmetric(
+                                      horizontal: 10),
+                                  margin: flutter_html.Margins.all(0),
+                                ),
+                                ".code-block": flutter_html.Style(
+                                    padding: flutter_html.HtmlPaddings.all(10),
+                                    backgroundColor: Colors.grey[200],
+                                    color: Colors.black,
+                                    width: flutter_html.Width(150)),
+                                ".code-block code":
+                                    flutter_html.Style(color: Colors.black)
+                              },
+                            ),
+                          ),
+                          Text(
+                            time,
+                            style: const TextStyle(fontSize: 10),
+                          )
+                        ],
                       ),
-                      child:  Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(name,style: TextStyle(fontSize: 17,fontWeight: FontWeight.bold),),
-                              Container(
-                                width: MediaQuery.of(context).size.width*0.5,
-                                child: Text(directmsg,
-                                  style: const TextStyle(fontSize: 15)),
-                              ),
-                               
-                                  Text(time,style: const  TextStyle(fontSize: 10),)
-                             
-                            ],
-                           ),
-                      ),
-                      
-                    )
-                  ],
-                ),
-              );
+                    ),
+                  )
+                ],
+              ),
+            );
             // return ListTile(
             //   leading: Container(
             //     height: 50,
