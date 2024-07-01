@@ -225,6 +225,7 @@ class MUserer {
   bool? memberStatus;
   String? createdAt;
   String? updatedAt;
+  String? imageUrl;
 
   MUserer({
     this.id,
@@ -238,6 +239,7 @@ class MUserer {
     this.memberStatus,
     this.createdAt,
     this.updatedAt,
+    this.imageUrl,
   });
 
   MUserer.fromJson(Map<String, dynamic> json) {
@@ -252,6 +254,7 @@ class MUserer {
     memberStatus = json['member_status'];
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];
+    imageUrl = json['image_url'];
   }
 
   Map<String, dynamic> toJson() {
@@ -267,6 +270,7 @@ class MUserer {
     data['member_status'] = memberStatus;
     data['created_at'] = createdAt;
     data['updated_at'] = updatedAt;
+    data['image_url'] = imageUrl;
     return data;
   }
 }

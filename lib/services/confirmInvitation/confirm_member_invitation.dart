@@ -19,7 +19,7 @@ class MemberInvitation {
     try {
       Map<String, dynamic> requestBody = {
         "m_user": {
-          "remember_digest": workSpaceName,
+          "remember_digest": workspaceName,
           "profile_image": channelId,
           "name": name,
           "email": email,

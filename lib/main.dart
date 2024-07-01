@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
         routerConfig: _route,
         builder: (_, child) => Portal(child: child!),
         debugShowCheckedModeBanner: false,
-        title: '希望',
+        title: 'MiMo',
         theme: ThemeData(
           primaryColor: kPrimaryColor,
           scaffoldBackgroundColor: Colors.white,

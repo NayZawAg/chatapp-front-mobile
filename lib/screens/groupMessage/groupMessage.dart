@@ -13,6 +13,7 @@ import 'package:flutter_frontend/const/permissions.dart';
 import 'package:flutter_frontend/constants.dart';
 
 import 'package:flutter_frontend/componnets/Nav.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/progression.dart';
 import 'package:flutter_frontend/screens/groupMessage/Drawer/drawer.dart';
 import 'package:flutter_frontend/services/groupMessageService/group_message_service.dart';
@@ -112,7 +113,7 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
 
   void connectWebSocket() {
     var url =
-        'ws://localhost:3000/cable?channel_id=${widget.workspace_id}&user_id=$currentUserId';
+        'ws://$wsUrl/cable?channel_id=${widget.workspace_id}&user_id=$currentUserId';
     _channel = WebSocketChannel.connect(Uri.parse(url));
 
     final subscriptionMessage = jsonEncode({

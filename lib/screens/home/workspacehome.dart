@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import '../groupMessage/groupMessage.dart';
 import 'package:flutter_frontend/constants.dart';
 import 'package:flutter_frontend/progression.dart';
@@ -8,8 +11,6 @@ import 'package:flutter_frontend/model/SessionState.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
 import 'package:flutter_frontend/componnets/customlogout.dart';
 import 'package:flutter_frontend/screens/home/homeDrawer.dart';
-import 'package:flutter_frontend/screens/Login/login_form.dart';
-import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:flutter_frontend/screens/mChannel/m_channel_create.dart';
 import 'package:flutter_frontend/screens/memverinvite/member_invite.dart';
 import 'package:flutter_frontend/screens/directMessage/direct_message.dart';
@@ -116,6 +117,12 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
       String currentEmail = data!.currentUser!.email.toString();
       String currentName = data.currentUser!.name.toString();
       int currentUserId = data.currentUser!.id!.toInt();
+      String? currentUserProfileImage = data.currentUser?.imageUrl;
+
+      if (currentUserProfileImage != null && !kIsWeb) {
+      currentUserProfileImage =
+          MinioToIP.replaceMinioWithIP(currentUserProfileImage, ipAddressForMinio);
+    }
 
       String workspace = data.mWorkspace!.workspaceName.toString();
       List<String> initials =
@@ -156,28 +163,41 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
               leading: GestureDetector(
                 onTap: _openDrawer,
                 child: Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Container(
-                    height: 20,
-                    width: 20,
-                    decoration: BoxDecoration(
-                        color: Colors.white54,
-                        borderRadius: BorderRadius.circular(5),
-                        border:
-                            Border.all(width: 1, color: Colors.amber.shade100)),
-                    child: FittedBox(
-                      alignment: Alignment.center,
-                      child: Padding(
-                        padding: const EdgeInsets.all(1.0),
-                        child: Text(
-                          w_name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                  padding: const EdgeInsets.all(6.0),
+                  child: (currentUserProfileImage == null ||
+                          currentUserProfileImage.isEmpty)
+                      ? Container(
+                          height: 20,
+                          width: 20,
+                          decoration: BoxDecoration(
+                              color: Colors.white54,
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(
+                                  width: 1, color: Colors.amber.shade100)),
+                          child: FittedBox(
+                            alignment: Alignment.center,
+                            child: Padding(
+                              padding: const EdgeInsets.all(1.0),
+                              child: Text(
+                                w_name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      : CircleAvatar(
+                          radius: 20,
+                          child: ClipOval(
+                            child: Image.network(
+                              currentUserProfileImage,
+                              fit: BoxFit.cover,
+                              width: 45,
+                              height: 45,
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
               ),
               title: Column(
@@ -224,303 +244,315 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
             body: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Expanded(
-                  child: Column(
-                    children: [
-                      ExpansionTile(
-                        shape: const Border(bottom: BorderSide.none),
-                        initiallyExpanded: true,
-                        title: const Text(
-                          'Channels',
-                          style: TextStyle(color: kPrimaryTextColor),
-                        ),
-                        children: [
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 300.0),
-                            child: ListView.builder(
-                              scrollDirection: Axis.vertical,
-                              shrinkWrap: true,
-                              itemCount: channelLengths + channelLength,
-                              itemBuilder: (context, index) {
-                                if (index < channelLengths) {
-                                  final channel = data.mChannels![index];
-
-                                  final messageCount = data
-                                      .mChannels![index].messageCount!
-                                      .toInt();
-                                  List<MUsers>? userName = data.mUsers;
-                                  return GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => GroupMessage(
-                                            channelID: channel.id,
-                                            channelStatus:
-                                                channel.channelStatus,
-                                            channelName: channel.channelName,
-                                            workspace_id: data.mWorkspace!.id,
-                                            memberName: userName,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    child: ListTile(
-                                      leading: channel.channelStatus!
-                                          ? const Icon(Icons.tag)
-                                          : const Icon(Icons.lock),
-                                      title: Row(
-                                        children: [
-                                          Text(
-                                            channel.channelName ?? '',
-                                            style: const TextStyle(
-                                                color: kPrimaryTextColor),
-                                          ),
-                                          const SizedBox(
-                                            width: 15,
-                                          ),
-                                          messageCount == 0
-                                              ? Container()
-                                              : Container(
-                                                  height: 15,
-                                                  width: 15,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.yellow,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            7.5),
-                                                  ),
-                                                  child: Center(
-                                                      child: Text(
-                                                    "${messageCount}",
-                                                    style: const TextStyle(
-                                                        fontSize: 10),
-                                                  )),
-                                                )
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  final channel =
-                                      data.mPChannels![index - channelLengths];
-
-                                  bool channelExists = data.mChannels!
-                                      .any((m) => m.id == channel.id);
-
-                                  if (channelExists) {
-                                    return const SizedBox.shrink();
-                                  } else {
-                                    return GestureDetector(
-                                      onTap: () {},
-                                      child: ListTile(
-                                        leading: channel.channelStatus!
-                                            ? const Icon(Icons.tag)
-                                            : const Icon(Icons.lock),
-                                        title: Text(
-                                          channel.channelName ?? '',
-                                          style: const TextStyle(
-                                              color: kPrimaryTextColor),
-                                        ),
-                                        trailing: _showJoinButton
-                                            ? TextButton(
-                                                style: ButtonStyle(
-                                                    side: MaterialStateProperty
-                                                        .all(
-                                                  const BorderSide(
-                                                      width: 1,
-                                                      color: Colors.black),
-                                                )),
-                                                onPressed: () {
-                                                  // Perform API call to join channel
-                                                  MChannelServices()
-                                                      .channelJoin(
-                                                          currentUserId,
-                                                          channel.id!.toInt())
-                                                      .then((_) {
-                                                    // If API call is successful, hide the button
-                                                    setState(() {
-                                                      _showJoinButton = false;
-                                                    });
-                                                  }).catchError((error) {
-                                                    // Handle error if API call fails
-                                                    print(
-                                                        "Error joining channel: $error");
-                                                  });
-                                                },
-                                                child: const Text('Join ME'),
-                                              )
-                                            : null, // If _showJoinButton is false, don't show the button
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const MChannelCreate(),
-                                ),
-                              );
-                            },
-                            child: const ListTile(
-                              leading: Icon(Icons.add),
-                              title: Text("Add Channel!"),
-                            ),
-                          ),
-                        ],
+                child: Column(
+                  children: [
+                    ExpansionTile(
+                      shape: const Border(bottom: BorderSide.none),
+                      initiallyExpanded: true,
+                      title: const Text(
+                        'Channels',
+                        style: TextStyle(color: kPrimaryTextColor),
                       ),
-                      const SizedBox(height: 20),
-                      ExpansionTile(
-                        initiallyExpanded: true,
-                        title: const Text(
-                          "Direct Messages",
-                          style: TextStyle(color: kPrimaryTextColor),
-                        ),
-                        children: [
-                          Container(
-                            constraints: const BoxConstraints(maxHeight: 300.0),
-                            child: ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: workSpaceUserLength,
-                              itemBuilder: (context, index) {
-                                bool? activeStatus =
-                                    data.mUsers![index].activeStatus;
-                                String userName =
-                                    data.mUsers![index].name.toString();
-                                List<String> initials = userName
-                                    .split(" ")
-                                    .map((e) => e.substring(0, 1))
-                                    .toList();
-                                String dm_name = initials.join("");
-                                int userIds = data.mUsers![index].id!.toInt();
-                                int count1 =
-                                    data.directMsgcounts![index].toInt();
+                      children: [
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 300.0),
+                          child: ListView.builder(
+                            scrollDirection: Axis.vertical,
+                            shrinkWrap: true,
+                            itemCount: channelLengths + channelLength,
+                            itemBuilder: (context, index) {
+                              if (index < channelLengths) {
+                                final channel = data.mChannels![index];
+
+                                final messageCount = data
+                                    .mChannels![index].messageCount!
+                                    .toInt();
+                                List<MUsers>? userName = data.mUsers;
                                 return GestureDetector(
                                   onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            DirectMessageWidget(
-                                          user_status: activeStatus,
-                                          userId: userIds,
-                                          receiverName: userName,
+                                        builder: (context) => GroupMessage(
+                                          channelID: channel.id,
+                                          channelStatus: channel.channelStatus,
+                                          channelName: channel.channelName,
+                                          workspace_id: data.mWorkspace!.id,
+                                          memberName: userName,
                                         ),
                                       ),
                                     );
                                   },
                                   child: ListTile(
-                                    leading: Stack(children: [
-                                      Container(
-                                        height: 30,
-                                        width: 30,
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber,
-                                          borderRadius:
-                                              BorderRadius.circular(15),
+                                    leading: channel.channelStatus!
+                                        ? const Icon(Icons.tag)
+                                        : const Icon(Icons.lock),
+                                    title: Row(
+                                      children: [
+                                        Text(
+                                          channel.channelName ?? '',
+                                          style: const TextStyle(
+                                              color: kPrimaryTextColor),
                                         ),
-                                        child: FittedBox(
-                                          alignment: Alignment.center,
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(2.0),
-                                            child: Text(
-                                              dm_name.toUpperCase(),
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
+                                        const SizedBox(
+                                          width: 15,
+                                        ),
+                                        messageCount == 0
+                                            ? Container()
+                                            : Container(
+                                                height: 15,
+                                                width: 15,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.yellow,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          7.5),
+                                                ),
+                                                child: Center(
+                                                    child: Text(
+                                                  "${messageCount}",
+                                                  style: const TextStyle(
+                                                      fontSize: 10),
+                                                )),
+                                              )
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                final channel =
+                                    data.mPChannels![index - channelLengths];
+
+                                bool channelExists = data.mChannels!
+                                    .any((m) => m.id == channel.id);
+
+                                if (channelExists) {
+                                  return const SizedBox.shrink();
+                                } else {
+                                  return GestureDetector(
+                                    onTap: () {},
+                                    child: ListTile(
+                                      leading: channel.channelStatus!
+                                          ? const Icon(Icons.tag)
+                                          : const Icon(Icons.lock),
+                                      title: Text(
+                                        channel.channelName ?? '',
+                                        style: const TextStyle(
+                                            color: kPrimaryTextColor),
+                                      ),
+                                      trailing: _showJoinButton
+                                          ? TextButton(
+                                              style: ButtonStyle(
+                                                  side:
+                                                      MaterialStateProperty.all(
+                                                const BorderSide(
+                                                    width: 1,
+                                                    color: Colors.black),
+                                              )),
+                                              onPressed: () {
+                                                // Perform API call to join channel
+                                                MChannelServices()
+                                                    .channelJoin(currentUserId,
+                                                        channel.id!.toInt())
+                                                    .then((_) {
+                                                  // If API call is successful, hide the button
+                                                  setState(() {
+                                                    _showJoinButton = false;
+                                                  });
+                                                }).catchError((error) {
+                                                  // Handle error if API call fails
+                                                  print(
+                                                      "Error joining channel: $error");
+                                                });
+                                              },
+                                              child: const Text('Join ME'),
+                                            )
+                                          : null, // If _showJoinButton is false, don't show the button
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MChannelCreate(),
+                              ),
+                            );
+                          },
+                          child: const ListTile(
+                            leading: Icon(Icons.add),
+                            title: Text("Add Channel!"),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    ExpansionTile(
+                      initiallyExpanded: true,
+                      title: const Text(
+                        "Direct Messages",
+                        style: TextStyle(color: kPrimaryTextColor),
+                      ),
+                      children: [
+                        Container(
+                          constraints: const BoxConstraints(maxHeight: 300.0),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: workSpaceUserLength,
+                            itemBuilder: (context, index) {
+                              bool? activeStatus =
+                                  data.mUsers![index].activeStatus;
+                              String userName =
+                                  data.mUsers![index].name.toString();
+                              List<String> initials = userName
+                                  .split(" ")
+                                  .map((e) => e.substring(0, 1))
+                                  .toList();
+                              String dm_name = initials.join("");
+                              int userIds = data.mUsers![index].id!.toInt();
+                              int count1 = data.directMsgcounts![index].toInt();
+                              String? profileImage =
+                                  data.mUsers![index].imageUrl;
+                              if (profileImage != null && !kIsWeb) {
+                                profileImage = MinioToIP.replaceMinioWithIP(
+                                    profileImage, ipAddressForMinio);
+                              }
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DirectMessageWidget(
+                                        user_status: activeStatus,
+                                        userId: userIds,
+                                        receiverName: userName,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: ListTile(
+                                  leading: Stack(children: [
+                                    profileImage == null || profileImage.isEmpty
+                                        ? Container(
+                                            height: 30,
+                                            width: 30,
+                                            decoration: BoxDecoration(
+                                              color: Colors.amber,
+                                              borderRadius:
+                                                  BorderRadius.circular(15),
+                                            ),
+                                            child: FittedBox(
+                                              alignment: Alignment.center,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(2.0),
+                                                child: Text(
+                                                  dm_name.toUpperCase(),
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : CircleAvatar(
+                                            radius: 15,
+                                            child: ClipOval(
+                                              child: Image.network(
+                                                profileImage,
+                                                fit: BoxFit.cover,
+                                                width: 25,
+                                                height: 25,
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                          right: 0,
-                                          top: 0,
-                                          child: count1 == 0
-                                              ? Container()
-                                              : Container(
-                                                  height: 15,
-                                                  width: 15,
-                                                  decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              7.5),
-                                                      color: Colors.yellow,
-                                                      border: Border.all(
-                                                          color: Colors.white,
-                                                          width: 1)),
-                                                  child: Center(
-                                                      child: Text(
-                                                    "$count1",
-                                                    style: const TextStyle(
-                                                        fontSize: 10),
-                                                  )))),
-                                      Positioned(
-                                          right: 0,
-                                          bottom: 0,
-                                          child: activeStatus == true
-                                              ? Container(
-                                                  height: 14,
-                                                  width: 14,
-                                                  decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              7),
-                                                      border: Border.all(
-                                                          color: Colors.white,
-                                                          width: 1),
-                                                      color: Colors.green),
-                                                )
-                                              : Container())
-                                    ]),
-                                    title: currentUserId == userIds
-                                        ? RichText(
-                                            text: TextSpan(
-                                              text: userName + '  ',
-                                              style: const TextStyle(
-                                                  color: kPrimaryTextColor),
-                                              children: [
-                                                TextSpan(
-                                                    text: '(You)',
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold)),
-                                              ],
-                                            ),
-                                          )
-                                        : Text(
-                                            userName,
+                                    Positioned(
+                                        right: 0,
+                                        top: 0,
+                                        child: count1 == 0
+                                            ? Container()
+                                            : Container(
+                                                height: 15,
+                                                width: 15,
+                                                decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            7.5),
+                                                    color: Colors.yellow,
+                                                    border: Border.all(
+                                                        color: Colors.white,
+                                                        width: 1)),
+                                                child: Center(
+                                                    child: Text(
+                                                  "$count1",
+                                                  style: const TextStyle(
+                                                      fontSize: 10),
+                                                )))),
+                                    Positioned(
+                                        right: 0,
+                                        bottom: 0,
+                                        child: activeStatus == true
+                                            ? Container(
+                                                height: 12,
+                                                width: 12,
+                                                decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            7),
+                                                    border: Border.all(
+                                                        color: Colors.white,
+                                                        width: 1),
+                                                    color: Colors.green),
+                                              )
+                                            : Container())
+                                  ]),
+                                  title: currentUserId == userIds
+                                      ? RichText(
+                                          text: TextSpan(
+                                            text: userName + '  ',
                                             style: const TextStyle(
                                                 color: kPrimaryTextColor),
+                                            children: [
+                                              TextSpan(
+                                                  text: '(You)',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                            ],
                                           ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const MemberInvitation(),
+                                        )
+                                      : Text(
+                                          userName,
+                                          style: const TextStyle(
+                                              color: kPrimaryTextColor),
+                                        ),
                                 ),
                               );
                             },
-                            child: const ListTile(
-                              leading: Icon(Icons.add),
-                              title: Text("Add Member"),
-                            ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MemberInvitation(),
+                              ),
+                            );
+                          },
+                          child: const ListTile(
+                            leading: Icon(Icons.add),
+                            title: Text("Add Member"),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
