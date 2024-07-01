@@ -98,15 +98,6 @@ class _LoginFormState extends State<LoginForm> {
         child: Column(
           children: [
             const SizedBox(height: 32),
-            Container(
-              height: 64,
-              width: 64,
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                  color: Colors.white, shape: BoxShape.circle),
-              child: const Image(image: AssetImage("assets/images/slack.jpg")),
-            ),
-            const SizedBox(height: 32),
             SizedBox(
               height: 250,
               width: 250,

@@ -8,6 +8,7 @@ import 'package:flutter_frontend/const/build_fiile.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
 import 'package:flutter_frontend/const/permissions.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/services/directMessage/direct_message_api.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -200,7 +201,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
 
   void connectWebSocket() {
     var url =
-        'ws://localhost:3000/cable?user_id=$currentUserId&s_user_id=${widget.receiverId}';
+        'ws://$wsUrl/cable?user_id=$currentUserId&s_user_id=${widget.receiverId}';
     _channel = WebSocketChannel.connect(Uri.parse(url));
 
     final subscriptionMessage = jsonEncode({

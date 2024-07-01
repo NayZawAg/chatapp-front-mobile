@@ -63,6 +63,8 @@ dependencies:
   image_gallery_saver: ^2.0.3
   gallery: ^0.0.4
   gallery_saver:
+  image_picker: ^1.1.2
+  image_cropper: ^3.0.1
 
   flutter_quill: ^9.2.3
   flutter_html: ^3.0.0-beta.2

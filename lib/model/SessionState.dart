@@ -109,6 +109,7 @@ class MUsers {
   bool? memberStatus;
   String? createdAt;
   String? updatedAt;
+  String? imageUrl;
 
   MUsers(
       {this.id,
@@ -121,7 +122,9 @@ class MUsers {
       this.admin,
       this.memberStatus,
       this.createdAt,
-      this.updatedAt});
+      this.updatedAt,
+      this.imageUrl,
+      });
 
   MUsers.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -135,6 +138,7 @@ class MUsers {
     memberStatus = json['member_status'];
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];
+    imageUrl = json['image_url'];
   }
 
   Map<String, dynamic> toJson() {
@@ -150,6 +154,7 @@ class MUsers {
     data['member_status'] = this.memberStatus;
     data['created_at'] = this.createdAt;
     data['updated_at'] = this.updatedAt;
+    data['image_url'] = this.imageUrl;
     return data;
   }
 }
@@ -164,6 +169,7 @@ class CurrentUser {
   bool? activeStatus;
   bool? admin;
   bool? memberStatus;
+  String? imageUrl;
   String? createdAt;
   String? updatedAt;
 
@@ -177,6 +183,7 @@ class CurrentUser {
       this.activeStatus,
       this.admin,
       this.memberStatus,
+      this.imageUrl,
       this.createdAt,
       this.updatedAt});
 
@@ -190,7 +197,8 @@ class CurrentUser {
     activeStatus = json['active_status'];
     admin = json['admin'];
     memberStatus = json['member_status'];
-    createdAt = json['created_at'];
+    memberStatus = json['member_status'];
+    imageUrl = json['profile_image_url'];
     updatedAt = json['updated_at'];
   }
 
@@ -205,6 +213,7 @@ class CurrentUser {
     data['active_status'] = this.activeStatus;
     data['admin'] = this.admin;
     data['member_status'] = this.memberStatus;
+    data['profile_image_url'] = this.imageUrl;
     data['created_at'] = this.createdAt;
     data['updated_at'] = this.updatedAt;
     return data;

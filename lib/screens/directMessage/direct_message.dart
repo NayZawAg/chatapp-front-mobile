@@ -9,10 +9,10 @@ import 'package:flutter_frontend/const/build_fiile.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
 import 'package:flutter_frontend/const/permissions.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
-
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/constants.dart';
@@ -194,7 +194,7 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
 
   void connectWebSocket() {
     var url =
-        'ws://localhost:3000/cable?user_id=$currentUserId&s_user_id=${widget.userId}';
+        'ws://$wsUrl/cable?user_id=$currentUserId&s_user_id=${widget.userId}';
     _channel = WebSocketChannel.connect(Uri.parse(url));
 
     final subscriptionMessage = jsonEncode({

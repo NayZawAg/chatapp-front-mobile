@@ -1,11 +1,14 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
+import 'package:flutter_frontend/dotenv.dart';
+import 'package:flutter_frontend/screens/profile/profile.dart';
 import 'package:flutter_frontend/screens/userEdit/user_edit.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 import 'package:flutter_frontend/constants.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
 import 'package:flutter_frontend/screens/Login/login_form.dart';
-import 'package:flutter_frontend/screens/Navigation/changePw.dart';
 import 'package:flutter_frontend/screens/userManage/usermanage.dart';
 import 'package:flutter_frontend/screens/mChannel/m_channel_create.dart';
 import 'package:flutter_frontend/screens/memverinvite/member_invite.dart';
@@ -23,7 +26,6 @@ class HomeDrawer extends StatefulWidget {
 }
 
 class _HomeDrawerState extends State<HomeDrawer> {
-  String email = SessionStore.sessionData!.currentUser!.email.toString();
   Future<String?> getToken() async {
     return await AuthController().getToken();
   }
@@ -34,7 +36,14 @@ class _HomeDrawerState extends State<HomeDrawer> {
   Widget build(BuildContext context) {
     List<dynamic> initials =
         widget.workspacename.split(" ").map((e) => e.substring(0, 1)).toList();
-    String wName = initials.join("");
+    String w_name = initials.join("");
+
+    String? currentUserProfileImage =
+        SessionStore.sessionData?.currentUser?.imageUrl;
+    if (currentUserProfileImage != null && !kIsWeb) {
+      currentUserProfileImage =
+          MinioToIP.replaceMinioWithIP(currentUserProfileImage, ipAddressForMinio);
+    }
     return Drawer(
       backgroundColor: kPriamrybackground,
       child: Column(
@@ -62,26 +71,70 @@ class _HomeDrawerState extends State<HomeDrawer> {
                         color: navColor,
                         borderRadius: BorderRadius.circular(10)),
                     child: ListTile(
-                      leading: Container(
-                        height: 50,
-                        width: 50,
-                        decoration: BoxDecoration(
-                            border: Border.all(width: 3, color: Colors.white),
-                            borderRadius: BorderRadius.circular(10)),
-                        child: FittedBox(
-                          alignment: Alignment.center,
-                          child: Padding(
-                            padding: const EdgeInsets.all(1.0),
-                            child: Text(
-                              wName,
-                              style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: kPriamrybackground),
+                      leading: currentUserProfileImage == null
+                          ? Container(
+                              height: 50,
+                              width: 50,
+                              decoration: BoxDecoration(
+                                  border:
+                                      Border.all(width: 3, color: Colors.white),
+                                  borderRadius: BorderRadius.circular(10)),
+                              child: FittedBox(
+                                alignment: Alignment.center,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(1.0),
+                                  child: Text(
+                                    w_name,
+                                    style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: kPriamrybackground),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : CircleAvatar(
+                              radius: 20,
+                              child: ClipOval(
+                                child: Image.network(
+                                  currentUserProfileImage,
+                                  fit: BoxFit.cover,
+                                  width: 45,
+                                  height: 45,
+                                  errorBuilder: (BuildContext context,
+                                      Object error, StackTrace? stackTrace) {
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                      setState(() {
+                                        currentUserProfileImage = null;
+                                      });
+                                    });
+                                    return Container(
+                                      height: 50,
+                                      width: 50,
+                                      decoration: BoxDecoration(
+                                          border: Border.all(
+                                              width: 3, color: Colors.white),
+                                          borderRadius:
+                                              BorderRadius.circular(10)),
+                                      child: FittedBox(
+                                        alignment: Alignment.center,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(1.0),
+                                          child: Text(
+                                            w_name,
+                                            style: TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                                color: kPriamrybackground),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
                       title: Text(
                         "${widget.workspacename.toString()} (${widget.username})",
                         style: TextStyle(
@@ -102,28 +155,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
           Container(
             child: Column(
               children: [
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => UserEdit(
-                                  username: widget.username.toString(),
-                                  email: widget.useremail.toString(),
-                                  workspaceName:
-                                      widget.workspacename.toString(),
-                                )));
-                  },
-                  hoverColor: Colors.grey.withOpacity(0.3),
-                  child: ListTile(
-                    leading: Icon(Icons.person_outlined),
-                    title: Text("User Name Edit"),
-                  ),
-                ),
-                const SizedBox(
-                  height: 5,
-                ),
-                // ///////  User Management
+                // ///////  User Management ////////
                 InkWell(
                   onTap: () {
                     Navigator.push(
@@ -174,20 +206,20 @@ class _HomeDrawerState extends State<HomeDrawer> {
                 const SizedBox(
                   height: 5,
                 ),
-                //////////Change Password ///////////////
+                //////////Profile ///////////////
                 InkWell(
                   onTap: () {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => ChangePassword(
-                                  email: email,
+                            builder: (context) => Profile(
+                                  currentUserWorkspace: widget.workspacename,
                                 )));
                   },
                   hoverColor: Colors.grey.withOpacity(0.3),
                   child: ListTile(
-                    leading: Icon(Icons.lock_reset_outlined),
-                    title: Text('Change Password'),
+                    leading: Icon(Icons.account_box_outlined),
+                    title: Text('Profile'),
                   ),
                 ),
                 const SizedBox(
