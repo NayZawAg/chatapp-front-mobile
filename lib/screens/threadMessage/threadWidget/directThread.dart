@@ -8,6 +8,7 @@ import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:flutter_frontend/model/dataInsert/thread_lists.dart';
 import 'package:flutter_frontend/services/userservice/api_controller_service.dart';
 import 'package:flutter_frontend/services/threadMessages/thread_message_service.dart';
+import 'package:flutter_html/flutter_html.dart' as flutter_html;
 
 class DirectThread extends StatefulWidget {
   const DirectThread({Key? key}) : super(key: key);
@@ -85,8 +86,11 @@ class _DirectThreadState extends State<DirectThread> {
                     snapshot.d_thread![index].directthreadmsg.toString();
                 String directThreadName =
                     snapshot!.d_thread![index].name.toString();
-                List<String> initials = directThreadName.split(" ").map((e) => e.substring(0, 1)).toList();
-            String user_name = initials.join("");
+                List<String> initials = directThreadName
+                    .split(" ")
+                    .map((e) => e.substring(0, 1))
+                    .toList();
+                String user_name = initials.join("");
                 String directThreadTime =
                     snapshot!.d_thread![index].created_at.toString();
                 DateTime time = DateTime.parse(directThreadTime).toLocal();
@@ -114,22 +118,22 @@ class _DirectThreadState extends State<DirectThread> {
                               child: Padding(
                                 padding: const EdgeInsets.all(3.0),
                                 child: Text(
-                                 user_name.toUpperCase(),
-                                  style: const  TextStyle(
-                                  fontWeight: FontWeight.bold),
+                                  user_name.toUpperCase(),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
                           ),
-                         const   SizedBox(height: 5)
+                          const SizedBox(height: 5)
                         ],
                       ),
-                     const  SizedBox(width: 5),
+                      const SizedBox(width: 5),
                       Container(
                         width: MediaQuery.of(context).size.width * 0.7,
                         decoration: BoxDecoration(
                             color: Colors.grey.shade300,
-                            borderRadius:const  BorderRadius.only(
+                            borderRadius: const BorderRadius.only(
                                 topRight: Radius.circular(10),
                                 bottomLeft: Radius.circular(10),
                                 bottomRight: Radius.circular(10))),
@@ -141,16 +145,68 @@ class _DirectThreadState extends State<DirectThread> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(directThreadName,style: TextStyle(fontSize: 17,fontWeight: FontWeight.bold),),
+                                  Text(
+                                    directThreadName,
+                                    style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold),
+                                  ),
                                   Container(
                                     width:
                                         MediaQuery.of(context).size.width * 0.5,
-                                    child: Text(directThread,
-                                        style: const TextStyle(fontSize: 15)),
+                                    // child: Text(directThread,
+                                    //     style: const TextStyle(fontSize: 15)),
+                                    child: flutter_html.Html(
+                                      data: directThread,
+                                      style: {
+                                        ".bq": flutter_html.Style(
+                                          // backgroundColor: Colors.purple
+                                          border: const Border(
+                                              left: BorderSide(
+                                                  color: Colors.grey,
+                                                  width: 5.0)),
+                                          padding:
+                                              flutter_html.HtmlPaddings.only(
+                                                  left: 10),
+                                        ),
+                                        "blockquote": flutter_html.Style(
+                                          display: flutter_html.Display.inline,
+                                        ),
+                                        "code": flutter_html.Style(
+                                          backgroundColor: Colors.grey[200],
+                                          color: Colors.red,
+                                        ),
+                                        "ol": flutter_html.Style(
+                                          margin: flutter_html.Margins.all(0),
+                                          padding:
+                                              flutter_html.HtmlPaddings.all(0),
+                                        ),
+                                        "ol li": flutter_html.Style(
+                                          display:
+                                              flutter_html.Display.inlineBlock,
+                                        ),
+                                        "ul": flutter_html.Style(
+                                          display:
+                                              flutter_html.Display.inlineBlock,
+                                          padding: flutter_html.HtmlPaddings
+                                              .symmetric(horizontal: 10),
+                                          margin: flutter_html.Margins.all(0),
+                                        ),
+                                        ".code-block": flutter_html.Style(
+                                            padding:
+                                                flutter_html.HtmlPaddings.all(
+                                                    10),
+                                            backgroundColor: Colors.grey[200],
+                                            color: Colors.black,
+                                            width: flutter_html.Width(150)),
+                                        ".code-block code": flutter_html.Style(
+                                            color: Colors.black)
+                                      },
+                                    ),
                                   ),
                                   Text(
                                     createdAt,
-                                    style: const  TextStyle(fontSize: 10),
+                                    style: const TextStyle(fontSize: 10),
                                   )
                                 ],
                               ),

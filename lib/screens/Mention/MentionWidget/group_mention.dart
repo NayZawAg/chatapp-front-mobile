@@ -7,6 +7,8 @@ import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:flutter_frontend/model/dataInsert/mention_list.dart';
 import 'package:flutter_frontend/services/userservice/api_controller_service.dart';
 import 'package:flutter_frontend/services/mentionlistsService/mention_list.service.dart';
+import 'package:flutter_html/flutter_html.dart' as flutter_html;
+
 // ignore: depend_on_referenced_packages
 
 class GroupMessages extends StatefulWidget {
@@ -57,7 +59,7 @@ class _GroupMessageState extends State<GroupMessages> {
         backgroundColor: kPriamrybackground,
         body: SingleChildScrollView(
             child: Container(
-                height: MediaQuery.of(context).size.height*0.7,
+                height: MediaQuery.of(context).size.height * 0.7,
                 child: LiquidPullToRefresh(
                   onRefresh: _refresh,
                   color: Colors.blue.shade100,
@@ -81,7 +83,10 @@ class _GroupMessageState extends State<GroupMessages> {
                                 .format(dateTime);
                             String name =
                                 snapshot!.groupMessage![index].name.toString();
-                             List<String> initials = name.split(" ").map((e) => e.substring(0, 1)).toList();
+                            List<String> initials = name
+                                .split(" ")
+                                .map((e) => e.substring(0, 1))
+                                .toList();
                             String user_name = initials.join("");
                             String groupmsg = snapshot!
                                 .groupMessage![index].groupmsg
@@ -136,7 +141,8 @@ class _GroupMessageState extends State<GroupMessages> {
                                     child: Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Column(
                                             crossAxisAlignment:
@@ -146,26 +152,86 @@ class _GroupMessageState extends State<GroupMessages> {
                                                 channelName,
                                                 style: const TextStyle(
                                                     fontSize: 17,
-                                                    fontWeight: FontWeight.bold),
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
                                               Container(
                                                 width: MediaQuery.of(context)
                                                         .size
                                                         .width *
                                                     0.5,
-                                                child: Text(groupmsg,
-                                                    style: const TextStyle(
-                                                        fontSize: 15)),
+                                                // child: Text(groupmsg,
+                                                //     style: const TextStyle(
+                                                //         fontSize: 15)),
+                                                child: flutter_html.Html(
+                                                  data: groupmsg,
+                                                  style: {
+                                                    ".bq": flutter_html.Style(
+                                                      // backgroundColor: Colors.purple
+                                                      border: const Border(
+                                                          left: BorderSide(
+                                                              color:
+                                                                  Colors.grey,
+                                                              width: 5.0)),
+                                                      padding: flutter_html
+                                                              .HtmlPaddings
+                                                          .only(left: 10),
+                                                    ),
+                                                    "blockquote":
+                                                        flutter_html.Style(
+                                                      display: flutter_html
+                                                          .Display.inline,
+                                                    ),
+                                                    "code": flutter_html.Style(
+                                                      backgroundColor:
+                                                          Colors.grey[200],
+                                                      color: Colors.red,
+                                                    ),
+                                                    "ol": flutter_html.Style(
+                                                      margin: flutter_html
+                                                          .Margins.all(0),
+                                                      padding: flutter_html
+                                                          .HtmlPaddings.all(0),
+                                                    ),
+                                                    "ol li": flutter_html.Style(
+                                                      display: flutter_html
+                                                          .Display.inlineBlock,
+                                                    ),
+                                                    "ul": flutter_html.Style(
+                                                      display: flutter_html
+                                                          .Display.inlineBlock,
+                                                      padding: flutter_html
+                                                              .HtmlPaddings
+                                                          .symmetric(
+                                                              horizontal: 10),
+                                                      margin: flutter_html
+                                                          .Margins.all(0),
+                                                    ),
+                                                    ".code-block": flutter_html
+                                                        .Style(
+                                                            padding: flutter_html
+                                                                    .HtmlPaddings
+                                                                .all(10),
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .grey[200],
+                                                            color: Colors.black,
+                                                            width: flutter_html
+                                                                .Width(150)),
+                                                    ".code-block code":
+                                                        flutter_html.Style(
+                                                            color: Colors.black)
+                                                  },
+                                                ),
                                               ),
                                               Text(
                                                 time,
-                                                style:
-                                                    const TextStyle(fontSize: 10),
+                                                style: const TextStyle(
+                                                    fontSize: 10),
                                               ),
-                                             
                                             ],
                                           ),
-                                           Container(
+                                          Container(
                                             width: 50,
                                             height: 50,
                                             child: star
@@ -176,13 +242,9 @@ class _GroupMessageState extends State<GroupMessages> {
                                                 : null,
                                           )
                                         ],
-                                        
                                       ),
-                                      
-                                      
                                     ),
                                   )
-                                  
                                 ],
                               ),
                             );

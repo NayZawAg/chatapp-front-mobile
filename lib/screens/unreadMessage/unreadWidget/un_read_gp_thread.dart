@@ -6,6 +6,7 @@ import 'package:flutter_frontend/services/userservice/api_controller_service.dar
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/model/dataInsert/unread_list.dart';
+import 'package:flutter_html/flutter_html.dart' as flutter_html;
 
 class UnReadGroupThread extends StatefulWidget {
   const UnReadGroupThread({Key? key}) : super(key: key);
@@ -139,8 +140,55 @@ class _UnReadGroupThreadState extends State<UnReadGroupThread> {
                                   Container(
                                     width:
                                         MediaQuery.of(context).size.width * 0.5,
-                                    child: Text(groupThreadMessage,
-                                        style: const TextStyle(fontSize: 15)),
+                                    // child: Text(groupThreadMessage,
+                                    //     style: const TextStyle(fontSize: 15)),
+                                    child: flutter_html.Html(
+                                      data: groupThreadMessage,
+                                      style: {
+                                        ".bq": flutter_html.Style(
+                                          // backgroundColor: Colors.purple
+                                          border: const Border(
+                                              left: BorderSide(
+                                                  color: Colors.grey,
+                                                  width: 5.0)),
+                                          padding:
+                                              flutter_html.HtmlPaddings.only(
+                                                  left: 10),
+                                        ),
+                                        "blockquote": flutter_html.Style(
+                                          display: flutter_html.Display.inline,
+                                        ),
+                                        "code": flutter_html.Style(
+                                          backgroundColor: Colors.grey[200],
+                                          color: Colors.red,
+                                        ),
+                                        "ol": flutter_html.Style(
+                                          margin: flutter_html.Margins.all(0),
+                                          padding:
+                                              flutter_html.HtmlPaddings.all(0),
+                                        ),
+                                        "ol li": flutter_html.Style(
+                                          display:
+                                              flutter_html.Display.inlineBlock,
+                                        ),
+                                        "ul": flutter_html.Style(
+                                          display:
+                                              flutter_html.Display.inlineBlock,
+                                          padding: flutter_html.HtmlPaddings
+                                              .symmetric(horizontal: 10),
+                                          margin: flutter_html.Margins.all(0),
+                                        ),
+                                        ".code-block": flutter_html.Style(
+                                            padding:
+                                                flutter_html.HtmlPaddings.all(
+                                                    10),
+                                            backgroundColor: Colors.grey[200],
+                                            color: Colors.black,
+                                            width: flutter_html.Width(150)),
+                                        ".code-block code": flutter_html.Style(
+                                            color: Colors.black)
+                                      },
+                                    ),
                                   ),
                                   Text(
                                     createdAt,
