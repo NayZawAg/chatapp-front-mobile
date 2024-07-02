@@ -94,9 +94,7 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
   }
 
   void startFecting() async {
-    _timer = Timer.periodic(const Duration(seconds: 6), (timer) async {
-      _refresh();
-    });
+    _refresh();
   }
 
   Future<void> _refresh() async {

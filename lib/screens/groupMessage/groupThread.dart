@@ -104,6 +104,8 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
   @override
   void initState() {
     super.initState();
+    loadMessage();
+    connectWebSocket();
     _quilcontroller.addListener(_onSelectionChanged);
     _focusNode.addListener(_focusChange);
     _quilcontroller.addListener(_onTextChanged);
@@ -154,8 +156,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
       _previousOps = _quilcontroller.document.toDelta().toList();
     });
 
-    loadMessage();
-    connectWebSocket();
     _scrollController = ScrollController();
     if (kIsWeb) {
       return;
@@ -188,11 +188,11 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
 
   @override
   void dispose() {
+    super.dispose();
+    _channel!.sink.close();
     _quilcontroller.removeListener(_onSelectionChanged);
     _focusNode.removeListener(_focusChange);
     _quilcontroller.removeListener(_onTextChanged);
-    _channel!.sink.close();
-    super.dispose();
   }
 
   GlobalKey<FlutterMentionsState> key = GlobalKey<FlutterMentionsState>();

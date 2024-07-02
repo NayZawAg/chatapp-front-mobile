@@ -28,13 +28,13 @@ import 'package:flutter_html/flutter_html.dart' as flutter_html;
 
 class DirectMessageThreadWidget extends StatefulWidget {
   final int directMsgId;
-  final String receiverName;
+  final String? receiverName;
   final int receiverId;
   final userstatus;
   const DirectMessageThreadWidget(
       {Key? key,
       required this.directMsgId,
-      required this.receiverName,
+      this.receiverName,
       required this.receiverId,
       this.userstatus})
       : super(key: key);
@@ -99,6 +99,8 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
   @override
   void initState() {
     super.initState();
+    loadMessages();
+    connectWebSocket();
     _quilcontroller.addListener(_onSelectionChanged);
     _focusNode.addListener(_focusChange);
     _scrollController = ScrollController();
@@ -149,8 +151,6 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
       _previousOps = _quilcontroller.document.toDelta().toList();
     });
 
-    loadMessages();
-    connectWebSocket();
     if (kIsWeb) {
       return;
     } else if (Platform.isAndroid) {
@@ -183,7 +183,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
   @override
   void dispose() {
     super.dispose();
-
+    _channel!.sink.close();
     _scrollController.dispose();
     _quilcontroller.removeListener(_onSelectionChanged);
     _focusNode.removeListener(_focusChange);

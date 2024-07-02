@@ -122,6 +122,8 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
   @override
   void initState() {
     super.initState();
+    loadMessage();
+    connectWebSocket();
     _quilcontroller.addListener(_onSelectionChanged);
     _focusNode.addListener(_focusChange);
     _quilcontroller.addListener(_onTextChanged);
@@ -172,8 +174,6 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
       _previousOps = _quilcontroller.document.toDelta().toList();
     });
 
-    loadMessage();
-    connectWebSocket();
     if (kIsWeb) {
       return;
     } else if (Platform.isAndroid) {
@@ -209,11 +209,10 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
   @override
   void dispose() {
     super.dispose();
+    _channel!.sink.close();
     _quilcontroller.removeListener(_onSelectionChanged);
     _focusNode.removeListener(_focusChange);
     _quilcontroller.removeListener(_onTextChanged);
-
-    _channel!.sink.close();
     _scrollController.dispose();
   }
 

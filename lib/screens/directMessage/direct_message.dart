@@ -103,6 +103,9 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
   @override
   void initState() {
     super.initState();
+
+    loadMessages();
+    connectWebSocket();
     _quilcontroller.addListener(_onSelectionChanged);
     _focusNode.addListener(_focusChange);
 
@@ -152,8 +155,6 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
       _previousOps = _quilcontroller.document.toDelta().toList();
     });
 
-    loadMessages();
-    connectWebSocket();
     if (kIsWeb) {
       return;
     } else if (Platform.isAndroid) {
