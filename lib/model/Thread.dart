@@ -2,19 +2,18 @@
 import 'package:flutter_frontend/model/thread_model.dart';
 
 class Threads {
-  
   List<DirectMsg>? directMsg;
   List<dThread>? d_thread;
   List<G_message>? groupMessage;
   List<G_thread>? groupThread;
   List<int>? groupThreadStar;
   List<int>? directMsgstar;
-  // List<dynamic>? d_message_star;
-  // int? d_thread_star;
-  Threads({this.d_thread, this.directMsg, this.groupMessage, this.groupThread,this.groupThreadStar
-      // this.d_message_star,
-      // this.d_thread_star
-      });
+  Threads(
+      {this.d_thread,
+      this.directMsg,
+      this.groupMessage,
+      this.groupThread,
+      this.groupThreadStar});
   Threads.fromJson(Map<String, dynamic> json) {
     if (json['t_direct_messages'] != null) {
       directMsg = <DirectMsg>[];
@@ -42,8 +41,6 @@ class Threads {
     }
     groupThreadStar = json['t_group_star_thread_msgids'].cast<int>();
     directMsgstar = json['t_group_star_msgids'].cast<int>();
-    //  d_message_star = json['t_direct_star_msgids'];
-    // d_thread_star = json['t_direct_star_thread_msgids'];
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
@@ -64,8 +61,6 @@ class Threads {
     }
     data['t_group_star_thread_msgids'] = this.groupThreadStar;
     data['t_group_star_msgids'] = this.directMsgstar;
-    //  data['t_direct_star_msgids'] = this.d_message_star;
-    // data['t_direct_star_thread_msgids'] = this.d_thread_star;
     return data;
   }
 }

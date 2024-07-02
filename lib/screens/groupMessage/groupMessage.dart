@@ -13,6 +13,7 @@ import 'package:flutter_frontend/const/permissions.dart';
 import 'package:flutter_frontend/constants.dart';
 
 import 'package:flutter_frontend/componnets/Nav.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/progression.dart';
 import 'package:flutter_frontend/screens/groupMessage/Drawer/drawer.dart';
 import 'package:flutter_frontend/services/groupMessageService/group_message_service.dart';
@@ -121,6 +122,8 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
   @override
   void initState() {
     super.initState();
+    loadMessage();
+    connectWebSocket();
     _quilcontroller.addListener(_onSelectionChanged);
     _focusNode.addListener(_focusChange);
     _quilcontroller.addListener(_onTextChanged);
@@ -171,8 +174,6 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
       _previousOps = _quilcontroller.document.toDelta().toList();
     });
 
-    loadMessage();
-    connectWebSocket();
     if (kIsWeb) {
       return;
     } else if (Platform.isAndroid) {
@@ -208,17 +209,16 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
   @override
   void dispose() {
     super.dispose();
+    _channel!.sink.close();
     _quilcontroller.removeListener(_onSelectionChanged);
     _focusNode.removeListener(_focusChange);
     _quilcontroller.removeListener(_onTextChanged);
-
-    _channel!.sink.close();
     _scrollController.dispose();
   }
 
   void connectWebSocket() {
     var url =
-        'ws://localhost:3000/cable?channel_id=${widget.workspace_id}&user_id=$currentUserId';
+        'ws://$wsUrl/cable?channel_id=${widget.workspace_id}&user_id=$currentUserId';
     _channel = WebSocketChannel.connect(Uri.parse(url));
 
     final subscriptionMessage = jsonEncode({

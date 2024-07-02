@@ -9,6 +9,7 @@ import 'package:flutter_frontend/const/build_fiile.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
 import 'package:flutter_frontend/const/permissions.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/model/group_thread_list.dart';
 import 'package:flutter_frontend/services/groupMessageService/group_message_service.dart';
 import 'package:intl/intl.dart';
@@ -103,6 +104,8 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
   @override
   void initState() {
     super.initState();
+    loadMessage();
+    connectWebSocket();
     _quilcontroller.addListener(_onSelectionChanged);
     _focusNode.addListener(_focusChange);
     _quilcontroller.addListener(_onTextChanged);
@@ -153,8 +156,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
       _previousOps = _quilcontroller.document.toDelta().toList();
     });
 
-    loadMessage();
-    connectWebSocket();
     _scrollController = ScrollController();
     if (kIsWeb) {
       return;
@@ -187,11 +188,11 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
 
   @override
   void dispose() {
+    super.dispose();
+    _channel!.sink.close();
     _quilcontroller.removeListener(_onSelectionChanged);
     _focusNode.removeListener(_focusChange);
     _quilcontroller.removeListener(_onTextChanged);
-    _channel!.sink.close();
-    super.dispose();
   }
 
   GlobalKey<FlutterMentionsState> key = GlobalKey<FlutterMentionsState>();
@@ -237,7 +238,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
 
   void connectWebSocket() {
     var url =
-        'ws://localhost:3000/cable?channel_id=${widget.channelID}&channel_name=${widget.channelName}&reply_to${widget.messageID}';
+        'ws://$wsUrl/cable?channel_id=${widget.channelID}&channel_name=${widget.channelName}&reply_to${widget.messageID}';
     _channel = WebSocketChannel.connect(Uri.parse(url));
 
     final subscriptionMessage = jsonEncode({

@@ -8,8 +8,6 @@ import 'package:flutter_frontend/model/SessionState.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
 import 'package:flutter_frontend/componnets/customlogout.dart';
 import 'package:flutter_frontend/screens/home/homeDrawer.dart';
-import 'package:flutter_frontend/screens/Login/login_form.dart';
-import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:flutter_frontend/screens/mChannel/m_channel_create.dart';
 import 'package:flutter_frontend/screens/memverinvite/member_invite.dart';
 import 'package:flutter_frontend/screens/directMessage/direct_message.dart';
@@ -93,9 +91,7 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
   }
 
   void startFecting() async {
-    _timer = Timer.periodic(const Duration(seconds: 6), (timer) async {
-      _refresh();
-    });
+    _refresh();
   }
 
   Future<void> _refresh() async {
