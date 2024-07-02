@@ -1,8 +1,15 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_frontend/const/build_mulit_file.dart';
+import 'package:flutter_frontend/const/build_single_file.dart';
 import 'package:flutter_frontend/constants.dart';
+import 'package:flutter_frontend/model/group_thread_list.dart';
+import 'package:flutter_frontend/screens/groupMessage/groupThread.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_frontend/const/date_time.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:flutter_frontend/model/dataInsert/thread_lists.dart';
@@ -25,11 +32,21 @@ class _GroupThreadState extends State<GroupThread> {
   })));
 
   int userId = SessionStore.sessionData!.currentUser!.id!.toInt();
+  BuildMulitFile mulitFile = BuildMulitFile();
+  BuildSingleFile singleFile = BuildSingleFile();
+  TargetPlatform? platform;
 
   @override
   void initState() {
     super.initState();
     refrshFuture = _fetchData();
+    if (kIsWeb) {
+      return;
+    } else if (Platform.isAndroid) {
+      platform = TargetPlatform.android;
+    } else {
+      platform = TargetPlatform.iOS;
+    }
   }
 
   @override
@@ -42,13 +59,12 @@ class _GroupThreadState extends State<GroupThread> {
       var token = await getToken();
       var data = await _starListService.getAllThreads(userId, token!);
       if (mounted) {
-        // Check if the widget is still mounted before calling setState
         setState(() {
           ThreadStore.thread = data;
         });
       }
     } catch (e) {
-      // Handle errors here
+      rethrow;
     }
   }
 
@@ -63,171 +79,397 @@ class _GroupThreadState extends State<GroupThread> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: kPriamrybackground,
-        body: LiquidPullToRefresh(
-          onRefresh: _refresh,
-          color: Colors.blue.shade100,
-          animSpeedFactor: 200,
-          showChildOpacityTransition: true,
-          child: ListView.builder(
-              itemCount: ThreadStore.thread!.groupThread!.length,
-              itemBuilder: (context, index) {
-                var snapshot = ThreadStore.thread;
-                List groupThreadStar = snapshot!.groupThreadStar!.toList();
-                bool star =
-                    groupThreadStar.contains(snapshot.groupThread![index].id);
-                String groupThread =
-                    snapshot.groupThread![index].groupthreadmsg.toString();
-                String channelName =
-                    snapshot.groupThread![index].channelName.toString();
-                String groupThreadName =
-                    snapshot.groupThread![index].name.toString();
-                List<String> initials = groupThreadName
-                    .split(" ")
-                    .map((e) => e.substring(0, 1))
-                    .toList();
-                String user_name = initials.join("");
-                String groupThreadTime =
-                    snapshot.groupThread![index].created_at.toString();
-                DateTime time = DateTime.parse(groupThreadTime).toLocal();
-                String created_at =
-                    DateFormat('MMM d, yyyy hh:mm a').format(time);
-                // String created_at =
-                //     DateTImeFormatter.convertJapanToMyanmarTime(
-                //         created_ats);
-                return Container(
-                  padding: EdgeInsets.only(top: 10),
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: kPriamrybackground,
+      body: LiquidPullToRefresh(
+        onRefresh: _refresh,
+        color: Colors.blue.shade100,
+        animSpeedFactor: 200,
+        showChildOpacityTransition: true,
+        child: ListView.builder(
+          itemCount: ThreadStore.thread!.groupMessage!.length,
+          itemBuilder: (context, index) {
+            var snapshot = ThreadStore.thread;
+
+            // Group message
+            var directGroupList = snapshot!.groupMessage;
+            int groupMsgId = directGroupList![index].id!.toInt();
+            String name = directGroupList[index].name.toString();
+            String groupMessage = directGroupList[index].groupmsg!.toString();
+            String gpmsgTime = directGroupList[index].created_at!.toString();
+            DateTime time = DateTime.parse(gpmsgTime).toLocal();
+            String directmsgTime =
+                DateFormat('MMM d, yyyy hh:mm a').format(time);
+
+            List groupMessageThreadList = snapshot.groupThread!
+                .where((element) => element.groupMessageId == groupMsgId)
+                .toList();
+
+            List<dynamic>? groupFiles = [];
+            groupFiles = directGroupList[index]
+                .fileUrls
+                ?.where(
+                  (element) => element != null,
+                )
+                .toList();
+            String channelName = directGroupList[index].channelName.toString();
+
+            return Container(
+              padding: const EdgeInsets.only(top: 10),
+              width: MediaQuery.of(context).size.width * 0.9,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            height: 50,
-                            width: 50,
-                            decoration: BoxDecoration(
-                              color: Colors.amber,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: FittedBox(
-                              alignment: Alignment.center,
-                              child: Padding(
-                                padding: const EdgeInsets.all(3.0),
-                                child: Text(
-                                  user_name.toUpperCase(),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 5)
-                        ],
-                      ),
-                      const SizedBox(width: 5),
                       Container(
-                        width: MediaQuery.of(context).size.width * 0.7,
+                        height: 50,
+                        width: 50,
                         decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: const BorderRadius.only(
-                                topRight: Radius.circular(10),
-                                bottomLeft: Radius.circular(10),
-                                bottomRight: Radius.circular(10))),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    channelName,
-                                    style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  Container(
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.5,
-                                    // child: Text(groupThread,
-                                    //     style: const TextStyle(fontSize: 15)),
-                                    child: flutter_html.Html(
-                                      data: groupThread,
-                                      style: {
-                                        ".bq": flutter_html.Style(
-                                          // backgroundColor: Colors.purple
-                                          border: const Border(
-                                              left: BorderSide(
-                                                  color: Colors.grey,
-                                                  width: 5.0)),
-                                          padding:
-                                              flutter_html.HtmlPaddings.only(
-                                                  left: 10),
-                                        ),
-                                        "blockquote": flutter_html.Style(
-                                          display: flutter_html.Display.inline,
-                                        ),
-                                        "code": flutter_html.Style(
-                                          backgroundColor: Colors.grey[200],
-                                          color: Colors.red,
-                                        ),
-                                        "ol": flutter_html.Style(
-                                          margin: flutter_html.Margins.all(0),
-                                          padding:
-                                              flutter_html.HtmlPaddings.all(0),
-                                        ),
-                                        "ol li": flutter_html.Style(
-                                          display:
-                                              flutter_html.Display.inlineBlock,
-                                        ),
-                                        "ul": flutter_html.Style(
-                                          display:
-                                              flutter_html.Display.inlineBlock,
-                                          padding: flutter_html.HtmlPaddings
-                                              .symmetric(horizontal: 10),
-                                          margin: flutter_html.Margins.all(0),
-                                        ),
-                                        ".code-block": flutter_html.Style(
-                                            padding:
-                                                flutter_html.HtmlPaddings.all(
-                                                    10),
-                                            backgroundColor: Colors.grey[200],
-                                            color: Colors.black,
-                                            width: flutter_html.Width(150)),
-                                        ".code-block code": flutter_html.Style(
-                                            color: Colors.black)
-                                      },
-                                    ),
-                                  ),
-                                  Text(
-                                    created_at,
-                                    style: const TextStyle(fontSize: 10),
-                                  )
-                                ],
-                              ),
-                              Container(
-                                width: 50,
-                                height: 50,
-                                child: star
-                                    ? const Icon(
-                                        Icons.star,
-                                        color: Colors.yellow,
-                                      )
-                                    : null,
-                              )
-                            ],
+                          color: Colors.amber,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: FittedBox(
+                          alignment: Alignment.center,
+                          child: Padding(
+                            padding: const EdgeInsets.all(3.0),
+                            child: Text(
+                              channelName.toUpperCase(),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
-                      )
+                      ),
+                      const SizedBox(height: 5)
                     ],
                   ),
-                );
-              }),
-        ));
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(10),
+                              bottomLeft: Radius.circular(10),
+                              bottomRight: Radius.circular(10))),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                  fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.7,
+                              child: flutter_html.Html(
+                                data: groupMessage,
+                                style: {
+                                  ".bq": flutter_html.Style(
+                                    border: const Border(
+                                        left: BorderSide(
+                                            color: Colors.grey, width: 5.0)),
+                                    padding: flutter_html.HtmlPaddings.only(
+                                        left: 10),
+                                  ),
+                                  "blockquote": flutter_html.Style(
+                                    display: flutter_html.Display.inline,
+                                  ),
+                                  "code": flutter_html.Style(
+                                    backgroundColor: Colors.grey[200],
+                                    color: Colors.red,
+                                  ),
+                                  "ol": flutter_html.Style(
+                                    margin: flutter_html.Margins.all(0),
+                                    padding: flutter_html.HtmlPaddings.all(0),
+                                  ),
+                                  "ol li": flutter_html.Style(
+                                    display: flutter_html.Display.inlineBlock,
+                                  ),
+                                  "ul": flutter_html.Style(
+                                    display: flutter_html.Display.inlineBlock,
+                                    padding:
+                                        flutter_html.HtmlPaddings.symmetric(
+                                            horizontal: 10),
+                                    margin: flutter_html.Margins.all(0),
+                                  ),
+                                  ".code-block": flutter_html.Style(
+                                      padding:
+                                          flutter_html.HtmlPaddings.all(10),
+                                      backgroundColor: Colors.grey[200],
+                                      color: Colors.black,
+                                      width: flutter_html.Width(150)),
+                                  ".code-block code":
+                                      flutter_html.Style(color: Colors.black)
+                                },
+                              ),
+                            ),
+                            if (groupFiles!.length == 1)
+                              singleFile.buildSingleFile(
+                                  groupFiles[0], context, platform),
+                            if (groupFiles.length > 2)
+                              mulitFile.buildMultipleFiles(
+                                  groupFiles, platform, context),
+                            const SizedBox(
+                              height: 16,
+                            ),
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: groupMessageThreadList.length,
+                              itemBuilder: (context, index) {
+                                String message = groupMessageThreadList[index]
+                                    .groupthreadmsg
+                                    .toString();
+
+                                String senderName =
+                                    groupMessageThreadList[index]
+                                        .name
+                                        .toString();
+
+                                String dateTime = groupMessageThreadList[index]
+                                    .created_at
+                                    .toString();
+
+                                DateTime time =
+                                    DateTime.parse(dateTime).toLocal();
+                                String threadCreateAt =
+                                    DateFormat('MMM d, yyyy hh:mm a')
+                                        .format(time);
+                                List<dynamic>? threadFiles = [];
+                                threadFiles = groupMessageThreadList[index]
+                                    .fileUrls
+                                    .where((files) => files != null)
+                                    .toList();
+
+                                return Container(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.9,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Container(
+                                            height: 50,
+                                            width: 50,
+                                            decoration: BoxDecoration(
+                                              color: Colors.amber,
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            child: FittedBox(
+                                              alignment: Alignment.center,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(3.0),
+                                                child: Text(
+                                                  senderName
+                                                      .toUpperCase()
+                                                      .characters
+                                                      .first,
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 5)
+                                        ],
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Expanded(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                              color: Colors.grey.shade300,
+                                              borderRadius:
+                                                  const BorderRadius.only(
+                                                      topRight:
+                                                          Radius.circular(10),
+                                                      bottomLeft:
+                                                          Radius.circular(10),
+                                                      bottomRight:
+                                                          Radius.circular(10))),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  senderName,
+                                                  style: const TextStyle(
+                                                      fontSize: 17,
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                                Container(
+                                                  width: MediaQuery.of(context)
+                                                          .size
+                                                          .width *
+                                                      0.7,
+                                                  child: flutter_html.Html(
+                                                    data: message,
+                                                    style: {
+                                                      ".bq": flutter_html.Style(
+                                                        border: const Border(
+                                                            left: BorderSide(
+                                                                color:
+                                                                    Colors.grey,
+                                                                width: 5.0)),
+                                                        padding: flutter_html
+                                                                .HtmlPaddings
+                                                            .only(left: 10),
+                                                      ),
+                                                      "blockquote":
+                                                          flutter_html.Style(
+                                                        display: flutter_html
+                                                            .Display.inline,
+                                                      ),
+                                                      "code":
+                                                          flutter_html.Style(
+                                                        backgroundColor:
+                                                            Colors.grey[200],
+                                                        color: Colors.red,
+                                                      ),
+                                                      "ol": flutter_html.Style(
+                                                        margin: flutter_html
+                                                            .Margins.all(0),
+                                                        padding: flutter_html
+                                                                .HtmlPaddings
+                                                            .all(0),
+                                                      ),
+                                                      "ol li":
+                                                          flutter_html.Style(
+                                                        display: flutter_html
+                                                            .Display
+                                                            .inlineBlock,
+                                                      ),
+                                                      "ul": flutter_html.Style(
+                                                        display: flutter_html
+                                                            .Display
+                                                            .inlineBlock,
+                                                        padding: flutter_html
+                                                                .HtmlPaddings
+                                                            .symmetric(
+                                                                horizontal: 10),
+                                                        margin: flutter_html
+                                                            .Margins.all(0),
+                                                      ),
+                                                      ".code-block":
+                                                          flutter_html.Style(
+                                                              padding: flutter_html
+                                                                      .HtmlPaddings
+                                                                  .all(10),
+                                                              backgroundColor:
+                                                                  Colors.grey[
+                                                                      200],
+                                                              color:
+                                                                  Colors.black,
+                                                              width:
+                                                                  flutter_html
+                                                                      .Width(
+                                                                          150)),
+                                                      ".code-block code":
+                                                          flutter_html.Style(
+                                                              color:
+                                                                  Colors.black)
+                                                    },
+                                                  ),
+                                                ),
+                                                if (threadFiles!.length == 1)
+                                                  singleFile.buildSingleFile(
+                                                      threadFiles[0],
+                                                      context,
+                                                      platform),
+                                                if (threadFiles.length > 1)
+                                                  mulitFile.buildMultipleFiles(
+                                                      threadFiles,
+                                                      platform,
+                                                      context),
+                                                Text(
+                                                  threadCreateAt,
+                                                  style: const TextStyle(
+                                                      fontSize: 10),
+                                                ),
+                                                const SizedBox(),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                    style: TextButton.styleFrom(
+                                        shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(8)),
+                                            side: BorderSide(
+                                                color: Colors.white,
+                                                width: 5))),
+                                    onPressed: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  GpThreadMessage(
+                                                      channelID:
+                                                          directGroupList[index]
+                                                              .channelId,
+                                                      channelStatus:
+                                                          directGroupList[index]
+                                                              .channelStatus,
+                                                      channelName:
+                                                          directGroupList[index]
+                                                              .channelName,
+                                                      messageID:
+                                                          directGroupList[index]
+                                                              .id,
+                                                      message: groupMessage,
+                                                      name: name,
+                                                      time: directmsgTime,
+                                                      fname: name)));
+                                    },
+                                    child: const Text(
+                                      "reply",
+                                      style: TextStyle(color: Colors.black),
+                                    ))
+                              ],
+                            ),
+                            const SizedBox(),
+                            Text(
+                              directmsgTime,
+                              style: const TextStyle(fontSize: 10),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
