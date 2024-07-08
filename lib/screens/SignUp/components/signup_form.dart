@@ -26,6 +26,7 @@ class _SignUpFormState extends State<SignUpForm> {
 
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
+  String error = "";
 
   void _submitForm() async {
     if (_isLoading) {
@@ -63,6 +64,29 @@ class _SignUpFormState extends State<SignUpForm> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  //for cheecking password format
+  bool _validatePassword(String password) {
+    String _errorMessage = '';
+
+    // Regex pattern for password validation
+    RegExp passwordPattern =
+        RegExp(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#\$%&*~]).{8,}$');
+
+    if (!passwordPattern.hasMatch(password)) {
+      _errorMessage =
+          'Password must be at least 8 characters long\nand contain at least one uppercase letter, one low\nercase letter, one digit, and one special character.';
+    }
+
+    if (_errorMessage.isEmpty) {
+      return true;
+    } else {
+      setState(() {
+        error = _errorMessage;
+      });
+      return false;
     }
   }
 
@@ -191,8 +215,8 @@ class _SignUpFormState extends State<SignUpForm> {
                   return 'Please enter a Password';
                 } else if (value.length < 8) {
                   return 'Password should have at least 8 characters';
-                } else if (value.length > 10) {
-                  return 'Password should have less than 10 characters';
+                } else if (!_validatePassword(value)) {
+                  return error;
                 }
                 return null;
               },
@@ -227,8 +251,6 @@ class _SignUpFormState extends State<SignUpForm> {
                   return 'Please re-enter your confirmpassword';
                 } else if (value.length < 8) {
                   return 'Confirm Password Should have at least 8 characters';
-                } else if (value.length > 10) {
-                  return 'Confirm Password  Should have less than 10 Characters';
                 } else if (value != password.text) {
                   return 'Password and Confirm are not match';
                 }
