@@ -29,6 +29,7 @@ class _ChangePasswordState extends State<ChangePassword> {
   bool _isPasswordChanging = false;
   bool _isTextBoxVisible = false;
   String error = "";
+  String _errorMessage = '';
 
   @override
   void initState() {
@@ -45,6 +46,29 @@ class _ChangePasswordState extends State<ChangePassword> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  //for cheecking password format
+  bool _validatePassword(String password) {
+    String _errorMessage = '';
+
+    // Regex pattern for password validation
+    RegExp passwordPattern =
+        RegExp(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#\$%&*~]).{8,}$');
+
+    if (!passwordPattern.hasMatch(password)) {
+      _errorMessage =
+          'Password must be at least 8 characters long and contain \nat least one uppercase letter, one lowercase letter, \none digit, and one special character.';
+    }
+
+    if (_errorMessage.isEmpty) {
+      return true;
+    } else {
+      setState(() {
+        error = _errorMessage;
+      });
+      return false;
+    }
   }
 
   @override
@@ -90,8 +114,6 @@ class _ChangePasswordState extends State<ChangePassword> {
                               return 'Please enter your old Password';
                             } else if (value.length < 8) {
                               return 'Password should have at least 8 characters';
-                            } else if (value.length > 10) {
-                              return 'Password should have less than 10 characters';
                             }
                             return null;
                           },
@@ -125,10 +147,8 @@ class _ChangePasswordState extends State<ChangePassword> {
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please enter a Password';
-                            } else if (value.length < 8) {
-                              return 'Password should have at least 8 characters';
-                            } else if (value.length > 10) {
-                              return 'Password should have less than 10 characters';
+                            } else if (!_validatePassword(value)) {
+                              return error;
                             }
                             return null;
                           },
@@ -162,10 +182,6 @@ class _ChangePasswordState extends State<ChangePassword> {
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please re-enter your confirmpassword';
-                            } else if (value.length < 8) {
-                              return 'Confirm Password Should have at least 8 characters';
-                            } else if (value.length > 10) {
-                              return 'Confirm Password  Should have less than 10 Characters';
                             } else if (value != _passwordController.text) {
                               return 'Password and Confirm are not match';
                             }
@@ -241,6 +257,37 @@ class _ChangePasswordState extends State<ChangePassword> {
                             ],
                           ),
                         ),
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 25.0),
+                        child: Container(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning_rounded,
+                                    size: 14.0,
+                                  ),
+                                  SizedBox(
+                                    width: 5,
+                                  ),
+                                  Text(
+                                      "Password must contain at least 8 characters"),
+                                ],
+                              ),
+                              UnorderedListItem("1 lowercase letter"),
+                              UnorderedListItem("1 uppercase letter"),
+                              UnorderedListItem("1 digit"),
+                              UnorderedListItem("1 special character"),
+                            ],
+                          ),
+                        ),
                       )
                     ]))),
           ),
@@ -299,5 +346,38 @@ class _ChangePasswordState extends State<ChangePassword> {
         });
       }
     }
+  }
+}
+
+class UnorderedListItem extends StatelessWidget {
+  final String text;
+
+  UnorderedListItem(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 13.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "• ",
+            style: TextStyle(
+              height: 1,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: Colors.black,
+                height: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
