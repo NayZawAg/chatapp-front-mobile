@@ -3,9 +3,14 @@ class DirectMessageThread {
   List<TDirectThreads>? tDirectThreads;
   List<int>? tDirectStarThreadMsgids;
   String? senderName;
-
+  List<EmojiCountsforDirectThread>? emojiCounts;
+  List<ReactUserDataForDirectThread>? reactUserDatas;
   DirectMessageThread(
-      {this.tDirectMessage, this.tDirectThreads, this.tDirectStarThreadMsgids});
+      {this.tDirectMessage,
+      this.tDirectThreads,
+      this.tDirectStarThreadMsgids,
+      this.emojiCounts,
+      this.reactUserDatas});
 
   DirectMessageThread.fromJson(Map<String, dynamic> json) {
     tDirectMessage = json['t_direct_message'] != null
@@ -18,7 +23,22 @@ class DirectMessageThread {
       });
     }
     tDirectStarThreadMsgids = json['t_direct_star_thread_msgids'].cast<int>();
+
     senderName = json['sender_name'];
+
+    if (json["t_direct_thread_emojiscounts"] != null) {
+      emojiCounts = <EmojiCountsforDirectThread>[];
+      json["t_direct_thread_emojiscounts"].forEach((v) {
+        emojiCounts!.add(new EmojiCountsforDirectThread.fromJson(v));
+      });
+    }
+
+    if (json["react_usernames"] != null) {
+      reactUserDatas = <ReactUserDataForDirectThread>[];
+      json["react_usernames"].forEach((v) {
+        reactUserDatas!.add(new ReactUserDataForDirectThread.fromJson(v));
+      });
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -35,6 +55,13 @@ class DirectMessageThread {
       return data;
     }
     data['sender_name'] = this.senderName;
+
+    if (emojiCounts != null) {
+      data['emoji_counts'] = emojiCounts!.map((e) => e.toJson()).toList();
+    }
+    if (reactUserDatas != null) {
+      data['react_usernames'] = reactUserDatas!.map((e) => e.toJson()).toList();
+    }
     return data;
   }
 }
@@ -109,6 +136,55 @@ class TDirectThreads {
     data['id'] = this.id;
     data['file_urls'] = this.fileUrls;
     data['created_at'] = this.createdAt;
+    return data;
+  }
+}
+
+class EmojiCountsforDirectThread {
+  int? directThreadId;
+  String? emoji;
+  int? emojiCount;
+
+  EmojiCountsforDirectThread(
+      {this.directThreadId, this.emoji, this.emojiCount});
+
+  EmojiCountsforDirectThread.fromJson(Map<String, dynamic> json) {
+    directThreadId = json['directthreadid'];
+    emoji = json['emoji'];
+    emojiCount = json['emoji_count'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['directthreadid'] = directThreadId;
+    data['emoji'] = emoji;
+    data['emoji_count'] = emojiCount;
+    return data;
+  }
+}
+
+class ReactUserDataForDirectThread {
+  String? name;
+  int? directThreadId;
+  String? emoji;
+  int? userId;
+
+  ReactUserDataForDirectThread(
+      {this.name, this.directThreadId, this.emoji, this.userId});
+
+  ReactUserDataForDirectThread.fromJson(Map<String, dynamic> json) {
+    name = json['name'];
+    directThreadId = json['directthreadid'];
+    emoji = json['emoji'];
+    userId = json['userid'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['directthreadid'] = directThreadId;
+    data['emoji'] = emoji;
+    data['userid'] = userId;
     return data;
   }
 }

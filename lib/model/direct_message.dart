@@ -4,13 +4,17 @@ class DirectMessages {
   List<TDirectMessages>? tDirectMessages;
   List<TempDirectStarMsgids>? tempDirectStarMsgids;
   List<int>? tDirectStarMsgids;
-  DirectMessages({
-    this.mUser,
-    this.sUser,
-    this.tDirectMessages,
-    this.tempDirectStarMsgids,
-    this.tDirectStarMsgids,
-  });
+  List<TDirectMsgEmojiCounts>? tDirectMsgEmojiCounts;
+  List<ReactUserDataForDirectMsg>? reactUsernames;
+
+  DirectMessages(
+      {this.mUser,
+      this.sUser,
+      this.tDirectMessages,
+      this.tempDirectStarMsgids,
+      this.tDirectStarMsgids,
+      this.tDirectMsgEmojiCounts,
+      this.reactUsernames});
   DirectMessages.fromJson(Map<String, dynamic> json) {
     mUser = json['m_user'] != null ? MUser.fromJson(json['m_user']) : null;
     sUser = json['s_user'] != null ? MUser.fromJson(json['s_user']) : null;
@@ -30,6 +34,22 @@ class DirectMessages {
     tDirectStarMsgids = json['t_direct_star_msgids'] != null
         ? List<int>.from(json['t_direct_star_msgids'])
         : [];
+    if (json['t_direct_msg_emojiscounts'] != null) {
+      tDirectMsgEmojiCounts = <TDirectMsgEmojiCounts>[];
+      json['t_direct_msg_emojiscounts'].forEach((v) {
+        tDirectMsgEmojiCounts!.add(TDirectMsgEmojiCounts.fromJson(v));
+      });
+    } else {
+      tDirectMsgEmojiCounts = <TDirectMsgEmojiCounts>[];
+    }
+    if (json['react_usernames'] != null) {
+      reactUsernames = <ReactUserDataForDirectMsg>[];
+      json['react_usernames'].forEach((v) {
+        reactUsernames!.add(ReactUserDataForDirectMsg.fromJson(v));
+      });
+    } else {
+      reactUsernames = <ReactUserDataForDirectMsg>[];
+    }
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
@@ -48,6 +68,20 @@ class DirectMessages {
           tempDirectStarMsgids!.map((v) => v.toJson()).toList();
     }
     data['t_direct_star_msgids'] = tDirectStarMsgids;
+
+    if (tDirectMsgEmojiCounts != null) {
+      data['t_direct_msg_emojiscounts'] =
+          tDirectMsgEmojiCounts!.map((v) => v.toJson()).toList();
+    } else {
+      data['t_direct_msg_emojiscounts'] = <Map<String, dynamic>>[];
+    }
+
+    if (reactUsernames != null) {
+      data['t_direct_msg_emoji_userNames'] =
+          reactUsernames!.map((v) => v.toJson()).toList();
+    } else {
+      data['t_direct_msg_emoji_userNames'] = <Map<String, dynamic>>[];
+    }
     return data;
   }
 }
@@ -168,6 +202,53 @@ class TDirectMessageDates {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['created_date'] = this.createdDate;
     data['id'] = this.id;
+    return data;
+  }
+}
+
+class TDirectMsgEmojiCounts {
+  int? directmsgid;
+  String? emoji;
+  int? emojiCount;
+
+  TDirectMsgEmojiCounts({this.directmsgid, this.emoji, this.emojiCount});
+
+  TDirectMsgEmojiCounts.fromJson(Map<String, dynamic> json) {
+    directmsgid = json['directmsgid'];
+    emoji = json['emoji'];
+    emojiCount = json['emoji_count'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['directmsgid'] = directmsgid;
+    data['emoji'] = emoji;
+    data['emoji_count'] = emojiCount;
+    return data;
+  }
+}
+
+class ReactUserDataForDirectMsg {
+  String? name;
+  int? directmsgid;
+  String? emoji;
+  int? userId;
+
+  ReactUserDataForDirectMsg({this.directmsgid, this.emoji, this.name, this.userId});
+
+  ReactUserDataForDirectMsg.fromJson(Map<String, dynamic> json) {
+    userId = json['userid'];
+    directmsgid = json['directmsgid'];
+    emoji = json['emoji'];
+    name = json['name'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['userid'] = userId;
+    data['directmsgid'] = directmsgid;
+    data['emoji'] = emoji;
+    data['name'] = name;
     return data;
   }
 }

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_frontend/const/build_fiile.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
@@ -24,6 +25,9 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
+
+import "package:http/http.dart" as http;
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 
 class DirectMessageThreadWidget extends StatefulWidget {
@@ -54,6 +58,13 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
   int currentUserId = SessionStore.sessionData!.currentUser!.id!.toInt();
   late ScrollController _scrollController;
 
+//　-----------------
+  List<EmojiCountsforDirectThread>? emojiCounts = [];
+  List<ReactUserDataForDirectThread>? reactUserDatas = [];
+  String selectedEmoji = "";
+  String _seletedEmojiName = "";
+  bool _isEmojiSelected = false;
+// ----------------
   int? selectedIndex;
 
   bool isLoading = false;
@@ -307,6 +318,8 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
         senderName = thread.senderName!;
         directMessage = thread.tDirectMessage!.directmsg!;
         times = thread.tDirectMessage!.createdAt!;
+        emojiCounts = thread.emojiCounts!;
+        reactUserDatas = thread.reactUserDatas!;
         isLoading = true;
       });
     } catch (e) {
@@ -778,6 +791,34 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
     });
   }
 
+  //----------------------
+  Future<void> giveThreadMsgReaction(
+      {required int threadId,
+      required String emoji,
+      required int selectedDirectMsgId,
+      required int selectedUserId,
+      required int userId}) async {
+    var token = await AuthController().getToken();
+    try {
+      final response =
+          await http.post(Uri.parse("http://10.0.2.2:3000/directthreadreact"),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json; charset=UTF-8',
+              },
+              body: jsonEncode(<String, dynamic>{
+                "s_direct_message_id": selectedDirectMsgId,
+                "s_user_id": selectedUserId,
+                "thread_id": threadId,
+                "user_id": userId,
+                "emoji": emoji
+              }));
+    } catch (e) {
+      print("error===> $e");
+      rethrow;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (SessionStore.sessionData!.currentUser!.memberStatus == false) {
@@ -992,7 +1033,8 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
 
                           String currentUserName =
                               SessionStore.sessionData!.currentUser!.name!;
-
+                          int currentUserId =
+                              SessionStore.sessionData!.currentUser!.id!;
                           return Container(
                             margin: const EdgeInsets.symmetric(vertical: 10),
                             child: Row(
@@ -1040,144 +1082,424 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                   ),
                                 ),
                                 Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: const BorderRadius.only(
-                                            bottomLeft: Radius.circular(13),
-                                            bottomRight: Radius.circular(13),
-                                            topRight: Radius.circular(13))),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Flexible(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              if (replyMessages.isNotEmpty)
-                                                flutter_html.Html(
-                                                  data: replyMessages,
-                                                  style: {
-                                                    ".bq": flutter_html.Style(
-                                                      // backgroundColor: Colors.purple
-                                                      border: const Border(
-                                                          left: BorderSide(
-                                                              color:
-                                                                  Colors.grey,
-                                                              width: 5.0)),
-                                                      padding: flutter_html
-                                                              .HtmlPaddings
-                                                          .only(left: 10),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                            color: Colors.grey.shade200,
+                                            borderRadius:
+                                                const BorderRadius.only(
+                                                    bottomLeft:
+                                                        Radius.circular(13),
+                                                    bottomRight:
+                                                        Radius.circular(13),
+                                                    topRight:
+                                                        Radius.circular(13))),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Flexible(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  if (replyMessages.isNotEmpty)
+                                                    flutter_html.Html(
+                                                      data: replyMessages,
+                                                      style: {
+                                                        ".bq":
+                                                            flutter_html.Style(
+                                                          // backgroundColor: Colors.purple
+                                                          border: const Border(
+                                                              left: BorderSide(
+                                                                  color: Colors
+                                                                      .grey,
+                                                                  width: 5.0)),
+                                                          padding: flutter_html
+                                                                  .HtmlPaddings
+                                                              .only(left: 10),
+                                                        ),
+                                                        "blockquote":
+                                                            flutter_html.Style(
+                                                          display: flutter_html
+                                                              .Display.inline,
+                                                        ),
+                                                        "code":
+                                                            flutter_html.Style(
+                                                          backgroundColor:
+                                                              Colors.grey[200],
+                                                          color: Colors.red,
+                                                        ),
+                                                        "ol":
+                                                            flutter_html.Style(
+                                                          margin: flutter_html
+                                                              .Margins.all(0),
+                                                          padding: flutter_html
+                                                                  .HtmlPaddings
+                                                              .all(0),
+                                                        ),
+                                                        "ol li":
+                                                            flutter_html.Style(
+                                                          display: flutter_html
+                                                              .Display
+                                                              .inlineBlock,
+                                                        ),
+                                                        "ul":
+                                                            flutter_html.Style(
+                                                          display: flutter_html
+                                                              .Display
+                                                              .inlineBlock,
+                                                          padding: flutter_html
+                                                                  .HtmlPaddings
+                                                              .symmetric(
+                                                                  horizontal:
+                                                                      10),
+                                                          margin: flutter_html
+                                                              .Margins.all(0),
+                                                        ),
+                                                        ".code-block":
+                                                            flutter_html.Style(
+                                                                padding:
+                                                                    flutter_html
+                                                                            .HtmlPaddings
+                                                                        .all(
+                                                                            10),
+                                                                backgroundColor:
+                                                                    Colors.grey[
+                                                                        200],
+                                                                color: Colors
+                                                                    .black,
+                                                                width:
+                                                                    flutter_html
+                                                                        .Width(
+                                                                            150)),
+                                                        ".code-block code":
+                                                            flutter_html.Style(
+                                                                color: Colors
+                                                                    .black)
+                                                      },
                                                     ),
-                                                    "blockquote":
-                                                        flutter_html.Style(
-                                                      display: flutter_html
-                                                          .Display.inline,
+                                                  if (files!.length == 1)
+                                                    singleFile.buildSingleFile(
+                                                        files[0],
+                                                        context,
+                                                        platform),
+                                                  if (files.length > 2)
+                                                    mulitFile
+                                                        .buildMultipleFiles(
+                                                            files,
+                                                            platform,
+                                                            context),
+                                                  const SizedBox(height: 8),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    createdAt,
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: Color.fromARGB(
+                                                          255, 15, 15, 15),
                                                     ),
-                                                    "code": flutter_html.Style(
-                                                      backgroundColor:
-                                                          Colors.grey[200],
-                                                      color: Colors.red,
-                                                    ),
-                                                    "ol": flutter_html.Style(
-                                                      margin: flutter_html
-                                                          .Margins.all(0),
-                                                      padding: flutter_html
-                                                          .HtmlPaddings.all(0),
-                                                    ),
-                                                    "ol li": flutter_html.Style(
-                                                      display: flutter_html
-                                                          .Display.inlineBlock,
-                                                    ),
-                                                    "ul": flutter_html.Style(
-                                                      display: flutter_html
-                                                          .Display.inlineBlock,
-                                                      padding: flutter_html
-                                                              .HtmlPaddings
-                                                          .symmetric(
-                                                              horizontal: 10),
-                                                      margin: flutter_html
-                                                          .Margins.all(0),
-                                                    ),
-                                                    ".code-block": flutter_html
-                                                        .Style(
-                                                            padding: flutter_html
-                                                                    .HtmlPaddings
-                                                                .all(10),
-                                                            backgroundColor:
-                                                                Colors
-                                                                    .grey[200],
-                                                            color: Colors.black,
-                                                            width: flutter_html
-                                                                .Width(150)),
-                                                    ".code-block code":
-                                                        flutter_html.Style(
-                                                            color: Colors.black)
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Row(
+                                              // crossAxisAlignment: CrossAxisAlignment.center,
+                                              children: [
+                                                IconButton(
+                                                  onPressed: () async {
+                                                    if (isStar) {
+                                                      await unStarReply(
+                                                          replyMessagesIds);
+                                                    } else {
+                                                      await starMsgReply(
+                                                          replyMessagesIds);
+                                                    }
+                                                  },
+                                                  icon: const Icon(
+                                                    Icons.star,
+                                                    size: 20,
+                                                  ),
+                                                  color: isStar
+                                                      ? Colors.yellow
+                                                      : Colors.grey,
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(Icons
+                                                      .add_reaction_outlined),
+                                                  onPressed: () async {
+                                                    await showModalBottomSheet(
+                                                        context: context,
+                                                        builder: (BuildContext
+                                                            context) {
+                                                          return EmojiPicker(
+                                                            onEmojiSelected:
+                                                                (category,
+                                                                    Emoji
+                                                                        emoji) async {
+                                                              setState(() {
+                                                                selectedEmoji =
+                                                                    emoji.emoji;
+                                                                _seletedEmojiName =
+                                                                    emoji.name;
+                                                                _isEmojiSelected =
+                                                                    true;
+                                                              });
+
+                                                              await giveThreadMsgReaction(
+                                                                  emoji:
+                                                                      selectedEmoji,
+                                                                  threadId:
+                                                                      replyMessagesIds,
+                                                                  selectedDirectMsgId:
+                                                                      widget
+                                                                          .directMsgId,
+                                                                  selectedUserId:
+                                                                      widget
+                                                                          .receiverId,
+                                                                  userId:
+                                                                      currentUserId);
+
+                                                              Navigator.pop(
+                                                                  context);
+                                                            },
+                                                            config:
+                                                                const Config(
+                                                              height: double
+                                                                  .maxFinite,
+                                                              checkPlatformCompatibility:
+                                                                  true,
+                                                              emojiViewConfig:
+                                                                  EmojiViewConfig(
+                                                                emojiSizeMax:
+                                                                    23,
+                                                              ),
+                                                              swapCategoryAndBottomBar:
+                                                                  false,
+                                                              skinToneConfig:
+                                                                  SkinToneConfig(),
+                                                              categoryViewConfig:
+                                                                  CategoryViewConfig(),
+                                                              bottomActionBarConfig:
+                                                                  BottomActionBarConfig(),
+                                                              searchViewConfig:
+                                                                  SearchViewConfig(),
+                                                            ),
+                                                          );
+                                                        });
                                                   },
                                                 ),
-                                              if (files!.length == 1)
-                                                singleFile.buildSingleFile(
-                                                    files[0],
-                                                    context,
-                                                    platform),
-                                              if (files.length > 2)
-                                                mulitFile.buildMultipleFiles(
-                                                    files, platform, context),
-                                              const SizedBox(height: 8),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                createdAt,
-                                                style: const TextStyle(
-                                                  fontSize: 10,
-                                                  color: Color.fromARGB(
-                                                      255, 15, 15, 15),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Row(
-                                          // crossAxisAlignment: CrossAxisAlignment.center,
-                                          children: [
-                                            IconButton(
-                                              onPressed: () async {
-                                                if (isStar) {
-                                                  await unStarReply(
-                                                      replyMessagesIds);
-                                                } else {
-                                                  await starMsgReply(
-                                                      replyMessagesIds);
-                                                }
-                                              },
-                                              icon: const Icon(
-                                                Icons.star,
-                                                size: 20,
-                                              ),
-                                              color: isStar
-                                                  ? Colors.yellow
-                                                  : Colors.grey,
-                                            ),
-                                            if (currentUserName == name)
-                                              IconButton(
-                                                onPressed: () async {
-                                                  await deleteReply(
-                                                      replyMessagesIds);
-                                                  print(
-                                                      "This is a corona ${replyMessagesIds}");
-                                                },
-                                                icon: const Icon(
-                                                  Icons.delete,
-                                                  size: 20,
-                                                  color: Colors.red,
-                                                ),
-                                              ),
+                                                if (currentUserName == name)
+                                                  IconButton(
+                                                    onPressed: () async {
+                                                      await deleteReply(
+                                                          replyMessagesIds);
+                                                      print(
+                                                          "This is a corona ${replyMessagesIds}");
+                                                    },
+                                                    icon: const Icon(
+                                                      Icons.delete,
+                                                      size: 20,
+                                                      color: Colors.red,
+                                                    ),
+                                                  ),
+                                              ],
+                                            )
                                           ],
-                                        )
-                                      ],
-                                    ),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 300,
+                                        child: Wrap(
+                                            direction: Axis.horizontal,
+                                            spacing: 7,
+                                            children: List.generate(
+                                                emojiCounts!.length, (index) {
+                                              List userIds = [];
+                                              List userNames = [];
+
+                                              if (emojiCounts![index]
+                                                      .directThreadId ==
+                                                  replyMessagesIds) {
+                                                for (dynamic reactUser
+                                                    in reactUserDatas!) {
+                                                  if (reactUser
+                                                              .directThreadId ==
+                                                          emojiCounts![index]
+                                                              .directThreadId &&
+                                                      emojiCounts![index]
+                                                              .emoji ==
+                                                          reactUser.emoji) {
+                                                    userIds
+                                                        .add(reactUser.userId);
+                                                    userNames
+                                                        .add(reactUser.name);
+                                                  }
+                                                } //reactUser for loop end
+
+                                                // if (userIds
+                                                //     .contains(currentUser)) {
+                                                //   print(
+                                                //       'condition true================ in Thread');
+                                                //   Container();
+                                                // }
+                                              }
+                                              for (int i = 0;
+                                                  i < emojiCounts!.length;
+                                                  i++) {
+                                                if (emojiCounts![i]
+                                                        .directThreadId ==
+                                                    replyMessagesIds) {
+                                                  for (int j = 0;
+                                                      j <
+                                                          reactUserDatas!
+                                                              .length;
+                                                      j++) {
+                                                    if (userIds.contains(
+                                                        reactUserDatas![j]
+                                                            .userId)) {
+                                                      return Container(
+                                                        width: 50,
+                                                        height: 25,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(16),
+                                                          border: Border.all(
+                                                            color: userIds.contains(
+                                                                    currentUserId)
+                                                                ? Colors.green
+                                                                : Colors
+                                                                    .red, // Use emojiBorderColor here
+                                                            width: 1,
+                                                          ),
+                                                          color: Color.fromARGB(
+                                                              226,
+                                                              212,
+                                                              234,
+                                                              250),
+                                                        ),
+                                                        padding:
+                                                            EdgeInsets.zero,
+                                                        child: TextButton(
+                                                          onPressed: () async {
+                                                            setState(() {
+                                                              _isEmojiSelected =
+                                                                  false;
+                                                              // groupThreadMessageID =
+                                                              //     snapshot
+                                                              //         .data!
+                                                              //         .GpThreads![
+                                                              //             index]
+                                                              //         .id!
+                                                              //         .toInt();
+                                                            });
+                                                            HapticFeedback
+                                                                .vibrate();
+                                                            await giveThreadMsgReaction(
+                                                                emoji:
+                                                                    emojiCounts![
+                                                                            index]
+                                                                        .emoji!,
+                                                                threadId:
+                                                                    replyMessagesIds,
+                                                                selectedDirectMsgId:
+                                                                    widget
+                                                                        .directMsgId,
+                                                                selectedUserId:
+                                                                    widget
+                                                                        .receiverId,
+                                                                userId:
+                                                                    currentUserId);
+                                                          },
+                                                          onLongPress:
+                                                              () async {
+                                                            HapticFeedback
+                                                                .heavyImpact();
+                                                            await showDialog(
+                                                              context: context,
+                                                              builder:
+                                                                  (BuildContext
+                                                                      context) {
+                                                                return SimpleDialog(
+                                                                  title:
+                                                                      const Center(
+                                                                    child: Text(
+                                                                      "People Who React",
+                                                                      style: TextStyle(
+                                                                          fontSize:
+                                                                              20),
+                                                                    ),
+                                                                  ),
+                                                                  children: [
+                                                                    SizedBox(
+                                                                      width: MediaQuery.of(
+                                                                              context)
+                                                                          .size
+                                                                          .width,
+                                                                      child: ListView
+                                                                          .builder(
+                                                                        shrinkWrap:
+                                                                            true,
+                                                                        itemBuilder:
+                                                                            (ctx,
+                                                                                index) {
+                                                                          return SingleChildScrollView(
+                                                                            child:
+                                                                                SimpleDialogOption(
+                                                                              onPressed: () => Navigator.pop(context),
+                                                                              child: Center(
+                                                                                child: Text(
+                                                                                  "${userNames[index]}さん",
+                                                                                  style: const TextStyle(fontSize: 18, letterSpacing: 0.1),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          );
+                                                                        },
+                                                                        itemCount:
+                                                                            userNames.length,
+                                                                      ),
+                                                                    )
+                                                                  ],
+                                                                );
+                                                              },
+                                                            );
+                                                          },
+                                                          style: ButtonStyle(
+                                                            padding:
+                                                                WidgetStateProperty
+                                                                    .all(EdgeInsets
+                                                                        .zero),
+                                                            minimumSize:
+                                                                WidgetStateProperty
+                                                                    .all(Size(
+                                                                        50,
+                                                                        25)),
+                                                          ),
+                                                          child: Text(
+                                                            '${emojiCounts![index].emoji} ${emojiCounts![index].emojiCount}',
+                                                            style: TextStyle(
+                                                              color: Colors
+                                                                  .blueAccent,
+                                                              fontSize: 14,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                              return Container();
+                                            })),
+                                      )
+                                    ],
                                   ),
                                 ),
                               ],
@@ -1255,122 +1577,134 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                       )),
                                 ],
                               ),
-                              Container(
-                                width: 40,
-                                height: 40,
-                                margin: const EdgeInsets.fromLTRB(10, 0, 0, 0),
-                                decoration: BoxDecoration(
-                                    color:
-                                        const Color.fromARGB(255, 24, 103, 167),
-                                    borderRadius: BorderRadius.circular(5)),
-                                child: IconButton(
-                                    onPressed: () {
-                                      final doc = _quilcontroller.document;
-                                      htmlContent = convertDocumentToHtml(doc);
-                                      // for blockquote
-                                      if (isBlockquote) {
-                                        htmlContent =
-                                            "<div class='bq'>$htmlContent</div>";
-                                      }
-                                      // for codeblock
-                                      if (isCodeblock) {
-                                        htmlContent =
-                                            htmlContent.replaceAll('<br>', ' ');
-                                        htmlContent =
-                                            '<div class="code-block" style="border:1px solid #A9A9A9;">$htmlContent</div>';
-                                      }
-                                      // for order list
-                                      if (isOrderList) {
-                                        String separateText = "";
-                                        String orderText = "";
-                                        List<String> combinedList = [];
-
-                                        if (htmlContent.contains("<a>")) {
-                                          final separate =
-                                              htmlContent.split("<a>");
-                                          orderText = separate[1].toString();
-                                          separateText = separate[0].toString();
-                                          final orderList =
-                                              orderText.split("<br>");
-                                          for (int i = 0;
-                                              i < orderList.length;
-                                              i++) {
-                                            if (orderList[i].isNotEmpty) {
-                                              combinedList.add(
-                                                  "<ol><li>${i + 1}.  ${orderList[i]}</li></ol><br>");
-                                            }
-                                          }
-                                          String finalcontent =
-                                              combinedList.join(" ");
+                              Column(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    margin:
+                                        const EdgeInsets.fromLTRB(10, 0, 0, 0),
+                                    decoration: BoxDecoration(
+                                        color: const Color.fromARGB(
+                                            255, 24, 103, 167),
+                                        borderRadius: BorderRadius.circular(5)),
+                                    child: IconButton(
+                                        onPressed: () {
+                                          final doc = _quilcontroller.document;
                                           htmlContent =
-                                              "$separateText $finalcontent";
-                                        } else {
-                                          final orderList =
-                                              htmlContent.split("<br>");
-                                          for (int i = 0;
-                                              i < orderList.length;
-                                              i++) {
-                                            if (orderList[i].isNotEmpty) {
-                                              combinedList.add(
-                                                  "<ol><li>${i + 1}.  ${orderList[i]}</li></ol><br>");
+                                              convertDocumentToHtml(doc);
+                                          // for blockquote
+                                          if (isBlockquote) {
+                                            htmlContent =
+                                                "<div class='bq'>$htmlContent</div>";
+                                          }
+                                          // for codeblock
+                                          if (isCodeblock) {
+                                            htmlContent = htmlContent
+                                                .replaceAll('<br>', ' ');
+                                            htmlContent =
+                                                '<div class="code-block" style="border:1px solid #A9A9A9;">$htmlContent</div>';
+                                          }
+                                          // for order list
+                                          if (isOrderList) {
+                                            String separateText = "";
+                                            String orderText = "";
+                                            List<String> combinedList = [];
+
+                                            if (htmlContent.contains("<a>")) {
+                                              final separate =
+                                                  htmlContent.split("<a>");
+                                              orderText =
+                                                  separate[1].toString();
+                                              separateText =
+                                                  separate[0].toString();
+                                              final orderList =
+                                                  orderText.split("<br>");
+                                              for (int i = 0;
+                                                  i < orderList.length;
+                                                  i++) {
+                                                if (orderList[i].isNotEmpty) {
+                                                  combinedList.add(
+                                                      "<ol><li>${i + 1}.  ${orderList[i]}</li></ol><br>");
+                                                }
+                                              }
+                                              String finalcontent =
+                                                  combinedList.join(" ");
+                                              htmlContent =
+                                                  "$separateText $finalcontent";
+                                            } else {
+                                              final orderList =
+                                                  htmlContent.split("<br>");
+                                              for (int i = 0;
+                                                  i < orderList.length;
+                                                  i++) {
+                                                if (orderList[i].isNotEmpty) {
+                                                  combinedList.add(
+                                                      "<ol><li>${i + 1}.  ${orderList[i]}</li></ol><br>");
+                                                }
+                                              }
+                                              htmlContent =
+                                                  combinedList.join(" ");
                                             }
                                           }
-                                          htmlContent = combinedList.join(" ");
-                                        }
-                                      }
-                                      // for unorder list
-                                      if (isUnorderList) {
-                                        String separateText = "";
-                                        String orderText = "";
-                                        List<String> combinedList = [];
+                                          // for unorder list
+                                          if (isUnorderList) {
+                                            String separateText = "";
+                                            String orderText = "";
+                                            List<String> combinedList = [];
 
-                                        if (htmlContent.contains("<a>")) {
-                                          final separate =
-                                              htmlContent.split("<a>");
-                                          orderText = separate[1].toString();
-                                          separateText = separate[0].toString();
-                                          final orderList =
-                                              orderText.split("<br>");
-                                          for (int i = 0;
-                                              i < orderList.length;
-                                              i++) {
-                                            if (orderList[i].isNotEmpty) {
-                                              combinedList.add(
-                                                  "<ul><li>${orderList[i]}</li></ul><br>");
+                                            if (htmlContent.contains("<a>")) {
+                                              final separate =
+                                                  htmlContent.split("<a>");
+                                              orderText =
+                                                  separate[1].toString();
+                                              separateText =
+                                                  separate[0].toString();
+                                              final orderList =
+                                                  orderText.split("<br>");
+                                              for (int i = 0;
+                                                  i < orderList.length;
+                                                  i++) {
+                                                if (orderList[i].isNotEmpty) {
+                                                  combinedList.add(
+                                                      "<ul><li>${orderList[i]}</li></ul><br>");
+                                                }
+                                              }
+                                              String finalcontent =
+                                                  combinedList.join(" ");
+                                              htmlContent =
+                                                  "$separateText $finalcontent";
+                                            } else {
+                                              final orderList =
+                                                  htmlContent.split("<br>");
+                                              for (int i = 0;
+                                                  i < orderList.length;
+                                                  i++) {
+                                                if (orderList[i].isNotEmpty) {
+                                                  combinedList.add(
+                                                      "<ul><li>${orderList[i]}</li></ul><br>");
+                                                }
+                                              }
+                                              htmlContent =
+                                                  combinedList.join(" ");
                                             }
                                           }
-                                          String finalcontent =
-                                              combinedList.join(" ");
-                                          htmlContent =
-                                              "$separateText $finalcontent";
-                                        } else {
-                                          final orderList =
-                                              htmlContent.split("<br>");
-                                          for (int i = 0;
-                                              i < orderList.length;
-                                              i++) {
-                                            if (orderList[i].isNotEmpty) {
-                                              combinedList.add(
-                                                  "<ul><li>${orderList[i]}</li></ul><br>");
-                                            }
+                                          htmlContent = htmlContent.replaceAll(
+                                              "<br>", "");
+
+                                          setState() {
+                                            isLoading = !isLoading;
                                           }
-                                          htmlContent = combinedList.join(" ");
-                                        }
-                                      }
-                                      htmlContent =
-                                          htmlContent.replaceAll("<br>", "");
 
-                                      setState() {
-                                        isLoading = !isLoading;
-                                      }
-
-                                      sendReplyMessage(htmlContent);
-                                      _clearEditor();
-                                    },
-                                    icon: const Icon(
-                                      Icons.send,
-                                      color: Colors.white,
-                                    )),
+                                          sendReplyMessage(htmlContent);
+                                          _clearEditor();
+                                        },
+                                        icon: const Icon(
+                                          Icons.send,
+                                          color: Colors.white,
+                                        )),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
