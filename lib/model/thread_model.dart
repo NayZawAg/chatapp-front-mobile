@@ -5,13 +5,15 @@ class dThread {
   List<dynamic>? fileUrls;
   int? directMsgId;
   String? created_at;
+  int? senderId;
   dThread(
       {this.id,
       this.directthreadmsg,
       this.name,
       this.created_at,
       this.directMsgId,
-      this.fileUrls});
+      this.fileUrls,
+      this.senderId});
   dThread.fromJson(Map<String, dynamic> json) {
     directMsgId = json['t_direct_message_id'];
     fileUrls = json['file_urls'];
@@ -19,6 +21,7 @@ class dThread {
     name = json['name'];
     directthreadmsg = json['directthreadmsg'];
     created_at = json['created_at'];
+    senderId = json['sender_id'];
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
@@ -28,6 +31,7 @@ class dThread {
     data['directthreadmsg'] = this.directthreadmsg;
     data['name'] = this.name;
     data['id'] = this.id;
+    data['sender_id'] = this.senderId;
     return data;
   }
 }
@@ -41,7 +45,13 @@ class DirectMsg {
   String? directmsg;
   String? name;
   DirectMsg(
-      {this.created_at, this.directmsg, this.name, this.id, this.fileUrls});
+      {this.created_at,
+      this.directmsg,
+      this.name,
+      this.id,
+      this.fileUrls,
+      this.senderId,
+      this.receiverId});
   DirectMsg.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     receiverId = json['receiver_id'];
@@ -73,8 +83,14 @@ class G_message {
   int? channelId;
   List<dynamic>? fileUrls;
   String? created_at;
+  int? senderId;
   G_message(
-      {this.created_at, this.groupmsg, this.name, this.id, this.fileUrls});
+      {this.created_at,
+      this.groupmsg,
+      this.name,
+      this.id,
+      this.fileUrls,
+      this.senderId});
   G_message.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     name = json['name'];
@@ -84,6 +100,7 @@ class G_message {
     fileUrls = json['file_urls'];
     groupmsg = json['groupmsg'];
     created_at = json['created_at'];
+    senderId = json['m_user_id'];
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
@@ -95,6 +112,7 @@ class G_message {
     data['channel_status'] = this.channelStatus;
     data['groupmsg'] = this.groupmsg;
     data['created_at'] = this.created_at;
+    data['m_user_id'] = this.senderId;
     return data;
   }
 }
@@ -107,12 +125,14 @@ class G_thread {
   String? groupthreadmsg;
   int? groupMessageId;
   String? created_at;
+  int? senderId;
   G_thread(
       {this.created_at,
       this.groupthreadmsg,
       this.name,
       this.channelName,
-      this.fileUrls});
+      this.fileUrls,
+      this.senderId});
   G_thread.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     groupMessageId = json['t_group_message_id'];
@@ -121,6 +141,7 @@ class G_thread {
     channelName = json['channel_name'];
     groupthreadmsg = json['groupthreadmsg'];
     created_at = json['created_at'];
+    senderId = json['m_user_id'];
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
@@ -131,6 +152,7 @@ class G_thread {
     data['channel_name'] = this.channelName;
     data['groupthreadmsg'] = this.groupthreadmsg;
     data['created_at'] = this.created_at;
+    data['m_user_id'] = this.senderId;
     return data;
   }
 }
