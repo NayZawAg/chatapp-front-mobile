@@ -1,4 +1,3 @@
-
 class GroupMessgeModel{
   MChannel? mChannel;
   RetrieveGroupMessage? retrieveGroupMessage;
@@ -214,14 +213,14 @@ class RetrieveGroupMessage {
         emojiCounts!.add(EmojiCountsforGpMsg.fromJson(v));
       });
     }
-    //
+    
     if (json['react_usernames'] != null) {
       reactUserData = <ReactUserDataForGpMsg>[];
       json['react_usernames'].forEach((v) {
         reactUserData!.add(ReactUserDataForGpMsg.fromJson(v));
       });
     }
-    //
+    
     if (json['t_group_message_dates'] != null) {
       tGroupMessageDates = <TGroupMessageDates>[];
       json['t_group_message_dates'].forEach((v) {

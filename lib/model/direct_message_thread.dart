@@ -25,14 +25,14 @@ class DirectMessageThread {
     tDirectStarThreadMsgids = json['t_direct_star_thread_msgids'].cast<int>();
 
     senderName = json['sender_name'];
-    // -----------------
+
     if (json["t_direct_thread_emojiscounts"] != null) {
       emojiCounts = <EmojiCountsforDirectThread>[];
       json["t_direct_thread_emojiscounts"].forEach((v) {
         emojiCounts!.add(new EmojiCountsforDirectThread.fromJson(v));
       });
     }
-    // -------------------
+
     if (json["react_usernames"] != null) {
       reactUserDatas = <ReactUserDataForDirectThread>[];
       json["react_usernames"].forEach((v) {
@@ -55,14 +55,13 @@ class DirectMessageThread {
       return data;
     }
     data['sender_name'] = this.senderName;
-    // --------------------
+
     if (emojiCounts != null) {
       data['emoji_counts'] = emojiCounts!.map((e) => e.toJson()).toList();
     }
     if (reactUserDatas != null) {
       data['react_usernames'] = reactUserDatas!.map((e) => e.toJson()).toList();
     }
-    // -------------------
     return data;
   }
 }

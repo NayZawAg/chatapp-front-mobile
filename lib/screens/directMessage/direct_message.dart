@@ -363,7 +363,6 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
     });
   }
 
-  // -------------------------------------------------------
 
   void _onSelectionChanged() {
     if (_quilcontroller.selection.extentOffset !=
