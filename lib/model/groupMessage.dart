@@ -167,6 +167,8 @@ class RetrieveGroupMessage {
   List<MChannelUser>? mChannelUsers;
   List<int>? tGroupStarMsgids;
   int? uCount;
+  List<EmojiCountsforGpMsg>? emojiCounts;
+  List<ReactUserDataForGpMsg>? reactUserData;
   List<TGroupMessageDates>? tGroupMessageDates;
   List<String>? tGroupMessageDatesize;
 
@@ -177,6 +179,8 @@ class RetrieveGroupMessage {
       this.mChannelUsers,
       this.tGroupStarMsgids,
       this.uCount,
+      this.emojiCounts,
+      this.reactUserData,
       this.tGroupMessageDates,
       this.tGroupMessageDatesize});
 
@@ -204,6 +208,20 @@ class RetrieveGroupMessage {
     }
     tGroupStarMsgids = json['t_group_star_msgids'].cast<int>();
     uCount = json['u_count'];
+    if (json['emoji_counts'] != null) {
+      emojiCounts = <EmojiCountsforGpMsg>[];
+      json['emoji_counts'].forEach((v) {
+        emojiCounts!.add(EmojiCountsforGpMsg.fromJson(v));
+      });
+    }
+    //
+    if (json['react_usernames'] != null) {
+      reactUserData = <ReactUserDataForGpMsg>[];
+      json['react_usernames'].forEach((v) {
+        reactUserData!.add(ReactUserDataForGpMsg.fromJson(v));
+      });
+    }
+    //
     if (json['t_group_message_dates'] != null) {
       tGroupMessageDates = <TGroupMessageDates>[];
       json['t_group_message_dates'].forEach((v) {
@@ -233,6 +251,12 @@ class RetrieveGroupMessage {
     if (this.tGroupMessageDates != null) {
       data['t_group_message_dates'] =
           this.tGroupMessageDates!.map((v) => v.toJson()).toList();
+    }
+    if (emojiCounts != null) {
+      data['emoji_counts'] = emojiCounts!.map((v) => v.toJson()).toList();
+    }
+    if (reactUserData != null) {
+      data['react_usernames'] = reactUserData!.map((v) => v.toJson()).toList();
     }
     data['t_group_message_datesize'] = this.tGroupMessageDatesize;
     return data;
@@ -531,6 +555,53 @@ class MChannels {
     data['channel_name'] = this.channelName;
     data['channel_status'] = this.channelStatus;
     data['message_count'] = this.messageCount;
+    return data;
+  }
+}
+
+
+class EmojiCountsforGpMsg {
+  int? groupmsgid;
+  String? emoji;
+  int? emojiCount;
+
+  EmojiCountsforGpMsg({this.groupmsgid, this.emoji, this.emojiCount});
+
+  EmojiCountsforGpMsg.fromJson(Map<String, dynamic> json) {
+    groupmsgid = json['groupmsgid'];
+    emoji = json['emoji'];
+    emojiCount = json['emoji_count'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['groupmsgid'] = groupmsgid;
+    data['emoji'] = emoji;
+    data['emoji_count'] = emojiCount;
+    return data;
+  }
+}
+class ReactUserDataForGpMsg {
+  String? name;
+  int? groupmsgid;
+  String? emoji;
+  int? userid;
+
+  ReactUserDataForGpMsg({this.name, this.groupmsgid, this.emoji, this.userid});
+
+  ReactUserDataForGpMsg.fromJson(Map<String, dynamic> json) {
+    name = json['name'];
+    groupmsgid = json['groupmsgid'];
+    emoji = json['emoji'];
+    userid = json['userid'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['groupmsgid'] = groupmsgid;
+    data['emoji'] = emoji;
+    data['userid'] = userid;
     return data;
   }
 }

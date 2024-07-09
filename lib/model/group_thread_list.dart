@@ -3,7 +3,14 @@ class GroupThreadMessage {
   List<dynamic>? GpThreadStar;
   List<mChannelUser>? TChannelUsers;
   List<mUsers>? MUsers;
-  GroupThreadMessage({this.GpThreads, this.GpThreadStar, this.TChannelUsers});
+  List<EmojiCountsforGpThread>? emojiCounts;
+  List<ReactUserDataForGpThread>? reactUserDatas;
+  GroupThreadMessage(
+      {this.GpThreads,
+      this.GpThreadStar,
+      this.TChannelUsers,
+      this.emojiCounts,
+      this.reactUserDatas});
 
   GroupThreadMessage.fromJson(Map<String, dynamic> json) {
     if (json['retrieveGroupThread']['t_group_threads'] != null) {
@@ -25,6 +32,19 @@ class GroupThreadMessage {
       });
     }
     GpThreadStar = json['retrieveGroupThread']['t_group_star_thread_msgids'];
+
+    if (json['retrieveGroupThread']['emoji_counts'] != null) {
+      emojiCounts = <EmojiCountsforGpThread>[];
+      json['retrieveGroupThread']['emoji_counts'].forEach((v) {
+        emojiCounts!.add(EmojiCountsforGpThread.fromJson(v));
+      });
+    }
+    if (json['retrieveGroupThread']['react_usernames'] != null) {
+      reactUserDatas = <ReactUserDataForGpThread>[];
+      json['retrieveGroupThread']['react_usernames'].forEach((v) {
+        reactUserDatas!.add(ReactUserDataForGpThread.fromJson(v));
+      });
+    }
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
@@ -38,6 +58,15 @@ class GroupThreadMessage {
     }
     data['retrieveGroupThread']['t_group_star_thread_msgids'] =
         this.GpThreadStar;
+
+    if (emojiCounts != null) {
+      data['retrieveGroupThread']['emoji_counts'] =
+          emojiCounts!.map((e) => e.toJson()).toList();
+    }
+    if (reactUserDatas != null) {
+      data['retrieveGroupThread']['react_userNames'] =
+          reactUserDatas!.map((e) => e.toJson()).toList();
+    }
     return data;
   }
 }
@@ -107,6 +136,54 @@ class mChannelUser {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['name'] = this.name;
     data['email'] = this.email;
+    return data;
+  }
+}
+
+class EmojiCountsforGpThread {
+  int? groupThreadId;
+  String? emoji;
+  int? emojiCount;
+
+  EmojiCountsforGpThread({this.groupThreadId, this.emoji, this.emojiCount});
+
+  EmojiCountsforGpThread.fromJson(Map<String, dynamic> json) {
+    groupThreadId = json['groupthreadid'];
+    emoji = json['emoji'];
+    emojiCount = json['emoji_count'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['groupthreadid'] = groupThreadId;
+    data['emoji'] = emoji;
+    data['emoji_count'] = emojiCount;
+    return data;
+  }
+}
+
+class ReactUserDataForGpThread {
+  String? name;
+  int? groupThreadId;
+  String? emoji;
+  int? userId;
+
+  ReactUserDataForGpThread(
+      {this.name, this.groupThreadId, this.emoji, this.userId});
+
+  ReactUserDataForGpThread.fromJson(Map<String, dynamic> json) {
+    name = json['name'];
+    groupThreadId = json['groupthreadid'];
+    emoji = json['emoji'];
+    userId = json['userid'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['groupthreadid'] = groupThreadId;
+    data['emoji'] = emoji;
+    data['userid'] = userId;
     return data;
   }
 }
