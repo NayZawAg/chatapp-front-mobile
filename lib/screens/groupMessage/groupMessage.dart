@@ -26,12 +26,17 @@ import 'package:flutter_frontend/model/groupMessage.dart';
 
 import 'package:flutter_frontend/screens/groupMessage/groupThread.dart';
 import 'package:flutter_frontend/services/groupMessageService/gropMessage/groupMessage_Services.dart';
+import 'package:flutter_quill/quill_delta.dart';
 import 'package:intl/intl.dart';
 
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
 import "package:http/http.dart" as http;
+import 'package:html/parser.dart' as html_parser;
+import 'package:html/dom.dart' as html_dom;
+
+import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 // ignore_for_file: prefer_const_constructors, must_be_immutable
 
 // ignore: depend_on_referenced_packages
@@ -101,7 +106,7 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
   bool isfirstField = true;
   bool isClickedTextFormat = false;
   String htmlContent = "";
-  final quill.QuillController _quilcontroller = quill.QuillController.basic();
+  quill.QuillController _quilcontroller = quill.QuillController.basic();
   final FocusNode _focusNode = FocusNode();
   List<String> uniqueList = [];
   OverlayEntry? _overlayEntry;
@@ -118,11 +123,11 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
   bool isUnorderList = false;
   bool isCode = false;
   bool isCodeblock = false;
-  bool playBool = false;
   bool isEnter = false;
-  List<String> check = [];
+  bool discode = false;
+  bool isEdit = false;
   List _previousOps = [];
-  List<String>? lastStyle = [];
+  String editMsg = "";
 
   String selectedEmoji = "";
   String _seletedEmojiName = "";
@@ -154,21 +159,25 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
           if (!(attributes.containsKey("bold"))) {
             setState(() {
               isBold = false;
+              discode = false;
             });
           }
           if (!(attributes.containsKey("italic"))) {
             setState(() {
               isItalic = false;
+              discode = false;
             });
           }
           if (!(attributes.containsKey("strike"))) {
             setState(() {
               isStrike = false;
+              discode = false;
             });
           }
           if (!(attributes.containsKey("code"))) {
             setState(() {
               isCode = false;
+              discode = false;
             });
           }
           if (attributes.containsKey("list")) {
@@ -176,6 +185,9 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
             final int end = _quilcontroller.selection.baseOffset;
             _quilcontroller.replaceText(
                 start, end - start, '', TextSelection.collapsed(offset: start));
+            setState(() {
+              discode = false;
+            });
           }
         }
       }
@@ -391,7 +403,42 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
   String? channelName;
   int? memberCount;
 
-  // -------------------------------------------------------
+  String detectStyles() {
+    var delta = _quilcontroller.document.toDelta();
+    final Delta updatedDelta = Delta();
+
+    for (final op in delta.toList()) {
+      if (op.attributes != null &&
+          op.attributes!.containsKey("list") &&
+          op.value != null &&
+          op.value != "\n" &&
+          op.attributes!.length == 1) {
+        final newAttributes = Map<String, dynamic>.from(op.attributes!);
+        newAttributes.remove('list');
+
+        // Add the modified operation to the updated delta
+        updatedDelta.insert(op.data);
+      } else if (op.attributes != null &&
+          op.attributes!.containsKey("list") &&
+          op.value != null &&
+          op.value != "\n") {
+        final newAttributes = Map<String, dynamic>.from(op.attributes!);
+        if (newAttributes.containsKey('list')) {
+          newAttributes.remove('list');
+        }
+        updatedDelta.insert(op.data, newAttributes);
+      } else {
+        // Add the original operation to the updated delta
+        updatedDelta.push(op);
+      }
+    }
+
+    var converter = QuillDeltaToHtmlConverter(updatedDelta.toJson());
+
+    String html = converter.convert();
+
+    return html;
+  }
 
   void _onSelectionChanged() {
     if (_quilcontroller.selection.extentOffset !=
@@ -551,6 +598,7 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
     final checkLastItalic = _isWordItalic(wordRange);
     final checkLastStrikethrough = _isWordStrikethrough(wordRange);
     final checkLastCode = _isWordCode(wordRange);
+    final checkLastCodeBlock = _isWordCodeBlock(wordRange);
 
     if (checkLastBold) {
       setState(() {
@@ -589,6 +637,18 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
     } else {
       setState(() {
         isCode = false;
+      });
+    }
+
+    if (checkLastCodeBlock) {
+      setState(() {
+        isCodeblock = true;
+        discode = true;
+      });
+    } else {
+      setState(() {
+        isCodeblock = false;
+        discode = false;
       });
     }
   }
@@ -654,6 +714,16 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
     return false;
   }
 
+  bool _isWordCodeBlock(TextRange wordRange) {
+    for (int i = wordRange.start; i < wordRange.end; i++) {
+      final style = _quilcontroller.getSelectionStyle().attributes;
+      if (style.containsKey(quill.Attribute.codeBlock.key)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   bool _isWordBoundary(String char) {
     return char == ' ' ||
         char == '\n' ||
@@ -662,54 +732,6 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
         char == ',' ||
         char == '!' ||
         char == '?';
-  }
-
-  String convertDocumentToHtml(quill.Document doc) {
-    final StringBuffer buffer = StringBuffer();
-    List list = [];
-
-    for (final leaf in doc.toDelta().toList()) {
-      final insert = leaf.data;
-      final attributes = leaf.attributes ?? {};
-
-      if (insert is String) {
-        String text = insert.replaceAll('\n', '<br>');
-
-        if (attributes.containsKey('bold')) {
-          text = '<strong>$text</strong>';
-        }
-        if (attributes.containsKey('italic')) {
-          text = '<em>$text</em>';
-        }
-        if (attributes.containsKey('underline')) {
-          text = '<u>$text</u>';
-        }
-        if (attributes.containsKey('strike')) {
-          text = '<s>$text</s>';
-        }
-        if (attributes.containsKey("link")) {
-          text = '<a href="${attributes["link"]}">$text</a>';
-        }
-        if (attributes.containsKey("code")) {
-          text =
-              '<code style="border: 1px solid #A9A9A9; padding:10px; display:inline-block">$text</code>';
-        }
-        if (isBlockquote) {
-          text = '<blockquote>$text</blockquote>';
-        }
-        if (isOrderList || isUnorderList) {
-          list += [text];
-          if (list[0].contains("<br>")) {
-            list[0] = "${list[0]}<a>";
-            for (int i = 0; i < list.length; i++) {
-              text = list[i];
-            }
-          }
-        }
-        buffer.write(text);
-      }
-    }
-    return buffer.toString();
   }
 
   void _clearEditor() {
@@ -727,6 +749,7 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
       isUnorderList = false;
       isCode = false;
       isCodeblock = false;
+      discode = false;
     });
     // Clear format
     _quilcontroller
@@ -964,6 +987,164 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
       TextSelection.collapsed(offset: index + text.length),
       ChangeSource.local,
     );
+  }
+
+  void insertEditText(msg) {
+    Delta delta = convertHtmlToDelta(msg);
+    _quilcontroller = quill.QuillController(
+      document: quill.Document.fromDelta(delta),
+      selection: const TextSelection.collapsed(offset: 0),
+    );
+
+    // final int len = delta.length - 2;
+    // if (delta[len].attributes!.containsKey("code")) {
+    //   setState(() {
+    //     isCode = true;
+    //   });
+    // } else {
+    //   setState(() {
+    //     isCode = false;
+    //   });
+    // }
+  }
+
+  Delta convertHtmlToDelta(String html) {
+    if (html.contains("<ol>") || html.contains("<ul>")) {
+      html = "<p>$html</p>";
+    }
+    final document = html_parser.parse(html);
+    final delta = Delta();
+
+    void parseNode(html_dom.Node node, Map<String, dynamic> attributes) {
+      if (node is html_dom.Element) {
+        var newAttributes = Map<String, dynamic>.from(attributes);
+
+        switch (node.localName) {
+          case 'strong':
+            newAttributes['bold'] = true;
+            break;
+          case 'em':
+            newAttributes['italic'] = true;
+            break;
+          case 's':
+            newAttributes['strike'] = true;
+            break;
+          case 'a':
+            newAttributes['link'] = node.attributes['href'];
+            break;
+          case 'code':
+            newAttributes['code'] = true;
+            break;
+          case 'p':
+            if (node.nodes.isNotEmpty && node.nodes.last is html_dom.Text) {
+              node.append(html_dom.Element.tag('br'));
+            }
+            for (var child in node.nodes) {
+              parseNode(child, newAttributes);
+            }
+            return;
+          case 'ol':
+            for (var child in node.children) {
+              if (child.localName == 'li') {
+                parseNode(child, {});
+                delta.insert("\n", {'list': 'ordered'});
+              }
+            }
+            setState(() {
+              isOrderList = true;
+            });
+            return;
+          case 'ul':
+            for (var child in node.children) {
+              if (child.localName == 'li') {
+                parseNode(child, {});
+                delta.insert("\n", {'list': 'bullet'});
+              }
+            }
+            setState(() {
+              isUnorderList = true;
+            });
+            return;
+          case 'blockquote':
+            for (var child in node.nodes) {
+              if (child.text!.isNotEmpty) {
+                parseNode(child, {});
+                delta.insert("\n", {'blockquote': true});
+              }
+            }
+            setState(() {
+              isBlockquote = true;
+            });
+            return;
+          case "pre":
+            for (var child in node.nodes) {
+              if (child.text!.isNotEmpty) {
+                if (child.text!.contains("\n")) {
+                  List txtlist = child.text!.split("\n");
+                  for (var txt in txtlist) {
+                    delta.insert(txt, {});
+                    delta.insert("\n", {'code-block': true});
+                  }
+                } else {
+                  delta.insert(child.text, {});
+                  delta.insert("\n", {'code-block': true});
+                }
+              }
+            }
+            setState(() {
+              isCodeblock = true;
+              discode = true;
+            });
+            return;
+          case 'br':
+            delta.insert('\n');
+            return;
+          default:
+            for (var child in node.nodes) {
+              parseNode(child, newAttributes);
+            }
+            return;
+        }
+        for (var child in node.nodes) {
+          parseNode(child, newAttributes);
+        }
+      } else if (node is html_dom.Text) {
+        final text = node.text;
+        if (text.trim().isNotEmpty) {
+          delta.insert(text, attributes);
+        }
+      }
+    }
+
+    for (var node in document.body!.nodes) {
+      // if (node.toString().contains('"')) {
+      //   parseNode(node, {});
+      //   delta.insert("\n");
+      // } else {
+      parseNode(node, {});
+      // }
+    }
+
+    // Ensure the last block ends with a newline
+    if (delta.length > 0 && !(delta.last.data as String).endsWith('\n')) {
+      delta.insert('\n');
+    }
+    return delta;
+  }
+
+  Future<void> editGroupMessage(
+      String message, int msgId, List<String> mentionnames) async {
+    var token = await AuthController().getToken();
+    http.post(Uri.parse("http://10.0.2.2:3000/update_groupmsg"),
+        headers: <String, String>{
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'id': msgId,
+          'message': message,
+          'mention_name': mentionnames
+        }));
   }
 
   void getMchannelUsers() {
@@ -1282,7 +1463,48 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                           );
                                                         },
                                                         icon: Icon(Icons
-                                                            .add_reaction_outlined))
+                                                            .add_reaction_outlined)),
+                                                    IconButton(
+                                                        onPressed: () {
+                                                          _clearEditor();
+                                                          setState(() {
+                                                            isEdit = true;
+                                                          });
+                                                          editMsg = message;
+
+                                                          insertEditText(
+                                                              editMsg);
+                                                          // Request focusr
+                                                          WidgetsBinding
+                                                              .instance
+                                                              .addPostFrameCallback(
+                                                                  (_) {
+                                                            _focusNode
+                                                                .requestFocus();
+                                                            _quilcontroller
+                                                                .addListener(
+                                                                    _onTextChanged);
+                                                            _quilcontroller
+                                                                .addListener(
+                                                                    _onSelectionChanged);
+                                                            // move cursor to end
+                                                            final length =
+                                                                _quilcontroller
+                                                                    .document
+                                                                    .length;
+                                                            _quilcontroller
+                                                                .updateSelection(
+                                                              TextSelection
+                                                                  .collapsed(
+                                                                      offset:
+                                                                          length),
+                                                              ChangeSource
+                                                                  .local,
+                                                            );
+                                                          });
+                                                        },
+                                                        icon: const Icon(
+                                                            Icons.edit))
                                                   ],
                                                 )
                                               ],
@@ -1325,39 +1547,28 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                   flutter_html.Html(
                                                     data: message,
                                                     style: {
-                                                      ".bq": flutter_html.Style(
+                                                      "blockquote":
+                                                          flutter_html.Style(
                                                         border: const Border(
                                                             left: BorderSide(
                                                                 color:
                                                                     Colors.grey,
                                                                 width: 5.0)),
-                                                        padding: flutter_html
-                                                                .HtmlPaddings
-                                                            .only(left: 10),
-                                                      ),
-                                                      "blockquote":
-                                                          flutter_html.Style(
-                                                        display: flutter_html
-                                                            .Display.inline,
-                                                      ),
-                                                      "code":
-                                                          flutter_html.Style(
-                                                        backgroundColor:
-                                                            Colors.grey[200],
-                                                        color: Colors.red,
-                                                      ),
-                                                      "ol": flutter_html.Style(
                                                         margin: flutter_html
                                                             .Margins.all(0),
                                                         padding: flutter_html
                                                                 .HtmlPaddings
-                                                            .all(0),
+                                                            .only(left: 10),
                                                       ),
-                                                      "ol li":
-                                                          flutter_html.Style(
-                                                        display: flutter_html
-                                                            .Display
-                                                            .inlineBlock,
+                                                      "ol": flutter_html.Style(
+                                                        margin: flutter_html
+                                                                .Margins
+                                                            .symmetric(
+                                                                horizontal: 10),
+                                                        padding: flutter_html
+                                                                .HtmlPaddings
+                                                            .symmetric(
+                                                                horizontal: 10),
                                                       ),
                                                       "ul": flutter_html.Style(
                                                         display: flutter_html
@@ -1370,24 +1581,29 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                         margin: flutter_html
                                                             .Margins.all(0),
                                                       ),
-                                                      ".code-block":
+                                                      "pre": flutter_html.Style(
+                                                        backgroundColor:
+                                                            Colors.grey[300],
+                                                        padding: flutter_html
+                                                                .HtmlPaddings
+                                                            .symmetric(
+                                                                horizontal: 10,
+                                                                vertical: 5),
+                                                      ),
+                                                      "code":
                                                           flutter_html.Style(
-                                                              padding: flutter_html
-                                                                      .HtmlPaddings
-                                                                  .all(10),
-                                                              backgroundColor:
-                                                                  Colors.grey[
-                                                                      200],
-                                                              color:
-                                                                  Colors.black,
-                                                              width:
-                                                                  flutter_html
-                                                                      .Width(
-                                                                          150)),
-                                                      ".code-block code":
-                                                          flutter_html.Style(
-                                                              color:
-                                                                  Colors.black)
+                                                        display: flutter_html
+                                                            .Display
+                                                            .inlineBlock,
+                                                        backgroundColor:
+                                                            Colors.grey[300],
+                                                        color: Colors.red,
+                                                        padding: flutter_html
+                                                                .HtmlPaddings
+                                                            .symmetric(
+                                                                horizontal: 10,
+                                                                vertical: 5),
+                                                      )
                                                     },
                                                   ),
                                                 if (files!.length == 1)
@@ -1658,39 +1874,28 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                   flutter_html.Html(
                                                     data: message,
                                                     style: {
-                                                      ".bq": flutter_html.Style(
+                                                      "blockquote":
+                                                          flutter_html.Style(
                                                         border: const Border(
                                                             left: BorderSide(
                                                                 color:
                                                                     Colors.grey,
                                                                 width: 5.0)),
-                                                        padding: flutter_html
-                                                                .HtmlPaddings
-                                                            .only(left: 10),
-                                                      ),
-                                                      "blockquote":
-                                                          flutter_html.Style(
-                                                        display: flutter_html
-                                                            .Display.inline,
-                                                      ),
-                                                      "code":
-                                                          flutter_html.Style(
-                                                        backgroundColor:
-                                                            Colors.grey[200],
-                                                        color: Colors.red,
-                                                      ),
-                                                      "ol": flutter_html.Style(
                                                         margin: flutter_html
                                                             .Margins.all(0),
                                                         padding: flutter_html
                                                                 .HtmlPaddings
-                                                            .all(0),
+                                                            .only(left: 10),
                                                       ),
-                                                      "ol li":
-                                                          flutter_html.Style(
-                                                        display: flutter_html
-                                                            .Display
-                                                            .inlineBlock,
+                                                      "ol": flutter_html.Style(
+                                                        margin: flutter_html
+                                                                .Margins
+                                                            .symmetric(
+                                                                horizontal: 10),
+                                                        padding: flutter_html
+                                                                .HtmlPaddings
+                                                            .symmetric(
+                                                                horizontal: 10),
                                                       ),
                                                       "ul": flutter_html.Style(
                                                         display: flutter_html
@@ -1703,24 +1908,29 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                         margin: flutter_html
                                                             .Margins.all(0),
                                                       ),
-                                                      ".code-block":
+                                                      "pre": flutter_html.Style(
+                                                        backgroundColor:
+                                                            Colors.grey[300],
+                                                        padding: flutter_html
+                                                                .HtmlPaddings
+                                                            .symmetric(
+                                                                horizontal: 10,
+                                                                vertical: 5),
+                                                      ),
+                                                      "code":
                                                           flutter_html.Style(
-                                                              padding: flutter_html
-                                                                      .HtmlPaddings
-                                                                  .all(10),
-                                                              backgroundColor:
-                                                                  Colors.grey[
-                                                                      200],
-                                                              color:
-                                                                  Colors.black,
-                                                              width:
-                                                                  flutter_html
-                                                                      .Width(
-                                                                          150)),
-                                                      ".code-block code":
-                                                          flutter_html.Style(
-                                                              color:
-                                                                  Colors.black)
+                                                        display: flutter_html
+                                                            .Display
+                                                            .inlineBlock,
+                                                        backgroundColor:
+                                                            Colors.grey[300],
+                                                        color: Colors.red,
+                                                        padding: flutter_html
+                                                                .HtmlPaddings
+                                                            .symmetric(
+                                                                horizontal: 10,
+                                                                vertical: 5),
+                                                      )
                                                     },
                                                   ),
                                                 if (files != null &&
@@ -2200,139 +2410,134 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                     )),
                               ],
                             ),
-                            Container(
-                              width: 40,
-                              height: 40,
-                              margin: const EdgeInsets.fromLTRB(10, 0, 0, 0),
-                              decoration: BoxDecoration(
-                                  color:
-                                      const Color.fromARGB(255, 24, 103, 167),
-                                  borderRadius: BorderRadius.circular(5)),
-                              child: IconButton(
-                                  onPressed: () {
-                                    int channelId = widget.channelID;
-                                    // for mention name
-                                    String plaintext =
-                                        _quilcontroller.document.toPlainText();
-                                    List<String> currentMentions = [];
-                                    for (var i = 0;
-                                        i < uniqueList.length;
-                                        i++) {
-                                      if (plaintext.contains(uniqueList[i])) {
-                                        currentMentions
-                                            .add("@${uniqueList[i]}");
-                                      }
-                                    }
-
-                                    // for editor
-                                    final doc = _quilcontroller.document;
-                                    htmlContent = convertDocumentToHtml(doc);
-                                    // for blockquote
-                                    if (isBlockquote) {
-                                      htmlContent =
-                                          "<div class='bq'>$htmlContent</div>";
-                                    }
-                                    // for codeblock
-                                    if (isCodeblock) {
-                                      htmlContent =
-                                          htmlContent.replaceAll('<br>', ' ');
-                                      htmlContent =
-                                          '<div class="code-block" style="border:1px solid #A9A9A9;">$htmlContent</div>';
-                                    }
-                                    // for order list
-                                    if (isOrderList) {
-                                      String separateText = "";
-                                      String orderText = "";
-                                      List<String> combinedList = [];
-
-                                      if (htmlContent.contains("<a>")) {
-                                        final separate =
-                                            htmlContent.split("<a>");
-                                        orderText = separate[1].toString();
-                                        separateText = separate[0].toString();
-                                        final orderList =
-                                            orderText.split("<br>");
-                                        for (int i = 0;
-                                            i < orderList.length;
-                                            i++) {
-                                          if (orderList[i].isNotEmpty) {
-                                            combinedList.add(
-                                                "<ol><li>${i + 1}.  ${orderList[i]}</li></ol><br>");
+                            if (isEdit)
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    margin:
+                                        const EdgeInsets.fromLTRB(0, 0, 10, 0),
+                                    decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(5)),
+                                    child: IconButton(
+                                        color: Colors.white,
+                                        onPressed: () {
+                                          // _quilcontroller.clear();
+                                          _clearEditor();
+                                          SystemChannels.textInput.invokeMethod(
+                                              'TextInput.hide'); // Hide the keyboard
+                                          setState(() {
+                                            isEdit = false;
+                                          });
+                                        },
+                                        icon: const Icon(Icons.close)),
+                                  ),
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    margin:
+                                        const EdgeInsets.fromLTRB(0, 0, 10, 0),
+                                    decoration: BoxDecoration(
+                                        color: Colors.green,
+                                        borderRadius: BorderRadius.circular(5)),
+                                    child: IconButton(
+                                        color: Colors.white,
+                                        onPressed: () {
+                                          // for mention name
+                                          String plaintext = _quilcontroller
+                                              .document
+                                              .toPlainText();
+                                          List<String> currentMentions = [];
+                                          for (var i = 0;
+                                              i < uniqueList.length;
+                                              i++) {
+                                            if (plaintext
+                                                .contains(uniqueList[i])) {
+                                              currentMentions
+                                                  .add("@${uniqueList[i]}");
+                                            }
                                           }
+
+                                          htmlContent = detectStyles();
+
+                                          if (htmlContent.contains("<p>")) {
+                                            htmlContent = htmlContent
+                                                .replaceAll("<p>", "");
+                                            htmlContent = htmlContent
+                                                .replaceAll("</p>", "");
+                                          }
+
+                                          setState(() {
+                                            mentionnames.clear();
+                                            mentionnames
+                                                .addAll(currentMentions);
+                                            isEdit = false;
+                                          });
+
+                                          editGroupMessage(
+                                              htmlContent,
+                                              _selectedMessageIndex!,
+                                              mentionnames);
+                                          _clearEditor();
+                                          SystemChannels.textInput.invokeMethod(
+                                              'TextInput.hide'); // Hide the keyboard
+                                        },
+                                        icon: const Icon(Icons.check)),
+                                  ),
+                                ],
+                              )
+                            else
+                              Container(
+                                width: 40,
+                                height: 40,
+                                margin: const EdgeInsets.fromLTRB(10, 0, 0, 0),
+                                decoration: BoxDecoration(
+                                    color:
+                                        const Color.fromARGB(255, 24, 103, 167),
+                                    borderRadius: BorderRadius.circular(5)),
+                                child: IconButton(
+                                    onPressed: () {
+                                      int channelId = widget.channelID;
+                                      // for mention name
+                                      String plaintext = _quilcontroller
+                                          .document
+                                          .toPlainText();
+                                      List<String> currentMentions = [];
+                                      for (var i = 0;
+                                          i < uniqueList.length;
+                                          i++) {
+                                        if (plaintext.contains(uniqueList[i])) {
+                                          currentMentions
+                                              .add("@${uniqueList[i]}");
                                         }
-                                        String finalcontent =
-                                            combinedList.join(" ");
+                                      }
+
+                                      htmlContent = detectStyles();
+
+                                      if (htmlContent.contains("<p>")) {
                                         htmlContent =
-                                            "$separateText $finalcontent";
-                                      } else {
-                                        final orderList =
-                                            htmlContent.split("<br>");
-                                        for (int i = 0;
-                                            i < orderList.length;
-                                            i++) {
-                                          if (orderList[i].isNotEmpty) {
-                                            combinedList.add(
-                                                "<ol><li>${i + 1}.  ${orderList[i]}</li></ol><br>");
-                                          }
-                                        }
-                                        htmlContent = combinedList.join(" ");
-                                      }
-                                    }
-                                    // for unorder list
-                                    if (isUnorderList) {
-                                      String separateText = "";
-                                      String orderText = "";
-                                      List<String> combinedList = [];
-
-                                      if (htmlContent.contains("<a>")) {
-                                        final separate =
-                                            htmlContent.split("<a>");
-                                        orderText = separate[1].toString();
-                                        separateText = separate[0].toString();
-                                        final orderList =
-                                            orderText.split("<br>");
-                                        for (int i = 0;
-                                            i < orderList.length;
-                                            i++) {
-                                          if (orderList[i].isNotEmpty) {
-                                            combinedList.add(
-                                                "<ul><li>${orderList[i]}</li></ul><br>");
-                                          }
-                                        }
-                                        String finalcontent =
-                                            combinedList.join(" ");
+                                            htmlContent.replaceAll("<p>", "");
                                         htmlContent =
-                                            "$separateText $finalcontent";
-                                      } else {
-                                        final orderList =
-                                            htmlContent.split("<br>");
-                                        for (int i = 0;
-                                            i < orderList.length;
-                                            i++) {
-                                          if (orderList[i].isNotEmpty) {
-                                            combinedList.add(
-                                                "<ul><li>${orderList[i]}</li></ul><br>");
-                                          }
-                                        }
-                                        htmlContent = combinedList.join(" ");
+                                            htmlContent.replaceAll("</p>", "");
                                       }
-                                    }
-                                    htmlContent =
-                                        htmlContent.replaceAll("<br>", "");
-                                    setState(() {
-                                      mentionnames.clear();
-                                      mentionnames.addAll(currentMentions);
-                                    });
-                                    _clearEditor();
 
-                                    sendGroupMessageData(
-                                        htmlContent, channelId, mentionnames);
-                                  },
-                                  icon: const Icon(
-                                    Icons.send,
-                                    color: Colors.white,
-                                  )),
-                            ),
+                                      setState(() {
+                                        mentionnames.clear();
+                                        mentionnames.addAll(currentMentions);
+                                        isClickedTextFormat = false;
+                                      });
+                                      _clearEditor();
+
+                                      sendGroupMessageData(
+                                          htmlContent, channelId, mentionnames);
+                                    },
+                                    icon: const Icon(
+                                      Icons.send,
+                                      color: Colors.white,
+                                    )),
+                              ),
                           ],
                         ),
                       ),
@@ -2670,6 +2875,23 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                           if (isCodeblock) {
                                             _quilcontroller.formatSelection(
                                                 quill.Attribute.codeBlock);
+                                            _quilcontroller.formatSelection(
+                                                quill.Attribute.clone(
+                                                    quill.Attribute.bold,
+                                                    null));
+                                            _quilcontroller.formatSelection(
+                                                quill.Attribute.clone(
+                                                    quill.Attribute.italic,
+                                                    null));
+                                            _quilcontroller.formatSelection(
+                                                quill.Attribute.clone(
+                                                    quill.Attribute.inlineCode,
+                                                    null));
+                                            _quilcontroller.formatSelection(
+                                                quill.Attribute.clone(
+                                                    quill.Attribute
+                                                        .strikeThrough,
+                                                    null));
                                           } else {
                                             _quilcontroller.formatSelection(
                                                 quill.Attribute.clone(
@@ -2683,140 +2905,134 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                 ),
                               ),
                             ),
-                            Container(
-                              width: 40,
-                              height: 40,
-                              margin: const EdgeInsets.fromLTRB(10, 0, 0, 0),
-                              decoration: BoxDecoration(
-                                  color:
-                                      const Color.fromARGB(255, 24, 103, 167),
-                                  borderRadius: BorderRadius.circular(5)),
-                              child: IconButton(
-                                  onPressed: () {
-                                    int channelId = widget.channelID;
-                                    // for mention name
-                                    String plaintext =
-                                        _quilcontroller.document.toPlainText();
-                                    List<String> currentMentions = [];
-                                    for (var i = 0;
-                                        i < uniqueList.length;
-                                        i++) {
-                                      if (plaintext.contains(uniqueList[i])) {
-                                        currentMentions
-                                            .add("@${uniqueList[i]}");
-                                      }
-                                    }
-                                    // for editor
-                                    final doc = _quilcontroller.document;
-                                    htmlContent = convertDocumentToHtml(doc);
-                                    // for blockquote
-                                    if (isBlockquote) {
-                                      htmlContent =
-                                          "<div class='bq'>$htmlContent</div>";
-                                    }
-                                    // for codeblock
-                                    if (isCodeblock) {
-                                      htmlContent =
-                                          htmlContent.replaceAll('<br>', ' ');
-                                      htmlContent =
-                                          '<div class="code-block" style="border:1px solid #A9A9A9;">$htmlContent</div>';
-                                    }
-                                    // for order list
-                                    if (isOrderList) {
-                                      String separateText = "";
-                                      String orderText = "";
-                                      List<String> combinedList = [];
-
-                                      if (htmlContent.contains("<a>")) {
-                                        final separate =
-                                            htmlContent.split("<a>");
-                                        orderText = separate[1].toString();
-                                        separateText = separate[0].toString();
-                                        final orderList =
-                                            orderText.split("<br>");
-                                        for (int i = 0;
-                                            i < orderList.length;
-                                            i++) {
-                                          if (orderList[i].isNotEmpty) {
-                                            combinedList.add(
-                                                "<ol><li>${i + 1}.  ${orderList[i]}</li></ol><br>");
+                            if (isEdit)
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    margin:
+                                        const EdgeInsets.fromLTRB(15, 0, 10, 0),
+                                    decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(5)),
+                                    child: IconButton(
+                                        color: Colors.white,
+                                        onPressed: () {
+                                          // _quilcontroller.clear();
+                                          _clearEditor();
+                                          SystemChannels.textInput.invokeMethod(
+                                              'TextInput.hide'); // Hide the keyboard
+                                          setState(() {
+                                            isEdit = false;
+                                          });
+                                        },
+                                        icon: const Icon(Icons.close)),
+                                  ),
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    margin:
+                                        const EdgeInsets.fromLTRB(0, 0, 10, 0),
+                                    decoration: BoxDecoration(
+                                        color: Colors.green,
+                                        borderRadius: BorderRadius.circular(5)),
+                                    child: IconButton(
+                                        color: Colors.white,
+                                        onPressed: () {
+                                          // for mention name
+                                          String plaintext = _quilcontroller
+                                              .document
+                                              .toPlainText();
+                                          List<String> currentMentions = [];
+                                          for (var i = 0;
+                                              i < uniqueList.length;
+                                              i++) {
+                                            if (plaintext
+                                                .contains(uniqueList[i])) {
+                                              currentMentions
+                                                  .add("@${uniqueList[i]}");
+                                            }
                                           }
+
+                                          htmlContent = detectStyles();
+
+                                          if (htmlContent.contains("<p>")) {
+                                            htmlContent = htmlContent
+                                                .replaceAll("<p>", "");
+                                            htmlContent = htmlContent
+                                                .replaceAll("</p>", "");
+                                          }
+
+                                          setState(() {
+                                            mentionnames.clear();
+                                            mentionnames
+                                                .addAll(currentMentions);
+                                            isEdit = false;
+                                          });
+
+                                          editGroupMessage(
+                                              htmlContent,
+                                              _selectedMessageIndex!,
+                                              mentionnames);
+                                          _clearEditor();
+                                          SystemChannels.textInput.invokeMethod(
+                                              'TextInput.hide'); // Hide the keyboard
+                                        },
+                                        icon: const Icon(Icons.check)),
+                                  ),
+                                ],
+                              )
+                            else
+                              Container(
+                                width: 40,
+                                height: 40,
+                                margin: const EdgeInsets.fromLTRB(10, 0, 0, 0),
+                                decoration: BoxDecoration(
+                                    color:
+                                        const Color.fromARGB(255, 24, 103, 167),
+                                    borderRadius: BorderRadius.circular(5)),
+                                child: IconButton(
+                                    onPressed: () {
+                                      int channelId = widget.channelID;
+                                      // for mention name
+                                      String plaintext = _quilcontroller
+                                          .document
+                                          .toPlainText();
+                                      List<String> currentMentions = [];
+                                      for (var i = 0;
+                                          i < uniqueList.length;
+                                          i++) {
+                                        if (plaintext.contains(uniqueList[i])) {
+                                          currentMentions
+                                              .add("@${uniqueList[i]}");
                                         }
-                                        String finalcontent =
-                                            combinedList.join(" ");
+                                      }
+
+                                      htmlContent = detectStyles();
+
+                                      if (htmlContent.contains("<p>")) {
                                         htmlContent =
-                                            "$separateText $finalcontent";
-                                      } else {
-                                        final orderList =
-                                            htmlContent.split("<br>");
-                                        for (int i = 0;
-                                            i < orderList.length;
-                                            i++) {
-                                          if (orderList[i].isNotEmpty) {
-                                            combinedList.add(
-                                                "<ol><li>${i + 1}.  ${orderList[i]}</li></ol><br>");
-                                          }
-                                        }
-                                        htmlContent = combinedList.join(" ");
-                                      }
-                                    }
-                                    // for unorder list
-                                    if (isUnorderList) {
-                                      String separateText = "";
-                                      String orderText = "";
-                                      List<String> combinedList = [];
-
-                                      if (htmlContent.contains("<a>")) {
-                                        final separate =
-                                            htmlContent.split("<a>");
-                                        orderText = separate[1].toString();
-                                        separateText = separate[0].toString();
-                                        final orderList =
-                                            orderText.split("<br>");
-                                        for (int i = 0;
-                                            i < orderList.length;
-                                            i++) {
-                                          if (orderList[i].isNotEmpty) {
-                                            combinedList.add(
-                                                "<ul><li>${orderList[i]}</li></ul><br>");
-                                          }
-                                        }
-                                        String finalcontent =
-                                            combinedList.join(" ");
+                                            htmlContent.replaceAll("<p>", "");
                                         htmlContent =
-                                            "$separateText $finalcontent";
-                                      } else {
-                                        final orderList =
-                                            htmlContent.split("<br>");
-                                        for (int i = 0;
-                                            i < orderList.length;
-                                            i++) {
-                                          if (orderList[i].isNotEmpty) {
-                                            combinedList.add(
-                                                "<ul><li>${orderList[i]}</li></ul><br>");
-                                          }
-                                        }
-                                        htmlContent = combinedList.join(" ");
+                                            htmlContent.replaceAll("</p>", "");
                                       }
-                                    }
 
-                                    htmlContent =
-                                        htmlContent.replaceAll("<br>", "");
+                                      setState(() {
+                                        mentionnames.clear();
+                                        mentionnames.addAll(currentMentions);
+                                        isClickedTextFormat = false;
+                                      });
+                                      _clearEditor();
 
-                                    setState(() {
-                                      mentionnames.clear();
-                                      mentionnames.addAll(currentMentions);
-                                    });
-                                    _clearEditor();
-
-                                    sendGroupMessageData(
-                                        htmlContent, channelId, mentionnames);
-                                  },
-                                  icon: const Icon(
-                                    Icons.send,
-                                    color: Colors.white,
-                                  )),
-                            ),
+                                      sendGroupMessageData(
+                                          htmlContent, channelId, mentionnames);
+                                    },
+                                    icon: const Icon(
+                                      Icons.send,
+                                      color: Colors.white,
+                                    )),
+                              ),
                           ],
                         ),
                       ),
