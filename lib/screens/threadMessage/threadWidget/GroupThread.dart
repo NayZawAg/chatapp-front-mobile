@@ -205,29 +205,21 @@ class _GroupThreadState extends State<GroupThread> {
                                   child: flutter_html.Html(
                                     data: groupMessage,
                                     style: {
-                                      ".bq": flutter_html.Style(
+                                      "blockquote": flutter_html.Style(
                                         border: const Border(
                                             left: BorderSide(
                                                 color: Colors.grey,
                                                 width: 5.0)),
+                                        margin: flutter_html.Margins.all(0),
                                         padding: flutter_html.HtmlPaddings.only(
                                             left: 10),
                                       ),
-                                      "blockquote": flutter_html.Style(
-                                        display: flutter_html.Display.inline,
-                                      ),
-                                      "code": flutter_html.Style(
-                                        backgroundColor: Colors.grey[200],
-                                        color: Colors.red,
-                                      ),
                                       "ol": flutter_html.Style(
-                                        margin: flutter_html.Margins.all(0),
+                                        margin: flutter_html.Margins.symmetric(
+                                            horizontal: 10),
                                         padding:
-                                            flutter_html.HtmlPaddings.all(0),
-                                      ),
-                                      "ol li": flutter_html.Style(
-                                        display:
-                                            flutter_html.Display.inlineBlock,
+                                            flutter_html.HtmlPaddings.symmetric(
+                                                horizontal: 10),
                                       ),
                                       "ul": flutter_html.Style(
                                         display:
@@ -237,14 +229,21 @@ class _GroupThreadState extends State<GroupThread> {
                                                 horizontal: 10),
                                         margin: flutter_html.Margins.all(0),
                                       ),
-                                      ".code-block": flutter_html.Style(
-                                          padding:
-                                              flutter_html.HtmlPaddings.all(10),
-                                          backgroundColor: Colors.grey[200],
-                                          color: Colors.black,
-                                          width: flutter_html.Width(150)),
-                                      ".code-block code": flutter_html.Style(
-                                          color: Colors.black)
+                                      "pre": flutter_html.Style(
+                                        backgroundColor: Colors.grey[200],
+                                        padding:
+                                            flutter_html.HtmlPaddings.symmetric(
+                                                horizontal: 10, vertical: 5),
+                                      ),
+                                      "code": flutter_html.Style(
+                                        display:
+                                            flutter_html.Display.inlineBlock,
+                                        backgroundColor: Colors.grey[300],
+                                        color: Colors.red,
+                                        padding:
+                                            flutter_html.HtmlPaddings.symmetric(
+                                                horizontal: 10, vertical: 5),
+                                      )
                                     },
                                   ),
                                 ),
@@ -369,46 +368,33 @@ class _GroupThreadState extends State<GroupThread> {
                                                       child: flutter_html.Html(
                                                         data: message,
                                                         style: {
-                                                          ".bq": flutter_html
-                                                              .Style(
+                                                          "blockquote":
+                                                              flutter_html
+                                                                  .Style(
                                                             border: const Border(
                                                                 left: BorderSide(
                                                                     color: Colors
                                                                         .grey,
                                                                     width:
                                                                         5.0)),
-                                                            padding: flutter_html
-                                                                    .HtmlPaddings
-                                                                .only(left: 10),
-                                                          ),
-                                                          "blockquote":
-                                                              flutter_html
-                                                                  .Style(
-                                                            display:
-                                                                flutter_html
-                                                                    .Display
-                                                                    .inline,
-                                                          ),
-                                                          "code": flutter_html
-                                                              .Style(
-                                                            backgroundColor:
-                                                                Colors
-                                                                    .grey[200],
-                                                            color: Colors.red,
-                                                          ),
-                                                          "ol": flutter_html
-                                                              .Style(
                                                             margin: flutter_html
                                                                 .Margins.all(0),
                                                             padding: flutter_html
                                                                     .HtmlPaddings
-                                                                .all(0),
+                                                                .only(left: 10),
                                                           ),
-                                                          "ol li": flutter_html
+                                                          "ol": flutter_html
                                                               .Style(
-                                                            display: flutter_html
-                                                                .Display
-                                                                .inlineBlock,
+                                                            margin: flutter_html
+                                                                    .Margins
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        10),
+                                                            padding: flutter_html
+                                                                    .HtmlPaddings
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        10),
                                                           ),
                                                           "ul": flutter_html
                                                               .Style(
@@ -423,23 +409,36 @@ class _GroupThreadState extends State<GroupThread> {
                                                             margin: flutter_html
                                                                 .Margins.all(0),
                                                           ),
-                                                          ".code-block": flutter_html.Style(
-                                                              padding: flutter_html
-                                                                      .HtmlPaddings
-                                                                  .all(10),
-                                                              backgroundColor:
-                                                                  Colors.grey[
-                                                                      200],
-                                                              color:
-                                                                  Colors.black,
-                                                              width:
-                                                                  flutter_html
-                                                                      .Width(
-                                                                          150)),
-                                                          ".code-block code":
-                                                              flutter_html.Style(
-                                                                  color: Colors
-                                                                      .black)
+                                                          "pre": flutter_html
+                                                              .Style(
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .grey[200],
+                                                            padding: flutter_html
+                                                                    .HtmlPaddings
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        10,
+                                                                    vertical:
+                                                                        5),
+                                                          ),
+                                                          "code": flutter_html
+                                                              .Style(
+                                                            display: flutter_html
+                                                                .Display
+                                                                .inlineBlock,
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .grey[300],
+                                                            color: Colors.red,
+                                                            padding: flutter_html
+                                                                    .HtmlPaddings
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        10,
+                                                                    vertical:
+                                                                        5),
+                                                          )
                                                         },
                                                       ),
                                                     ),
