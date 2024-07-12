@@ -1,5 +1,12 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_frontend/const/build_mulit_file.dart';
+import 'package:flutter_frontend/const/build_single_file.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/constants.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
@@ -19,10 +26,21 @@ class UnReadDirectThread extends StatefulWidget {
 class _UnReadDirectThreadState extends State<UnReadDirectThread> {
   late Future<void> refreshFuture;
   var snapshot = UnreadStore.unreadMsg;
+  TargetPlatform? platform;
+  BuildMulitFile mulitFile = BuildMulitFile();
+  BuildSingleFile singleFile = BuildSingleFile();
 
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      return;
+    } else if (Platform.isAndroid) {
+      platform = TargetPlatform.android;
+    } else {
+      platform = TargetPlatform.iOS;
+    }
+
     refreshFuture = _fetchData();
   }
 
@@ -79,34 +97,49 @@ class _UnReadDirectThreadState extends State<UnReadDirectThread> {
                 DateTime time = DateTime.parse(directMessageTime).toLocal();
                 String createdAt =
                     DateFormat('MMM d, yyyy hh:mm a').format(time);
+
+                List<dynamic>? files = [];
+                List<dynamic>? fileName = [];
+
+                files = snapshot!.unreadThreads![index].files;
+                fileName = snapshot!.unreadThreads![index].fileNames;
+
+                String? profileImage =
+                    snapshot!.unreadThreads![index].profileImage;
+
+                if (profileImage != null && !kIsWeb) {
+                  profileImage = MinioToIP.replaceMinioWithIP(
+                      profileImage, ipAddressForMinio);
+                }
                 return Container(
                   padding: const EdgeInsets.only(top: 10),
                   width: MediaQuery.of(context).size.width * 0.9,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            height: 50,
-                            width: 50,
+                            height: 40,
+                            width: 40,
                             decoration: BoxDecoration(
-                              color: Colors.amber,
                               borderRadius: BorderRadius.circular(10),
+                              color: Colors.grey[300],
                             ),
-                            child: FittedBox(
-                              alignment: Alignment.center,
-                              child: Padding(
-                                padding: const EdgeInsets.all(1.0),
-                                child: Text(
-                                  thread_name.toUpperCase(),
-                                  style: const TextStyle(
-                                      fontSize: 25,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
+                            child: Center(
+                              child: profileImage == null ||
+                                      profileImage.isEmpty
+                                  ? const Icon(Icons.person)
+                                  : ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.network(
+                                        profileImage,
+                                        fit: BoxFit.cover,
+                                        width: 40,
+                                        height: 40,
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(height: 5)
@@ -128,7 +161,7 @@ class _UnReadDirectThreadState extends State<UnReadDirectThread> {
                             children: [
                               Text(
                                 directThreadName,
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontSize: 17, fontWeight: FontWeight.bold),
                               ),
                               Container(
@@ -176,6 +209,17 @@ class _UnReadDirectThreadState extends State<UnReadDirectThread> {
                                     )
                                   },
                                 ),
+                              ),
+                              files?.length == 1
+                                  ? singleFile.buildSingleFile(
+                                      files?.first ?? '',
+                                      context,
+                                      platform,
+                                      fileName?.first ?? '')
+                                  : mulitFile.buildMultipleFiles(files ?? [],
+                                      platform, context, fileName ?? []),
+                              const SizedBox(
+                                height: 4,
                               ),
                               Text(
                                 createdAt,

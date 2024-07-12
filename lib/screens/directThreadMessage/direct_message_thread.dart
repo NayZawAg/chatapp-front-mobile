@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_frontend/const/build_fiile.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/const/permissions.dart';
 import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/services/directMessage/direct_message_api.dart';
@@ -39,12 +40,18 @@ class DirectMessageThreadWidget extends StatefulWidget {
   final String? receiverName;
   final int receiverId;
   final userstatus;
+  final String? profileImage;
+  final List<dynamic>? files;
+  final List<dynamic>? filesName;
   const DirectMessageThreadWidget(
       {Key? key,
       required this.directMsgId,
       this.receiverName,
       required this.receiverId,
-      this.userstatus})
+      this.userstatus,
+      this.profileImage,
+      this.files,
+      this.filesName})
       : super(key: key);
 
   @override
@@ -260,6 +267,8 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                 var date = msg['created_at'];
                 String send = messageContent['sender_name'];
                 List<dynamic> fileUrls = [];
+                List<dynamic>? fileName = [];
+                String? profileImage = messageContent['profile_image'];
 
                 if (messageContent.containsKey('files')) {
                   var files = messageContent['files'];
@@ -267,6 +276,14 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                     fileUrls = files.map((file) => file['file']).toList();
                   }
                 }
+
+                if (messageContent.containsKey('files')) {
+                  var files = messageContent['files'];
+                  if (files != null) {
+                    fileName = files.map((file) => file['file_name']).toList();
+                  }
+                }
+
                 setState(() {
                   tDirectThreads!.add(TDirectThreads(
                     id: id,
@@ -274,6 +291,8 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                     fileUrls: fileUrls,
                     createdAt: date,
                     name: send,
+                    fileName: fileName,
+                    profileName: profileImage,
                   ));
                 });
               } else {}
@@ -333,6 +352,13 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
         emojiCounts = thread.emojiCounts!;
         reactUserDatas = thread.reactUserDatas!;
         isLoading = true;
+        WidgetsBinding.instance!.addPostFrameCallback((_) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        });
       });
     } catch (e) {
       rethrow;
@@ -1045,37 +1071,46 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                             child: Stack(
                               children: [
                                 Container(
+                                  height: 40,
+                                  width: 40,
                                   decoration: BoxDecoration(
-                                      color: Colors.amber,
-                                      borderRadius: BorderRadius.circular(20)),
-                                  height: 50,
-                                  width: 50,
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: Colors.grey[300],
+                                  ),
                                   child: Center(
-                                    child: Text(
-                                      senderName.characters.first.toUpperCase(),
-                                      style: const TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 25,
-                                          fontWeight: FontWeight.bold),
-                                    ),
+                                    child: widget.profileImage == null ||
+                                            widget.profileImage!.isEmpty
+                                        ? const Icon(Icons.person)
+                                        : ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            child: Image.network(
+                                              widget.profileImage!,
+                                              fit: BoxFit.cover,
+                                              width: 40,
+                                              height: 40,
+                                            ),
+                                          ),
                                   ),
                                 ),
                                 Positioned(
-                                    right: 0,
-                                    bottom: 0,
-                                    child: widget.userstatus == true
-                                        ? Container(
-                                            height: 14,
-                                            width: 14,
-                                            decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(7),
-                                                border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 1),
-                                                color: Colors.green),
-                                          )
-                                        : Container())
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    height: 10,
+                                    width: 10,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(7),
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1,
+                                      ),
+                                      color: widget.userstatus == true
+                                          ? Colors.green
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -1153,6 +1188,17 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                       )
                                     },
                                   ),
+                                  widget.files == 1
+                                      ? singleFile.buildSingleFile(
+                                          widget.files?.first ?? '',
+                                          context,
+                                          platform,
+                                          widget.filesName?.first ?? '')
+                                      : mulitFile.buildMultipleFiles(
+                                          widget.files ?? [],
+                                          platform,
+                                          context,
+                                          widget.filesName ?? [])
                                 ],
                               ),
                             ),
@@ -1194,6 +1240,17 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                           List<dynamic>? files = [];
                           files = tDirectThreads![index].fileUrls;
 
+                          List<dynamic>? fileName = [];
+                          fileName = tDirectThreads![index].fileName;
+
+                          String? profileName =
+                              tDirectThreads![index].profileName;
+
+                          if (profileName != null && !kIsWeb) {
+                            profileName = MinioToIP.replaceMinioWithIP(
+                                profileName, ipAddressForMinio);
+                          }
+
                           int replyMessagesIds =
                               tDirectThreads![index].id!.toInt();
                           List<int> replyStarMsgId =
@@ -1211,6 +1268,14 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                               SessionStore.sessionData!.currentUser!.name!;
                           int currentUserId =
                               SessionStore.sessionData!.currentUser!.id!;
+
+                          bool? userstatus;
+                          for (var user in SessionStore.sessionData!.mUsers!) {
+                            if (user.name == name) {
+                              userstatus = user.activeStatus;
+                            }
+                          }
+
                           return Container(
                             margin: const EdgeInsets.symmetric(vertical: 10),
                             child: Row(
@@ -1221,39 +1286,48 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                   child: Stack(
                                     children: [
                                       Container(
+                                        height: 40,
+                                        width: 40,
                                         decoration: BoxDecoration(
-                                            color: Colors.amber,
-                                            borderRadius:
-                                                BorderRadius.circular(20)),
-                                        height: 50,
-                                        width: 50,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          color: Colors.grey[300],
+                                        ),
                                         child: Center(
-                                          child: Text(
-                                            name.characters.first.toUpperCase(),
-                                            style: const TextStyle(
-                                                color: Colors.black,
-                                                fontSize: 25,
-                                                fontWeight: FontWeight.bold),
-                                          ),
+                                          child: profileName == null ||
+                                                  profileName.isEmpty
+                                              ? const Icon(Icons.person)
+                                              : ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  child: Image.network(
+                                                    profileName,
+                                                    fit: BoxFit.cover,
+                                                    width: 40,
+                                                    height: 40,
+                                                  ),
+                                                ),
                                         ),
                                       ),
                                       Positioned(
-                                          right: 0,
-                                          bottom: 0,
-                                          child: widget.userstatus == true
-                                              ? Container(
-                                                  height: 14,
-                                                  width: 14,
-                                                  decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              7),
-                                                      border: Border.all(
-                                                          color: Colors.white,
-                                                          width: 1),
-                                                      color: Colors.green),
-                                                )
-                                              : Container())
+                                        right: 0,
+                                        bottom: 0,
+                                        child: Container(
+                                          height: 10,
+                                          width: 10,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(7),
+                                            border: Border.all(
+                                              color: Colors.white,
+                                              width: 1,
+                                            ),
+                                            color: userstatus == true
+                                                ? Colors.green
+                                                : Colors.black,
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -1283,6 +1357,13 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
                                                 children: [
+                                                  Text(name,
+                                                      style: const TextStyle(
+                                                        fontSize: 15,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.black,
+                                                      )),
                                                   if (replyMessages.isNotEmpty)
                                                     flutter_html.Html(
                                                       data: replyMessages,
@@ -1358,13 +1439,15 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                     singleFile.buildSingleFile(
                                                         files[0],
                                                         context,
-                                                        platform),
-                                                  if (files.length > 2)
+                                                        platform,
+                                                        fileName?.first ?? ''),
+                                                  if (files.length >= 2)
                                                     mulitFile
                                                         .buildMultipleFiles(
                                                             files,
                                                             platform,
-                                                            context),
+                                                            context,
+                                                            fileName ?? []),
                                                   const SizedBox(height: 8),
                                                   const SizedBox(height: 8),
                                                   Text(
@@ -1561,13 +1644,6 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                         .add(reactUser.name);
                                                   }
                                                 } //reactUser for loop end
-
-                                                // if (userIds
-                                                //     .contains(currentUser)) {
-                                                //   print(
-                                                //       'condition true================ in Thread');
-                                                //   Container();
-                                                // }
                                               }
                                               for (int i = 0;
                                                   i < emojiCounts!.length;
@@ -1612,13 +1688,6 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                             setState(() {
                                                               _isEmojiSelected =
                                                                   false;
-                                                              // groupThreadMessageID =
-                                                              //     snapshot
-                                                              //         .data!
-                                                              //         .GpThreads![
-                                                              //             index]
-                                                              //         .id!
-                                                              //         .toInt();
                                                             });
                                                             HapticFeedback
                                                                 .vibrate();

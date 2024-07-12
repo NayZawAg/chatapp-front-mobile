@@ -111,27 +111,27 @@ class MUsers {
   String? updatedAt;
   String? imageUrl;
 
-  MUsers(
-      {this.id,
-      this.name,
-      this.email,
-      this.passwordDigest,
-      this.profileImage,
-      this.rememberDigest,
-      this.activeStatus,
-      this.admin,
-      this.memberStatus,
-      this.createdAt,
-      this.updatedAt,
-      this.imageUrl,
-      });
+  MUsers({
+    this.id,
+    this.name,
+    this.email,
+    this.passwordDigest,
+    this.profileImage,
+    this.rememberDigest,
+    this.activeStatus,
+    this.admin,
+    this.memberStatus,
+    this.createdAt,
+    this.updatedAt,
+    this.imageUrl,
+  });
 
   MUsers.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     name = json['name'];
     email = json['email'];
     passwordDigest = json['password_digest'];
-    profileImage = json['profile_image'];
+    profileImage = json['image_url'];
     rememberDigest = json['remember_digest'];
     activeStatus = json['active_status'];
     admin = json['admin'];
@@ -147,7 +147,7 @@ class MUsers {
     data['name'] = this.name;
     data['email'] = this.email;
     data['password_digest'] = this.passwordDigest;
-    data['profile_image'] = this.profileImage;
+    data['image_url'] = this.profileImage;
     data['remember_digest'] = this.rememberDigest;
     data['active_status'] = this.activeStatus;
     data['admin'] = this.admin;
@@ -264,5 +264,5 @@ class MPChannels {
     data['channel_name'] = this.channelName;
     data['channel_status'] = this.channelStatus;
     return data;
-  } 
+  }
 }

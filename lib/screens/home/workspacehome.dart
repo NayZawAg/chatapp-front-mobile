@@ -25,7 +25,7 @@ class WorkHome extends StatefulWidget {
   State<WorkHome> createState() => _WorkHomeState();
 }
 
-class _WorkHomeState extends State<WorkHome> with RouteAware {
+class _WorkHomeState extends State<WorkHome> {
   int? joinId;
   DateTime? currentBackPressTime;
 
@@ -35,7 +35,6 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
   })));
   bool isreading = false;
   late Future<void> refreshFuture;
-  late Timer _timer;
   late ScrollController _scrollController;
 
   @override
@@ -49,19 +48,6 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
   @override
   void dispose() {
     super.dispose();
-    _timer.cancel();
-  }
-
-  @override
-  void didPopNext() {
-    super.didPopNext();
-    _timer.cancel();
-  }
-
-  @override
-  void didPushNext() {
-    super.didPushNext();
-    _timer.cancel();
   }
 
   AuthController controller = AuthController();
@@ -118,9 +104,9 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
       String? currentUserProfileImage = data.currentUser?.imageUrl;
 
       if (currentUserProfileImage != null && !kIsWeb) {
-      currentUserProfileImage =
-          MinioToIP.replaceMinioWithIP(currentUserProfileImage, ipAddressForMinio);
-    }
+        currentUserProfileImage = MinioToIP.replaceMinioWithIP(
+            currentUserProfileImage, ipAddressForMinio);
+      }
 
       String workspace = data.mWorkspace!.workspaceName.toString();
       List<String> initials =
@@ -162,40 +148,28 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
                 onTap: _openDrawer,
                 child: Padding(
                   padding: const EdgeInsets.all(6.0),
-                  child: (currentUserProfileImage == null ||
-                          currentUserProfileImage.isEmpty)
-                      ? Container(
-                          height: 20,
-                          width: 20,
-                          decoration: BoxDecoration(
-                              color: Colors.white54,
-                              borderRadius: BorderRadius.circular(5),
-                              border: Border.all(
-                                  width: 1, color: Colors.amber.shade100)),
-                          child: FittedBox(
-                            alignment: Alignment.center,
-                            child: Padding(
-                              padding: const EdgeInsets.all(1.0),
-                              child: Text(
-                                w_name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                  child: Container(
+                    height: 40,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.grey[300],
+                    ),
+                    child: Center(
+                      child: currentUserProfileImage == null ||
+                              currentUserProfileImage.isEmpty
+                          ? const Icon(Icons.person)
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.network(
+                                currentUserProfileImage,
+                                fit: BoxFit.cover,
+                                width: 40,
+                                height: 40,
                               ),
                             ),
-                          ),
-                        )
-                      : CircleAvatar(
-                          radius: 20,
-                          child: ClipOval(
-                            child: Image.network(
-                              currentUserProfileImage,
-                              fit: BoxFit.cover,
-                              width: 45,
-                              height: 45,
-                            ),
-                          ),
-                        ),
+                    ),
+                  ),
                 ),
               ),
               title: Column(
@@ -359,8 +333,6 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
                                                   });
                                                 }).catchError((error) {
                                                   // Handle error if API call fails
-                                                  print(
-                                                      "Error joining channel: $error");
                                                 });
                                               },
                                               child: const Text('Join ME'),
@@ -429,46 +401,37 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
                                         user_status: activeStatus,
                                         userId: userIds,
                                         receiverName: userName,
+                                        activeStatus: activeStatus,
+                                        profileImage: profileImage,
                                       ),
                                     ),
                                   );
                                 },
                                 child: ListTile(
                                   leading: Stack(children: [
-                                    profileImage == null || profileImage.isEmpty
-                                        ? Container(
-                                            height: 30,
-                                            width: 30,
-                                            decoration: BoxDecoration(
-                                              color: Colors.amber,
-                                              borderRadius:
-                                                  BorderRadius.circular(15),
-                                            ),
-                                            child: FittedBox(
-                                              alignment: Alignment.center,
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(2.0),
-                                                child: Text(
-                                                  dm_name.toUpperCase(),
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                    Container(
+                                      height: 40,
+                                      width: 40,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        color: Colors.grey[300],
+                                      ),
+                                      child: Center(
+                                        child: profileImage == null ||
+                                                profileImage.isEmpty
+                                            ? const Icon(Icons.person)
+                                            : ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                child: Image.network(
+                                                  profileImage,
+                                                  fit: BoxFit.cover,
+                                                  width: 40,
+                                                  height: 40,
                                                 ),
                                               ),
-                                            ),
-                                          )
-                                        : CircleAvatar(
-                                            radius: 15,
-                                            child: ClipOval(
-                                              child: Image.network(
-                                                profileImage,
-                                                fit: BoxFit.cover,
-                                                width: 25,
-                                                height: 25,
-                                              ),
-                                            ),
-                                          ),
+                                      ),
+                                    ),
                                     Positioned(
                                         right: 0,
                                         top: 0,
@@ -492,22 +455,24 @@ class _WorkHomeState extends State<WorkHome> with RouteAware {
                                                       fontSize: 10),
                                                 )))),
                                     Positioned(
-                                        right: 0,
-                                        bottom: 0,
-                                        child: activeStatus == true
-                                            ? Container(
-                                                height: 12,
-                                                width: 12,
-                                                decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            7),
-                                                    border: Border.all(
-                                                        color: Colors.white,
-                                                        width: 1),
-                                                    color: Colors.green),
-                                              )
-                                            : Container())
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Container(
+                                        height: 10,
+                                        width: 10,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(7),
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 1,
+                                          ),
+                                          color: activeStatus == true
+                                              ? Colors.green
+                                              : Colors.black,
+                                        ),
+                                      ),
+                                    ),
                                   ]),
                                   title: currentUserId == userIds
                                       ? RichText(

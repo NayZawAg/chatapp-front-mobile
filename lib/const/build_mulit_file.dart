@@ -4,8 +4,8 @@ import 'package:flutter_frontend/const/file_upload/download_file_web.dart';
 import 'package:flutter_frontend/dotenv.dart';
 
 class BuildMulitFile {
-  Widget buildMultipleFiles(
-      List<dynamic> files, TargetPlatform? platform, BuildContext context) {
+  Widget buildMultipleFiles(List<dynamic> files, TargetPlatform? platform,
+      BuildContext context, List<dynamic>? fileName) {
     String replaceMinioWithIP(String url) {
       return url.replaceAll(
           "http://minio:9000", "http://$ipAddressForMinio:9000");
@@ -30,10 +30,15 @@ class BuildMulitFile {
               itemCount: images.length,
               itemBuilder: (context, index) {
                 String modifiedUrl;
+
                 if (platform == TargetPlatform.android) {
                   modifiedUrl = replaceMinioWithIP(images[index]!);
                 } else {
                   modifiedUrl = images[index]!;
+                  print("====================");
+                  print("TF ${files!.length}");
+                  print("tt ${fileName!.length}");
+                  print("==========================");
                 }
                 return Stack(
                   children: [
@@ -88,8 +93,8 @@ class BuildMulitFile {
                       child: InkWell(
                         onTap: () async {
                           try {
-                            await DownloadFile.downloadFile(modifiedUrl,
-                                modifiedUrl.split('/').last, context);
+                            await DownloadFile.downloadFile(
+                                modifiedUrl, context, fileName?[index]);
                           } catch (e) {
                             rethrow;
                           }
@@ -121,6 +126,7 @@ class BuildMulitFile {
             itemBuilder: (context, index) {
               String? fileUrl = others[index];
               String modifiedUrl;
+              String? filename = fileName![index];
               if (platform == TargetPlatform.android) {
                 modifiedUrl = replaceMinioWithIP(fileUrl!);
               } else {
@@ -130,7 +136,7 @@ class BuildMulitFile {
               final isTxt = _isTxt(modifiedUrl);
               final isPdf = _isPdf(modifiedUrl);
               return BuildFilecontainer.buildFileContainer(
-                  modifiedUrl, isExcel, isTxt, isPdf, context);
+                  modifiedUrl, isExcel, isTxt, filename, isPdf, context);
             },
           ),
       ],

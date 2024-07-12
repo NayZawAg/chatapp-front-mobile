@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/constants.dart';
-import 'package:flutter_frontend/model/SessionState.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
 import 'package:flutter_frontend/componnets/customlogout.dart';
 import 'package:flutter_frontend/screens/threadMessage/threadWidget/GroupThread.dart';
@@ -28,87 +27,81 @@ class _ThreadListState extends State<ThreadList> {
   @override
   Widget build(BuildContext context) {
     // final screenSize = MediaQuery.of(context).size;
-    if(SessionStore.sessionData!.currentUser!.memberStatus == false){
+    if (SessionStore.sessionData!.currentUser!.memberStatus == false) {
       return CustomLogOut();
-    }
-    else {
-      
+    } else {
       return Scaffold(
-     backgroundColor: kPriamrybackground,
-      appBar: AppBar(
-        title: const Text(
-          "Thread List",
-          style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
+        backgroundColor: kPriamrybackground,
+        appBar: AppBar(
+          title: const Text(
+            "Thread List",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: navColor,
+          automaticallyImplyLeading: false,
         ),
-        backgroundColor: navColor,
-        automaticallyImplyLeading: false,
-      ),
-      body: Column(
-        children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                FilledButton(
-                  onPressed: () {
-                    setState(() {
-                      selectedIndex = 1;
-                    });
-                  },
-                  style: ButtonStyle(
-                      backgroundColor: selectedIndex == 1
-                          ? MaterialStateProperty.all<Color>(navColor)
-                          : MaterialStateProperty.all<Color>(
-                              kbtn),
-                      minimumSize:
-                          MaterialStateProperty.all(const Size(120, 50))),
-                  child: const Padding(
-                    padding:  EdgeInsets.all(15.0),
-                    child:  Text(
-                      "Direct Threads",
-                    
-                    ),
-                  ),
-                ),
-                const SizedBox(
-                  width: 20.0,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: FilledButton(
+        body: Column(
+          children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  FilledButton(
                     onPressed: () {
                       setState(() {
-                        selectedIndex = 2;
+                        selectedIndex = 1;
                       });
                     },
                     style: ButtonStyle(
-                      backgroundColor: selectedIndex == 2
-                          ? MaterialStateProperty.all<Color>(navColor)
-                          : MaterialStateProperty.all<Color>(
-                              kbtn),
-                    ),
-                    child: const  Padding(
-                      padding:  EdgeInsets.all(15.0),
-                      child:  Text(
-                        "Group Threads",
-                        
+                        backgroundColor: selectedIndex == 1
+                            ? MaterialStateProperty.all<Color>(navColor)
+                            : MaterialStateProperty.all<Color>(kbtn),
+                        minimumSize:
+                            MaterialStateProperty.all(const Size(120, 50))),
+                    child: const Padding(
+                      padding: EdgeInsets.all(15.0),
+                      child: Text(
+                        "Direct Threads",
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          if (selectedIndex != null)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: pages[selectedIndex! - 1],
+                  const SizedBox(
+                    width: 20.0,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: FilledButton(
+                      onPressed: () {
+                        setState(() {
+                          selectedIndex = 2;
+                        });
+                      },
+                      style: ButtonStyle(
+                        backgroundColor: selectedIndex == 2
+                            ? MaterialStateProperty.all<Color>(navColor)
+                            : MaterialStateProperty.all<Color>(kbtn),
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.all(15.0),
+                        child: Text(
+                          "Group Threads",
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            )
-        ],
-      ),
-    );
+            ),
+            if (selectedIndex != null)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: pages[selectedIndex! - 1],
+                ),
+              )
+          ],
+        ),
+      );
     }
   }
 }

@@ -111,6 +111,8 @@ class TDirectThreads {
   String? name;
   String? directthreadmsg;
   List<dynamic>? fileUrls;
+  List<dynamic>? fileName;
+  String? profileName;
   int? id;
   String? createdAt;
 
@@ -119,12 +121,16 @@ class TDirectThreads {
       this.directthreadmsg,
       this.id,
       this.createdAt,
-      this.fileUrls});
+      this.fileUrls,
+      this.fileName,
+      this.profileName});
 
   TDirectThreads.fromJson(Map<String, dynamic> json) {
     name = json['name'];
     directthreadmsg = json['directthreadmsg'];
     fileUrls = json['file_urls'] as List<dynamic>?;
+    fileName = json['file_names'] as List<dynamic>?;
+    profileName = json['image_url'];
     id = json['id'];
     createdAt = json['created_at'];
   }
@@ -133,6 +139,8 @@ class TDirectThreads {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['name'] = this.name;
     data['directthreadmsg'] = this.directthreadmsg;
+    data['file_names'] = this.fileName;
+    data['image_url'] = this.profileName;
     data['id'] = this.id;
     data['file_urls'] = this.fileUrls;
     data['created_at'] = this.createdAt;

@@ -1,4 +1,4 @@
-class GroupMessgeModel{
+class GroupMessgeModel {
   MChannel? mChannel;
   RetrieveGroupMessage? retrieveGroupMessage;
   Retrievehome? retrievehome;
@@ -193,15 +193,15 @@ class RetrieveGroupMessage {
         tGroupMessages!.add(new TGroupMessages.fromJson(v));
       });
     }
-    if(json['created_admin'] != null){
+    if (json['created_admin'] != null) {
       create_admin = <CreatedAdmin>[];
-      json['created_admin'].forEach((v){
+      json['created_admin'].forEach((v) {
         create_admin!.add(new CreatedAdmin.fromJson(v));
       });
     }
-    if(json['m_channel_users'] != null){
+    if (json['m_channel_users'] != null) {
       mChannelUsers = <MChannelUser>[];
-      json['m_channel_users'].forEach((v){
+      json['m_channel_users'].forEach((v) {
         mChannelUsers!.add(new MChannelUser.fromJson(v));
       });
     }
@@ -213,14 +213,14 @@ class RetrieveGroupMessage {
         emojiCounts!.add(EmojiCountsforGpMsg.fromJson(v));
       });
     }
-    
+
     if (json['react_usernames'] != null) {
       reactUserData = <ReactUserDataForGpMsg>[];
       json['react_usernames'].forEach((v) {
         reactUserData!.add(ReactUserDataForGpMsg.fromJson(v));
       });
     }
-    
+
     if (json['t_group_message_dates'] != null) {
       tGroupMessageDates = <TGroupMessageDates>[];
       json['t_group_message_dates'].forEach((v) {
@@ -239,11 +239,13 @@ class RetrieveGroupMessage {
       data['t_group_messages'] =
           this.tGroupMessages!.map((v) => v.toJson()).toList();
     }
-    if(this.create_admin != null){
-      data['created_admin'] = this.create_admin!.map((e) => e.toJson()).toList();
+    if (this.create_admin != null) {
+      data['created_admin'] =
+          this.create_admin!.map((e) => e.toJson()).toList();
     }
-    if(this.mChannelUsers != null){
-      data['m_channel_users'] = this.mChannelUsers!.map((e) => e.toJson()).toList();
+    if (this.mChannelUsers != null) {
+      data['m_channel_users'] =
+          this.mChannelUsers!.map((e) => e.toJson()).toList();
     }
     data['t_group_star_msgids'] = this.tGroupStarMsgids;
     data['u_count'] = this.uCount;
@@ -266,23 +268,23 @@ class CreatedAdmin {
   bool? admin;
   int? userid;
   int? channelid;
-  CreatedAdmin({this.userid,this.channelid,this.admin});
-  CreatedAdmin.fromJson(Map<String,dynamic> json){
+  CreatedAdmin({this.userid, this.channelid, this.admin});
+  CreatedAdmin.fromJson(Map<String, dynamic> json) {
     admin = json['created_admin'];
     userid = json['userid'];
     channelid = json['channelid'];
   }
-  Map<String,dynamic> toJson(){
-    final Map<String, dynamic> data = new Map<String,dynamic>();
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
     data['userid'] = this.userid;
     data['created_admin'] = this.admin;
     data['channelid'] = this.channelid;
     return data;
   }
-
 }
-class MChannelUser{
- int? id;
+
+class MChannelUser {
+  int? id;
   String? name;
   String? email;
   String? passwordDigest;
@@ -335,7 +337,6 @@ class MChannelUser{
     data['updated_at'] = this.updatedAt;
     return data;
   }
-
 }
 
 class SChannel {
@@ -380,12 +381,22 @@ class TGroupMessages {
   String? groupmsg;
   int? id;
   List<dynamic>? fileUrls;
+  List<dynamic>? fileName;
+  String? profileName;
   String? createdAt;
   int? count;
   int? sendUserId;
 
   TGroupMessages(
-      {this.name, this.groupmsg, this.id, this.createdAt, this.count,this.sendUserId, this.fileUrls});
+      {this.name,
+      this.groupmsg,
+      this.id,
+      this.createdAt,
+      this.count,
+      this.sendUserId,
+      this.fileUrls,
+      this.profileName,
+      this.fileName});
 
   TGroupMessages.fromJson(Map<String, dynamic> json) {
     name = json['name'];
@@ -393,6 +404,8 @@ class TGroupMessages {
     id = json['id'];
     createdAt = json['created_at'];
     fileUrls = json['file_urls'] as List<dynamic>?;
+    fileName = json['file_names'] as List<dynamic>?;
+    profileName = json['image_url'];
     count = json['count'];
     sendUserId = json['send_user_id'];
   }
@@ -403,6 +416,8 @@ class TGroupMessages {
     data['groupmsg'] = this.groupmsg;
     data['id'] = this.id;
     data['created_at'] = this.createdAt;
+    data['image_url'] = this.profileName;
+    data['file_names'] = this.fileName;
     data['count'] = this.count;
     data['send_user_id'] = this.sendUserId;
     data['file_urls'] = this.fileUrls;
@@ -558,7 +573,6 @@ class MChannels {
   }
 }
 
-
 class EmojiCountsforGpMsg {
   int? groupmsgid;
   String? emoji;
@@ -580,6 +594,7 @@ class EmojiCountsforGpMsg {
     return data;
   }
 }
+
 class ReactUserDataForGpMsg {
   String? name;
   int? groupmsgid;

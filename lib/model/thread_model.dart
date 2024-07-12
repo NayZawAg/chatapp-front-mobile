@@ -3,6 +3,8 @@ class dThread {
   String? name;
   String? directthreadmsg;
   List<dynamic>? fileUrls;
+  List<dynamic>? fileNames;
+  String? profileImage;
   int? directMsgId;
   String? created_at;
   int? senderId;
@@ -13,7 +15,9 @@ class dThread {
       this.created_at,
       this.directMsgId,
       this.fileUrls,
-      this.senderId});
+      this.senderId,
+      this.fileNames,
+      this.profileImage});
   dThread.fromJson(Map<String, dynamic> json) {
     directMsgId = json['t_direct_message_id'];
     fileUrls = json['file_urls'];
@@ -22,6 +26,8 @@ class dThread {
     directthreadmsg = json['directthreadmsg'];
     created_at = json['created_at'];
     senderId = json['sender_id'];
+    fileNames = json['file_names'] as List<dynamic>?;
+    profileImage = json['profile_image'];
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
@@ -32,6 +38,8 @@ class dThread {
     data['name'] = this.name;
     data['id'] = this.id;
     data['sender_id'] = this.senderId;
+    data['profile_image'] = this.profileImage;
+    data['file_names'] = this.fileNames;
     return data;
   }
 }
@@ -42,6 +50,8 @@ class DirectMsg {
   int? senderId;
   String? created_at;
   List<dynamic>? fileUrls;
+  List<dynamic>? fileName;
+  String? profileName;
   String? directmsg;
   String? name;
   DirectMsg(
@@ -51,13 +61,17 @@ class DirectMsg {
       this.id,
       this.fileUrls,
       this.senderId,
-      this.receiverId});
+      this.receiverId,
+      this.profileName,
+      this.fileName});
   DirectMsg.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     receiverId = json['receiver_id'];
     fileUrls = json['file_urls'];
     senderId = json['sender_id'];
     created_at = json['created_at'];
+    fileName = json['file_names'] as List<dynamic>?;
+    profileName = json['profile_image'];
     directmsg = json['directmsg'];
     name = json['name'];
   }
@@ -70,6 +84,8 @@ class DirectMsg {
     data['directmsg'] = this.directmsg;
     data['name'] = this.name;
     data['id'] = this.id;
+    data['file_names'] = this.fileName;
+    data['profile_image'] = this.profileName;
     return data;
   }
 }
@@ -82,6 +98,8 @@ class G_message {
   String? channelName;
   int? channelId;
   List<dynamic>? fileUrls;
+  String? profileName;
+  List<dynamic>? fileName;
   String? created_at;
   int? senderId;
   G_message(
@@ -90,7 +108,9 @@ class G_message {
       this.name,
       this.id,
       this.fileUrls,
-      this.senderId});
+      this.senderId,
+      this.profileName,
+      this.fileName});
   G_message.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     name = json['name'];
@@ -99,6 +119,8 @@ class G_message {
     channelName = json['channel_name'];
     fileUrls = json['file_urls'];
     groupmsg = json['groupmsg'];
+    profileName = json['profile_image'];
+    fileName = json['file_names'] as List<dynamic>?;
     created_at = json['created_at'];
     senderId = json['m_user_id'];
   }
@@ -111,6 +133,8 @@ class G_message {
     data['channel_name'] = this.channelName;
     data['channel_status'] = this.channelStatus;
     data['groupmsg'] = this.groupmsg;
+    data['profile_image'] = this.profileName;
+    data['file_names'] = this.fileName;
     data['created_at'] = this.created_at;
     data['m_user_id'] = this.senderId;
     return data;
@@ -123,6 +147,8 @@ class G_thread {
   String? channelName;
   List<dynamic>? fileUrls;
   String? groupthreadmsg;
+  String? profileName;
+  List<dynamic>? fileName;
   int? groupMessageId;
   String? created_at;
   int? senderId;
@@ -132,7 +158,9 @@ class G_thread {
       this.name,
       this.channelName,
       this.fileUrls,
-      this.senderId});
+      this.senderId,
+      this.profileName,
+      this.fileName});
   G_thread.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     groupMessageId = json['t_group_message_id'];
@@ -141,6 +169,8 @@ class G_thread {
     channelName = json['channel_name'];
     groupthreadmsg = json['groupthreadmsg'];
     created_at = json['created_at'];
+    profileName = json['profile_image'];
+    fileName = json['file_names'] as List<dynamic>?;
     senderId = json['m_user_id'];
   }
   Map<String, dynamic> toJson() {
@@ -153,6 +183,8 @@ class G_thread {
     data['groupthreadmsg'] = this.groupthreadmsg;
     data['created_at'] = this.created_at;
     data['m_user_id'] = this.senderId;
+    data['profile_image'] = this.profileName;
+    data['file_names'] = this.fileName;
     return data;
   }
 }

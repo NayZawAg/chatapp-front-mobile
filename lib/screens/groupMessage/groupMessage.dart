@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_frontend/const/build_fiile.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/const/permissions.dart';
 import 'package:flutter_frontend/constants.dart';
 
@@ -275,12 +276,21 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                 var date = msg['created_at'];
                 int mUserId = msg['m_user_id'];
                 List<dynamic> fileUrls = [];
+                List<dynamic> fileName = [];
                 String senduser = messageContent['sender_name'];
+                String? profileImage = messageContent['profile_image'];
 
                 if (messageContent.containsKey('files')) {
                   var files = messageContent['files'];
                   if (files != null) {
                     fileUrls = files.map((file) => file['file']).toList();
+                  }
+                }
+
+                if (messageContent.containsKey('files')) {
+                  var files = messageContent['files'];
+                  if (files != null) {
+                    fileName = files.map((file) => file['file_name']).toList();
                   }
                 }
 
@@ -291,7 +301,9 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                       groupmsg: groupMessage,
                       id: id,
                       sendUserId: mUserId,
-                      name: senduser));
+                      name: senduser,
+                      profileName: profileImage,
+                      fileName: fileName));
                 });
               } else {}
             } else if (messageContent.containsKey('messaged_star') &&
@@ -995,17 +1007,6 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
       document: quill.Document.fromDelta(delta),
       selection: const TextSelection.collapsed(offset: 0),
     );
-
-    // final int len = delta.length - 2;
-    // if (delta[len].attributes!.containsKey("code")) {
-    //   setState(() {
-    //     isCode = true;
-    //   });
-    // } else {
-    //   setState(() {
-    //     isCode = false;
-    //   });
-    // }
   }
 
   Delta convertHtmlToDelta(String html) {
@@ -1234,6 +1235,7 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                           child: Text(
                             widget.channelName,
                             style: TextStyle(
+                                fontSize: 17,
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold),
                           )),
@@ -1253,6 +1255,16 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                     List<dynamic>? files = [];
                     files = tGroupMessages![index].fileUrls;
 
+                    List<dynamic>? fileNames = [];
+                    fileNames = tGroupMessages![index].fileName;
+
+                    String? profileImage = tGroupMessages![index].profileName;
+
+                    if (profileImage != null && !kIsWeb) {
+                      profileImage = MinioToIP.replaceMinioWithIP(
+                          profileImage, ipAddressForMinio);
+                    }
+
                     List<int> tempStar = tGroupStarMsgids?.toList() ?? [];
                     bool isStared = tempStar.contains(channelStar[index].id);
 
@@ -1269,6 +1281,13 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                         currentUserName == channelStar[index].name;
                     int sendUserId = tGroupMessages![index].sendUserId!.toInt();
                     int messageId = tGroupMessages![index].id!.toInt();
+
+                    bool? activeStatus;
+                    for (var user in SessionStore.sessionData!.mUsers!) {
+                      if (user.name == sendername) {
+                        activeStatus = user.activeStatus;
+                      }
+                    }
 
                     return SingleChildScrollView(
                       child: InkWell(
@@ -1330,33 +1349,43 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                         Navigator.push(
                                                             context,
                                                             MaterialPageRoute(
-                                                                builder: (_) => GpThreadMessage(
-                                                                    channelID:
-                                                                        widget
-                                                                            .channelID,
-                                                                    channelStatus:
-                                                                        widget
-                                                                            .channelStatus,
-                                                                    channelName:
-                                                                        widget
-                                                                            .channelName,
-                                                                    messageID:
-                                                                        tGroupMessages![index]
-                                                                            .id,
-                                                                    message:
-                                                                        message,
-                                                                    name: retrieveGroupMessage!
-                                                                        .tGroupMessages![
-                                                                            index]
-                                                                        .name
-                                                                        .toString(),
-                                                                    time:
-                                                                        created_at,
-                                                                    fname: retrieveGroupMessage!
-                                                                        .tGroupMessages![
-                                                                            index]
-                                                                        .name
-                                                                        .toString())));
+                                                                builder: (_) =>
+                                                                    GpThreadMessage(
+                                                                      channelID:
+                                                                          widget
+                                                                              .channelID,
+                                                                      channelStatus:
+                                                                          widget
+                                                                              .channelStatus,
+                                                                      channelName:
+                                                                          widget
+                                                                              .channelName,
+                                                                      messageID:
+                                                                          tGroupMessages![index]
+                                                                              .id,
+                                                                      message:
+                                                                          message,
+                                                                      name: retrieveGroupMessage!
+                                                                          .tGroupMessages![
+                                                                              index]
+                                                                          .name
+                                                                          .toString(),
+                                                                      time:
+                                                                          created_at,
+                                                                      fname: retrieveGroupMessage!
+                                                                          .tGroupMessages![
+                                                                              index]
+                                                                          .name
+                                                                          .toString(),
+                                                                      activeStatus:
+                                                                          activeStatus,
+                                                                      fileNames:
+                                                                          fileNames,
+                                                                      files:
+                                                                          files,
+                                                                      profileImage:
+                                                                          profileImage,
+                                                                    )));
                                                       },
                                                       icon: const Icon(
                                                           Icons.reply),
@@ -1537,12 +1566,56 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                if (sendername.isNotEmpty)
-                                                  Text(
-                                                    sendername,
-                                                    style: const TextStyle(
-                                                        color: Colors.white),
-                                                  ),
+                                                Row(
+                                                  children: [
+                                                    Container(
+                                                      height: 20,
+                                                      width: 20,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white54,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(5),
+                                                        border: Border.all(
+                                                          width: 1,
+                                                          color: Colors
+                                                              .amber.shade100,
+                                                        ),
+                                                      ),
+                                                      child: FittedBox(
+                                                        alignment:
+                                                            Alignment.center,
+                                                        child: Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(1.0),
+                                                          child: profileImage ==
+                                                                      null ||
+                                                                  profileImage
+                                                                      .isEmpty
+                                                              ? const Icon(
+                                                                  Icons.person)
+                                                              : CircleAvatar(
+                                                                  radius: 20,
+                                                                  backgroundImage:
+                                                                      NetworkImage(
+                                                                          profileImage),
+                                                                ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(
+                                                      width: 4,
+                                                    ),
+                                                    Text(sendername,
+                                                        style: const TextStyle(
+                                                          fontSize: 15,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors.black,
+                                                        )),
+                                                  ],
+                                                ),
                                                 if (message.isNotEmpty)
                                                   flutter_html.Html(
                                                     data: message,
@@ -1610,10 +1683,14 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                   singleFile.buildSingleFile(
                                                       files[0],
                                                       context,
-                                                      platform),
-                                                if (files.length > 2)
+                                                      platform,
+                                                      fileNames?.first ?? ''),
+                                                if (files.length >= 2)
                                                   mulitFile.buildMultipleFiles(
-                                                      files, platform, context),
+                                                      files,
+                                                      platform,
+                                                      context,
+                                                      fileNames ?? []),
                                                 const SizedBox(height: 8),
                                                 const SizedBox(height: 8),
                                                 Text(
@@ -1733,13 +1810,6 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                               setState(() {
                                                                 _isEmojiSelected =
                                                                     false;
-                                                                // groupMessageID =
-                                                                //     groupMessageList
-                                                                //         .retrieveGroupMessage!
-                                                                //         .tGroupMessages![
-                                                                //             index]
-                                                                //         .id!
-                                                                //         .toInt();
                                                               });
                                                               HapticFeedback
                                                                   .vibrate();
@@ -1864,12 +1934,56 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                if (sendername.isNotEmpty)
-                                                  Text(
-                                                    sendername,
-                                                    style: TextStyle(
-                                                        color: Colors.white),
-                                                  ),
+                                                Row(
+                                                  children: [
+                                                    Container(
+                                                      height: 20,
+                                                      width: 20,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white54,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(5),
+                                                        border: Border.all(
+                                                          width: 1,
+                                                          color: Colors
+                                                              .amber.shade100,
+                                                        ),
+                                                      ),
+                                                      child: FittedBox(
+                                                        alignment:
+                                                            Alignment.center,
+                                                        child: Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(1.0),
+                                                          child: profileImage ==
+                                                                      null ||
+                                                                  profileImage
+                                                                      .isEmpty
+                                                              ? const Icon(
+                                                                  Icons.person)
+                                                              : CircleAvatar(
+                                                                  radius: 20,
+                                                                  backgroundImage:
+                                                                      NetworkImage(
+                                                                          profileImage),
+                                                                ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(
+                                                      width: 4,
+                                                    ),
+                                                    Text(sendername,
+                                                        style: const TextStyle(
+                                                          fontSize: 15,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors.black,
+                                                        )),
+                                                  ],
+                                                ),
                                                 if (message.isNotEmpty)
                                                   flutter_html.Html(
                                                     data: message,
@@ -1941,14 +2055,19 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                               .buildSingleFile(
                                                                   files.first,
                                                                   context,
-                                                                  platform)
+                                                                  platform,
+                                                                  fileNames
+                                                                          ?.first ??
+                                                                      '')
                                                         ]
                                                       : [
                                                           mulitFile
                                                               .buildMultipleFiles(
                                                                   files,
                                                                   platform,
-                                                                  context)
+                                                                  context,
+                                                                  fileNames ??
+                                                                      [])
                                                         ],
                                                 const SizedBox(height: 8),
                                                 Text(
@@ -2067,13 +2186,6 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                               setState(() {
                                                                 _isEmojiSelected =
                                                                     false;
-                                                                // groupMessageID =
-                                                                //     groupMessageList
-                                                                //         .retrieveGroupMessage!
-                                                                //         .tGroupMessages![
-                                                                //             index]
-                                                                //         .id!
-                                                                //         .toInt();
                                                               });
                                                               HapticFeedback
                                                                   .vibrate();
@@ -2243,7 +2355,12 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                                                                     .tGroupMessages![
                                                                         index]
                                                                     .name
-                                                                    .toString())));
+                                                                    .toString(),
+                                                                activeStatus:
+                                                                    activeStatus,
+                                                                fileNames:
+                                                                    fileNames,
+                                                                files: files)));
                                                   },
                                                   icon: const Icon(Icons.reply),
                                                   color: const Color.fromARGB(

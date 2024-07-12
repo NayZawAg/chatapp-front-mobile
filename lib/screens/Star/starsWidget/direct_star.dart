@@ -1,5 +1,12 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_frontend/const/build_mulit_file.dart';
+import 'package:flutter_frontend/const/build_single_file.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/constants.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
@@ -23,10 +30,19 @@ class _DirectStarsState extends State<DirectStars> {
     'Accept': 'application/json'
   })));
   int userId = SessionStore.sessionData!.currentUser!.id!.toInt();
-
+  TargetPlatform? platform;
+  BuildMulitFile mulitFile = BuildMulitFile();
+  BuildSingleFile singleFile = BuildSingleFile();
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      return;
+    } else if (Platform.isAndroid) {
+      platform = TargetPlatform.android;
+    } else {
+      platform = TargetPlatform.iOS;
+    }
     refreshFuture = _fetchData();
   }
 
@@ -81,34 +97,48 @@ class _DirectStarsState extends State<DirectStars> {
             String dateFormat = star.createdAt.toString();
             DateTime dateTime = DateTime.parse(dateFormat).toLocal();
             String time = DateFormat('MMM d, yyyy hh:mm a').format(dateTime);
-            // String time = DateTImeFormatter.convertJapanToMyanmarTime(times);
+
+            List<dynamic>? files = [];
+            List<dynamic>? fileName = [];
+
+            files = starList.directStar![index].files;
+            fileName = starList.directStar![index].fileNames;
+
+            String? profileImage = starList.directStar![index].profileImage;
+
+            if (profileImage != null && !kIsWeb) {
+              profileImage =
+                  MinioToIP.replaceMinioWithIP(profileImage, ipAddressForMinio);
+            }
+
             return Container(
               padding: const EdgeInsets.only(top: 10),
               width: MediaQuery.of(context).size.width * 0.9,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        height: 50,
-                        width: 50,
+                        height: 40,
+                        width: 40,
                         decoration: BoxDecoration(
-                          color: Colors.amber,
                           borderRadius: BorderRadius.circular(10),
+                          color: Colors.grey[300],
                         ),
-                        child: FittedBox(
-                          alignment: Alignment.center,
-                          child: Padding(
-                            padding: const EdgeInsets.all(3.0),
-                            child: Text(
-                              ds_name.toUpperCase(),
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
+                        child: Center(
+                          child: profileImage == null || profileImage.isEmpty
+                              ? const Icon(Icons.person)
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.network(
+                                    profileImage,
+                                    fit: BoxFit.cover,
+                                    width: 40,
+                                    height: 40,
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 5)
@@ -130,7 +160,7 @@ class _DirectStarsState extends State<DirectStars> {
                         children: [
                           Text(
                             name,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 17, fontWeight: FontWeight.bold),
                           ),
                           Container(
@@ -175,6 +205,14 @@ class _DirectStarsState extends State<DirectStars> {
                               },
                             ),
                           ),
+                          files!.length == 1
+                              ? singleFile.buildSingleFile(files.first ?? '',
+                                  context, platform, fileName?.first ?? '')
+                              : mulitFile.buildMultipleFiles(
+                                  files, platform, context, fileName ?? []),
+                          const SizedBox(
+                            height: 4,
+                          ),
                           Text(
                             time,
                             style: const TextStyle(fontSize: 10),
@@ -186,30 +224,6 @@ class _DirectStarsState extends State<DirectStars> {
                 ],
               ),
             );
-            // return ListTile(
-            //   leading: Container(
-            //     height: 50,
-            //     width: 50,
-            //     color: Colors.amber,
-            //     child: Center(
-            //       child: Text(
-            //         name.characters.first.toUpperCase(),
-            //         style: const TextStyle(
-            //           fontSize: 30,
-            //           fontWeight: FontWeight.bold,
-            //         ),
-            //       ),
-            //     ),
-            //   ),
-            //   title: Text(
-            //     directmsg,
-            //    style: const TextStyle(fontSize: 20),
-            //   ),
-            //   subtitle: Text(
-            //     time,
-            //     style: const TextStyle(fontSize: 10),
-            //   ),
-            // );
           },
         ),
       ),

@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_frontend/const/build_fiile.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/const/permissions.dart';
 import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -40,13 +41,17 @@ class DirectMessageWidget extends StatefulWidget {
   final int userId;
   final String receiverName;
   final user_status;
+  final String? profileImage;
+  final bool? activeStatus;
 
-  const DirectMessageWidget({
-    Key? key,
-    required this.userId,
-    this.user_status,
-    required this.receiverName,
-  }) : super(key: key);
+  const DirectMessageWidget(
+      {Key? key,
+      required this.userId,
+      this.user_status,
+      required this.receiverName,
+      this.profileImage,
+      this.activeStatus})
+      : super(key: key);
 
   @override
   State<DirectMessageWidget> createState() => _DirectMessageWidgetState();
@@ -124,7 +129,6 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
     connectWebSocket();
     _quilcontroller.addListener(_onSelectionChanged);
     _focusNode.addListener(_focusChange);
-
     _previousOps = _quilcontroller.document.toDelta().toList();
     // To remove background color when format was remove
     _quilcontroller.document.changes.listen((change) {
@@ -214,6 +218,7 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
     _quilcontroller.removeListener(_onSelectionChanged);
     _focusNode.removeListener(_focusChange);
     _channel!.sink.close();
+    _scrollController.dispose();
   }
 
   void connectWebSocket() {
@@ -257,6 +262,8 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                 String send = messageContent['sender_name'];
                 List<dynamic> fileUrls = [];
 
+                List<dynamic> fileName = [];
+
                 if (messageContent.containsKey('files')) {
                   var files = messageContent['files'];
                   if (files != null) {
@@ -264,14 +271,23 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                   }
                 }
 
+                if (messageContent.containsKey('files')) {
+                  var files = messageContent['files'];
+                  if (files != null) {
+                    fileName = files.map((file) => file['file_name']).toList();
+                  }
+                }
+
+                print(fileName);
+
                 setState(() {
                   tDirectMessages!.add(TDirectMessages(
-                    id: id,
-                    directmsg: directmsg,
-                    createdAt: date,
-                    name: send,
-                    fileUrls: fileUrls,
-                  ));
+                      id: id,
+                      directmsg: directmsg,
+                      createdAt: date,
+                      name: send,
+                      fileUrls: fileUrls,
+                      fileName: fileName));
                 });
               } else {}
             }
@@ -334,6 +350,9 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
         tempStarMsgids = messagess.tDirectStarMsgids;
         emojiCounts = messagess.tDirectMsgEmojiCounts;
         reactUserData = messagess.reactUsernames;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom();
+        });
       });
     } catch (e) {}
   }
@@ -819,17 +838,6 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
       document: quill.Document.fromDelta(delta),
       selection: const TextSelection.collapsed(offset: 0),
     );
-
-    // final int len = delta.length - 2;
-    // if (delta[len].attributes!.containsKey("code")) {
-    //   setState(() {
-    //     isCode = true;
-    //   });
-    // } else {
-    //   setState(() {
-    //     isCode = false;
-    //   });
-    // }
   }
 
   Future<void> editdirectMessage(String message, int msgId) async {
@@ -1015,37 +1023,45 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
           children: [
             Stack(children: [
               Container(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.amber,
+                height: 40,
+                width: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.grey[300],
                 ),
-                height: 50,
-                width: 50,
                 child: Center(
-                  child: Text(
-                    widget.receiverName.isNotEmpty
-                        ? "${widget.receiverName.characters.first.toUpperCase()}"
-                        : "",
-                    style: const TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: widget.profileImage == null ||
+                          widget.profileImage!.isEmpty
+                      ? Icon(Icons.person)
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.network(
+                            widget.profileImage!,
+                            fit: BoxFit.cover,
+                            width: 40,
+                            height: 40,
+                          ),
+                        ),
                 ),
               ),
               Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: widget.user_status
-                      ? Container(
-                          height: 14,
-                          width: 14,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(7),
-                              border: Border.all(color: Colors.white, width: 1),
-                              color: Colors.green),
-                        )
-                      : Container())
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  height: 10,
+                  width: 10,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 1,
+                    ),
+                    color: widget.activeStatus == true
+                        ? Colors.green
+                        : Colors.black,
+                  ),
+                ),
+              ),
             ]),
             const SizedBox(width: 10),
             Column(
@@ -1067,6 +1083,7 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
         children: [
           Expanded(
               child: ListView.builder(
+            controller: _scrollController,
             itemCount: tDirectMessages!.length,
             itemBuilder: (context, index) {
               if (tDirectMessages == null || tDirectMessages!.isEmpty) {
@@ -1077,6 +1094,24 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
 
               List<dynamic>? files = [];
               files = tDirectMessages![index].fileUrls;
+
+              List<dynamic>? fileNames = [];
+              fileNames = tDirectMessages![index].fileName;
+
+              String? profileImage = tDirectMessages![index].profileName;
+
+              if (profileImage != null && !kIsWeb) {
+                profileImage = MinioToIP.replaceMinioWithIP(
+                    profileImage, ipAddressForMinio);
+              }
+
+              bool? activeStatus;
+
+              for (var user in SessionStore.sessionData!.mUsers!) {
+                if (user.name == channelStar[index].name) {
+                  activeStatus = user.activeStatus;
+                }
+              }
 
               List<int> tempStar = tempStarMsgids?.toList() ?? [];
               bool isStared = tempStar.contains(channelStar[index].id);
@@ -1146,15 +1181,23 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                   Navigator.push(
                                                       context,
                                                       MaterialPageRoute(
-                                                          builder: (_) => DirectMessageThreadWidget(
-                                                              userstatus: widget
-                                                                  .user_status,
-                                                              receiverId:
-                                                                  widget.userId,
-                                                              directMsgId:
-                                                                  directMsgIds,
-                                                              receiverName: widget
-                                                                  .receiverName)));
+                                                          builder: (_) =>
+                                                              DirectMessageThreadWidget(
+                                                                userstatus: widget
+                                                                    .user_status,
+                                                                receiverId:
+                                                                    widget
+                                                                        .userId,
+                                                                directMsgId:
+                                                                    directMsgIds,
+                                                                receiverName: widget
+                                                                    .receiverName,
+                                                                files: files,
+                                                                profileImage:
+                                                                    profileImage,
+                                                                filesName:
+                                                                    fileNames,
+                                                              )));
                                                 },
                                                 icon: const Icon(Icons.reply),
                                                 color: const Color.fromARGB(
@@ -1365,10 +1408,16 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                             ),
                                           if (files!.length == 1)
                                             singleFile.buildSingleFile(
-                                                files[0], context, platform),
-                                          if (files.length > 2)
+                                                files[0],
+                                                context,
+                                                platform,
+                                                fileNames?.first ?? ''),
+                                          if (files.length >= 2)
                                             mulitFile.buildMultipleFiles(
-                                                files, platform, context),
+                                                files,
+                                                platform,
+                                                context,
+                                                fileNames ?? []),
                                           const SizedBox(height: 8),
                                           const SizedBox(height: 8),
                                           Text(
@@ -1670,14 +1719,16 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                     singleFile.buildSingleFile(
                                                         files.first,
                                                         context,
-                                                        platform)
+                                                        platform,
+                                                        fileNames?.first ?? '')
                                                   ]
                                                 : [
                                                     mulitFile
                                                         .buildMultipleFiles(
                                                             files,
                                                             platform,
-                                                            context)
+                                                            context,
+                                                            fileNames ?? [])
                                                   ],
                                           const SizedBox(height: 8),
                                           Text(
@@ -1755,15 +1806,23 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                   Navigator.push(
                                                       context,
                                                       MaterialPageRoute(
-                                                          builder: (_) => DirectMessageThreadWidget(
-                                                              userstatus: widget
-                                                                  .user_status,
-                                                              receiverId:
-                                                                  widget.userId,
-                                                              directMsgId:
-                                                                  directMsgIds,
-                                                              receiverName: widget
-                                                                  .receiverName)));
+                                                          builder: (_) =>
+                                                              DirectMessageThreadWidget(
+                                                                userstatus: widget
+                                                                    .user_status,
+                                                                receiverId:
+                                                                    widget
+                                                                        .userId,
+                                                                directMsgId:
+                                                                    directMsgIds,
+                                                                receiverName: widget
+                                                                    .receiverName,
+                                                                files: files,
+                                                                profileImage:
+                                                                    profileImage,
+                                                                filesName:
+                                                                    fileNames,
+                                                              )));
                                                 },
                                                 icon: const Icon(Icons.reply),
                                                 color: const Color.fromARGB(

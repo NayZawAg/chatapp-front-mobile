@@ -32,22 +32,24 @@ class DirectMessageService {
         for (PlatformFile file in files) {
           if (kIsWeb) {
             Uint8List fileBytes = file.bytes!;
+            String? fileName = file.name;
             String base64Data = base64Encode(fileBytes);
             String? mimeType =
                 lookupMimeType(file.name, headerBytes: fileBytes);
-            requestBody["files"].add({"data": base64Data, "mime": mimeType});
+            requestBody["files"].add({"data": base64Data, "mime": mimeType, "file_name": fileName});
           } else {
             String? filePath = file.path;
+            String? fileName = file.name;
             String mimeType = await MimeType.checkMimeType(filePath!);
             String base64String =
                 await MimeType.changeToBase64(filePath);
-            requestBody["files"].add({"data": base64String, "mime": mimeType});
+            requestBody["files"].add({"data": base64String, "mime": mimeType, "file_name": fileName});
           }
         }
       }
       var token = await AuthController().getToken();
       await _apiSerive.sendMessage(requestBody, token!);
-      // _websocketService.sendMessageToWs(requestBody);
+     
     } catch (e) {
       rethrow;
     }
@@ -69,16 +71,18 @@ class DirectMessageService {
         for (PlatformFile file in files) {
           if (kIsWeb) {
             Uint8List fileBytes = file.bytes!;
+            String? fileName = file.name;
             String base64Data = base64Encode(fileBytes);
             String? mimeType =
                 lookupMimeType(file.name, headerBytes: fileBytes);
-            requestBody["files"].add({"data": base64Data, "mime": mimeType});
+            requestBody["files"].add({"data": base64Data, "mime": mimeType, "file_name": fileName});
           } else {
             String? filePath = file.path;
+            String? fileName = file.name;
             String mimeType = await MimeType.checkMimeType(filePath!);
             String base64String =
                 await MimeType.changeToBase64(filePath);
-            requestBody["files"].add({"data": base64String, "mime": mimeType});
+            requestBody["files"].add({"data": base64String, "mime": mimeType, "file_name": fileName});
           }
         }
       }
@@ -86,7 +90,9 @@ class DirectMessageService {
       await thread_service.sentThread(requestBody, token!);
       
     } catch (e) {
+      rethrow;
     }
+    
   }
 
   Future<void> directStarMsg(int receiveUserId, int messageId) async {
