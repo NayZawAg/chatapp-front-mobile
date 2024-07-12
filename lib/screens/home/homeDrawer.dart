@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/screens/profile/profile.dart';
-import 'package:flutter_frontend/screens/userEdit/user_edit.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 import 'package:flutter_frontend/constants.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
@@ -41,8 +40,8 @@ class _HomeDrawerState extends State<HomeDrawer> {
     String? currentUserProfileImage =
         SessionStore.sessionData?.currentUser?.imageUrl;
     if (currentUserProfileImage != null && !kIsWeb) {
-      currentUserProfileImage =
-          MinioToIP.replaceMinioWithIP(currentUserProfileImage, ipAddressForMinio);
+      currentUserProfileImage = MinioToIP.replaceMinioWithIP(
+          currentUserProfileImage, ipAddressForMinio);
     }
     return Drawer(
       backgroundColor: kPriamrybackground,
@@ -73,66 +72,51 @@ class _HomeDrawerState extends State<HomeDrawer> {
                     child: ListTile(
                       leading: currentUserProfileImage == null
                           ? Container(
-                              height: 50,
-                              width: 50,
+                              height: 40,
+                              width: 40,
                               decoration: BoxDecoration(
-                                  border:
-                                      Border.all(width: 3, color: Colors.white),
-                                  borderRadius: BorderRadius.circular(10)),
-                              child: FittedBox(
-                                alignment: Alignment.center,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(1.0),
-                                  child: Text(
-                                    w_name,
-                                    style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: kPriamrybackground),
-                                  ),
-                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.grey[300],
                               ),
-                            )
-                          : CircleAvatar(
-                              radius: 20,
-                              child: ClipOval(
-                                child: Image.network(
-                                  currentUserProfileImage,
-                                  fit: BoxFit.cover,
-                                  width: 45,
-                                  height: 45,
-                                  errorBuilder: (BuildContext context,
-                                      Object error, StackTrace? stackTrace) {
-                                    WidgetsBinding.instance
-                                        .addPostFrameCallback((_) {
-                                      setState(() {
-                                        currentUserProfileImage = null;
-                                      });
+                              child: Center(child: Icon(Icons.person)))
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.network(
+                                currentUserProfileImage,
+                                fit: BoxFit.cover,
+                                width: 40,
+                                height: 40,
+                                errorBuilder: (BuildContext context,
+                                    Object error, StackTrace? stackTrace) {
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
+                                    setState(() {
+                                      currentUserProfileImage = null;
                                     });
-                                    return Container(
-                                      height: 50,
-                                      width: 50,
-                                      decoration: BoxDecoration(
-                                          border: Border.all(
-                                              width: 3, color: Colors.white),
-                                          borderRadius:
-                                              BorderRadius.circular(10)),
-                                      child: FittedBox(
-                                        alignment: Alignment.center,
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(1.0),
-                                          child: Text(
-                                            w_name,
-                                            style: TextStyle(
-                                                fontSize: 24,
-                                                fontWeight: FontWeight.bold,
-                                                color: kPriamrybackground),
-                                          ),
+                                  });
+                                  return Container(
+                                    height: 50,
+                                    width: 50,
+                                    decoration: BoxDecoration(
+                                        border: Border.all(
+                                            width: 3, color: Colors.white),
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    child: FittedBox(
+                                      alignment: Alignment.center,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(1.0),
+                                        child: Text(
+                                          w_name,
+                                          style: TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                              color: kPriamrybackground),
                                         ),
                                       ),
-                                    );
-                                  },
-                                ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                       title: Text(

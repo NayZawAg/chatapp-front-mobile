@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/componnets/Nav.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/constants.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
 import 'package:flutter_frontend/services/mChannelService/m_channel_services.dart';
 import 'package:flutter_frontend/services/groupMessageService/group_message_service.dart';
@@ -56,9 +59,11 @@ class _DrawerPageState extends State<DrawerPage> {
         notAdded.add(member);
       }
     });
+
     int? currentID = SessionStore.sessionData!.currentUser!.id;
     int? channelAdmin = widget.adminID[0]!.userid!;
     int? memberNo = notAdded.length.toInt();
+
     return Container(
       color: Color(0xFFcedef0),
       child: Column(
@@ -121,6 +126,16 @@ class _DrawerPageState extends State<DrawerPage> {
                                     itemBuilder: (context, index) {
                                       bool? memberActive =
                                           widget.member[index].activeStatus;
+                                      String? profileImages =
+                                          widget.member[index].profileImage;
+
+                                      if (profileImages != null && !kIsWeb) {
+                                        profileImages =
+                                            MinioToIP.replaceMinioWithIP(
+                                                profileImages,
+                                                ipAddressForMinio);
+                                      }
+
                                       return Padding(
                                         padding: const EdgeInsets.only(
                                             left: 10, top: 7, right: 10),
@@ -134,46 +149,58 @@ class _DrawerPageState extends State<DrawerPage> {
                                               leading: Stack(
                                                 children: [
                                                   Container(
-                                                      height: 50,
-                                                      width: 50,
+                                                    height: 40,
+                                                    width: 40,
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                      color: Colors.grey[300],
+                                                    ),
+                                                    child: Center(
+                                                      child: profileImages ==
+                                                                  null ||
+                                                              profileImages
+                                                                  .isEmpty
+                                                          ? const Icon(
+                                                              Icons.person)
+                                                          : ClipRRect(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          10),
+                                                              child:
+                                                                  Image.network(
+                                                                profileImages,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                width: 40,
+                                                                height: 40,
+                                                              ),
+                                                            ),
+                                                    ),
+                                                  ),
+                                                  Positioned(
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    child: Container(
+                                                      height: 10,
+                                                      width: 10,
                                                       decoration: BoxDecoration(
-                                                        color: Colors.amber,
                                                         borderRadius:
                                                             BorderRadius
-                                                                .circular(25),
+                                                                .circular(7),
+                                                        border: Border.all(
+                                                          color: Colors.white,
+                                                          width: 1,
+                                                        ),
+                                                        color:
+                                                            memberActive == true
+                                                                ? Colors.green
+                                                                : Colors.black,
                                                       ),
-                                                      child: Center(
-                                                          child: Text(
-                                                        widget
-                                                            .member[index].name
-                                                            .toString()
-                                                            .characters
-                                                            .first
-                                                            .toUpperCase(),
-                                                        style: const TextStyle(
-                                                            fontSize: 25),
-                                                      ))),
-                                                  Positioned(
-                                                      right: 0,
-                                                      bottom: 0,
-                                                      child:
-                                                          memberActive == true
-                                                              ? Container(
-                                                                  height: 14,
-                                                                  width: 14,
-                                                                  decoration: BoxDecoration(
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              7),
-                                                                      border: Border.all(
-                                                                          color: Colors
-                                                                              .white,
-                                                                          width:
-                                                                              1),
-                                                                      color: Colors
-                                                                          .green),
-                                                                )
-                                                              : Container())
+                                                    ),
+                                                  ),
                                                 ],
                                               ),
                                               title: Text(widget
@@ -265,6 +292,18 @@ class _DrawerPageState extends State<DrawerPage> {
                                                   int userID = notAdded[index]
                                                       .id
                                                       .toInt();
+                                                  String? notAddprofileImage =
+                                                      notAdded[index]
+                                                          .profileImage;
+
+                                                  if (notAddprofileImage !=
+                                                          null &&
+                                                      !kIsWeb) {
+                                                    notAddprofileImage = MinioToIP
+                                                        .replaceMinioWithIP(
+                                                            notAddprofileImage,
+                                                            ipAddressForMinio);
+                                                  }
                                                   return Padding(
                                                       padding:
                                                           const EdgeInsets.only(
@@ -288,29 +327,37 @@ class _DrawerPageState extends State<DrawerPage> {
                                                             child: ListTile(
                                                                 leading:
                                                                     Container(
-                                                                        height:
-                                                                            50,
-                                                                        width:
-                                                                            50,
-                                                                        decoration: BoxDecoration(
-                                                                            color: Colors
-                                                                                .amber,
-                                                                            borderRadius: BorderRadius.circular(
-                                                                                25)),
-                                                                        child:
-                                                                            Center(
-                                                                                child:
-                                                                                    Text(
-                                                                          notAdded[index]
-                                                                              .name
-                                                                              .toString()
-                                                                              .characters
-                                                                              .first
-                                                                              .toUpperCase(),
-                                                                          style: const TextStyle(
-                                                                              color: Colors.black,
-                                                                              fontSize: 25),
-                                                                        ))),
+                                                                  height: 40,
+                                                                  width: 40,
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            10),
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        300],
+                                                                  ),
+                                                                  child: Center(
+                                                                    child: notAddprofileImage ==
+                                                                                null ||
+                                                                            notAddprofileImage
+                                                                                .isEmpty
+                                                                        ? const Icon(
+                                                                            Icons.person)
+                                                                        : ClipRRect(
+                                                                            borderRadius:
+                                                                                BorderRadius.circular(10),
+                                                                            child:
+                                                                                Image.network(
+                                                                              notAddprofileImage,
+                                                                              fit: BoxFit.cover,
+                                                                              width: 40,
+                                                                              height: 40,
+                                                                            ),
+                                                                          ),
+                                                                  ),
+                                                                ),
                                                                 title: Text(notAdded[
                                                                         index]
                                                                     .name

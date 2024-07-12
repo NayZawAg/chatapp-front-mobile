@@ -144,6 +144,8 @@ class TDirectMessages {
   String? name;
   String? directmsg;
   List<dynamic>? fileUrls;
+  List<dynamic>? fileName;
+  String? profileName;
   int? id;
   String? createdAt;
   int? count;
@@ -153,11 +155,15 @@ class TDirectMessages {
       this.id,
       this.createdAt,
       this.count,
-      this.fileUrls});
+      this.fileUrls,
+      this.profileName,
+      this.fileName});
   TDirectMessages.fromJson(Map<String, dynamic> json) {
     name = json['name'];
     directmsg = json['directmsg'];
     fileUrls = json['file_urls'] as List<dynamic>?;
+    fileName = json['file_names'] as List<dynamic>?;
+    profileName = json['image_url'];
     id = json['id'];
     createdAt = json['created_at'];
     count = json['count'];
@@ -170,6 +176,8 @@ class TDirectMessages {
     data['id'] = this.id;
     data['created_at'] = this.createdAt;
     data['count'] = this.count;
+    data['image_url'] = this.profileName;
+    data['file_names'] = this.fileName;
     return data;
   }
 }
@@ -234,7 +242,8 @@ class ReactUserDataForDirectMsg {
   String? emoji;
   int? userId;
 
-  ReactUserDataForDirectMsg({this.directmsgid, this.emoji, this.name, this.userId});
+  ReactUserDataForDirectMsg(
+      {this.directmsgid, this.emoji, this.name, this.userId});
 
   ReactUserDataForDirectMsg.fromJson(Map<String, dynamic> json) {
     userId = json['userid'];

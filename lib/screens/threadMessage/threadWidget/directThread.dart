@@ -4,7 +4,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/constants.dart';
+import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/screens/directThreadMessage/direct_message_thread.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -129,6 +131,27 @@ class _DirectThreadState extends State<DirectThread> {
                   )
                   .toList();
 
+              List<dynamic>? directFileName = [];
+              directFileName = directMessageList[index]
+                  .fileName
+                  ?.where(
+                    (file) => file != null,
+                  )
+                  .toList();
+
+              String? directProfileName = directMessageList[index].profileName;
+              if (directProfileName != null && !kIsWeb) {
+                directProfileName = MinioToIP.replaceMinioWithIP(
+                    directProfileName, ipAddressForMinio);
+              }
+
+              bool? userstatus;
+              for (var user in SessionStore.sessionData!.mUsers!) {
+                if (user.name == dmName) {
+                  userstatus = user.activeStatus;
+                }
+              }
+
               return Container(
                 padding: const EdgeInsets.only(top: 10),
                 width: MediaQuery.of(context).size.width * 0.9,
@@ -140,7 +163,7 @@ class _DirectThreadState extends State<DirectThread> {
                         children: [
                           Text(
                             (otherUser == "") ? "自分のみ" : "$otherUser さんとあなた",
-                            style: TextStyle(fontSize: 14),
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ]),
                     Row(
@@ -151,22 +174,25 @@ class _DirectThreadState extends State<DirectThread> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
-                              height: 50,
-                              width: 50,
+                              height: 40,
+                              width: 40,
                               decoration: BoxDecoration(
-                                color: Colors.amber,
                                 borderRadius: BorderRadius.circular(10),
+                                color: Colors.grey[300],
                               ),
-                              child: FittedBox(
-                                alignment: Alignment.center,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(3.0),
-                                  child: Text(
-                                    dmName.toUpperCase(),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
+                              child: Center(
+                                child: directProfileName == null ||
+                                        directProfileName.isEmpty
+                                    ? const Icon(Icons.person)
+                                    : ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: Image.network(
+                                          directProfileName,
+                                          fit: BoxFit.cover,
+                                          width: 40,
+                                          height: 40,
+                                        ),
+                                      ),
                               ),
                             ),
                             const SizedBox(height: 5)
@@ -251,11 +277,17 @@ class _DirectThreadState extends State<DirectThread> {
                                       if (directFiles!.length == 1 &&
                                           directFiles.isNotEmpty)
                                         singleFile.buildSingleFile(
-                                            directFiles[0], context, platform),
-                                      if (directFiles.length > 2 &&
+                                            directFiles[0],
+                                            context,
+                                            platform,
+                                            directFileName?.first ?? ''),
+                                      if (directFiles.length >= 2 &&
                                           directFiles.isNotEmpty)
                                         mulitFile.buildMultipleFiles(
-                                            directFiles, platform, context),
+                                            directFiles,
+                                            platform,
+                                            context,
+                                            directFileName ?? []),
                                     ],
                                   )),
                                   const SizedBox(height: 8),
@@ -288,6 +320,21 @@ class _DirectThreadState extends State<DirectThread> {
                                           ?.where((file) => file != null)
                                           .toList();
 
+                                      List<dynamic>? threadFileName = [];
+                                      threadFileName =
+                                          directThreadList[index].fileNames;
+
+                                      String? threadProfileName =
+                                          directThreadList[index].profileImage;
+
+                                      if (threadProfileName != null &&
+                                          !kIsWeb) {
+                                        threadProfileName =
+                                            MinioToIP.replaceMinioWithIP(
+                                                threadProfileName,
+                                                ipAddressForMinio);
+                                      }
+
                                       return Container(
                                         padding: const EdgeInsets.only(top: 10),
                                         width:
@@ -305,31 +352,34 @@ class _DirectThreadState extends State<DirectThread> {
                                                       .spaceBetween,
                                               children: [
                                                 Container(
-                                                  height: 50,
-                                                  width: 50,
+                                                  height: 40,
+                                                  width: 40,
                                                   decoration: BoxDecoration(
-                                                    color: Colors.amber,
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             10),
+                                                    color: Colors.grey[300],
                                                   ),
-                                                  child: FittedBox(
-                                                    alignment: Alignment.center,
-                                                    child: Padding(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              3.0),
-                                                      child: Text(
-                                                        senderName
-                                                            .toUpperCase()
-                                                            .characters
-                                                            .first,
-                                                        style: const TextStyle(
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
-                                                      ),
-                                                    ),
+                                                  child: Center(
+                                                    child: threadProfileName ==
+                                                                null ||
+                                                            threadProfileName
+                                                                .isEmpty
+                                                        ? const Icon(
+                                                            Icons.person)
+                                                        : ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        10),
+                                                            child:
+                                                                Image.network(
+                                                              threadProfileName,
+                                                              fit: BoxFit.cover,
+                                                              width: 40,
+                                                              height: 40,
+                                                            ),
+                                                          ),
                                                   ),
                                                 ),
                                                 const SizedBox(height: 5)
@@ -373,8 +423,6 @@ class _DirectThreadState extends State<DirectThread> {
                                                                 .size
                                                                 .width *
                                                             0.5,
-                                                        // child: Text(directThread,
-                                                        //     style: const TextStyle(fontSize: 15)),
                                                         child:
                                                             flutter_html.Html(
                                                           data: message,
@@ -469,7 +517,10 @@ class _DirectThreadState extends State<DirectThread> {
                                                                   threadFiles[
                                                                       0],
                                                                   context,
-                                                                  platform),
+                                                                  platform,
+                                                                  threadFileName
+                                                                          ?.first ??
+                                                                      ''),
                                                         if (threadFiles.length >
                                                                 2 &&
                                                             threadFiles
@@ -478,7 +529,9 @@ class _DirectThreadState extends State<DirectThread> {
                                                               .buildMultipleFiles(
                                                                   threadFiles,
                                                                   platform,
-                                                                  context),
+                                                                  context,
+                                                                  threadFileName ??
+                                                                      []),
                                                       ],
                                                       const SizedBox(
                                                         height: 8,
@@ -523,10 +576,18 @@ class _DirectThreadState extends State<DirectThread> {
                                                 MaterialPageRoute(
                                                     builder: (context) =>
                                                         DirectMessageThreadWidget(
-                                                            directMsgId:
-                                                                directMsgId,
-                                                            receiverId:
-                                                                receiverId)));
+                                                          directMsgId:
+                                                              directMsgId,
+                                                          receiverId:
+                                                              receiverId,
+                                                          files: directFiles,
+                                                          filesName:
+                                                              directFileName,
+                                                          profileImage:
+                                                              directProfileName,
+                                                          userstatus:
+                                                              userstatus,
+                                                        )));
                                           },
                                           child: const Text(
                                             "reply",

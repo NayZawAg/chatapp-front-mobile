@@ -4,8 +4,8 @@ import 'package:flutter_frontend/const/file_upload/download_file_web.dart';
 import 'package:flutter_frontend/dotenv.dart';
 
 class BuildSingleFile {
-  Widget buildSingleFile(
-      String? fileUrl, BuildContext context, TargetPlatform? platform) {
+  Widget buildSingleFile(String? fileUrl, BuildContext context,
+      TargetPlatform? platform, String? fileName) {
     String replaceMinioWithIP(String url) {
       return url.replaceAll(
           "http://minio:9000", "http://$ipAddressForMinio:9000");
@@ -87,7 +87,7 @@ class BuildSingleFile {
                   onTap: () async {
                     try {
                       await DownloadFile.downloadFile(
-                          modifiedUrl, modifiedUrl.split('/').last, context);
+                          modifiedUrl, context, fileName);
                     } catch (e) {
                       rethrow;
                     }
@@ -111,7 +111,7 @@ class BuildSingleFile {
       );
     } else {
       return BuildFilecontainer.buildFileContainer(
-          modifiedUrl, isExcel, isTxt, isPdf, context);
+          modifiedUrl, isExcel, isTxt, fileName, isPdf, context);
     }
   }
 }

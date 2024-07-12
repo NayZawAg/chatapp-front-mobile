@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_frontend/const/build_fiile.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/const/permissions.dart';
 import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/model/group_thread_list.dart';
@@ -42,6 +43,11 @@ class GpThreadMessage extends StatefulWidget {
   String? name, fname, time, message, channelName;
   final messageID, channelID;
   final channelStatus;
+  final bool? activeStatus;
+  final List<dynamic>? files;
+  final List<dynamic>? fileNames;
+  final String? profileImage;
+
   GpThreadMessage(
       {super.key,
       this.name,
@@ -51,7 +57,11 @@ class GpThreadMessage extends StatefulWidget {
       this.messageID,
       this.channelID,
       this.channelStatus,
-      this.channelName});
+      this.channelName,
+      this.activeStatus,
+      this.files,
+      this.fileNames,
+      this.profileImage});
 
   @override
   State<GpThreadMessage> createState() => _GpThreadMessageState();
@@ -323,12 +333,21 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                 var date = msg['created_at'];
                 int mUserId = msg['m_user_id'];
                 List<dynamic> fileUrls = [];
+                List<dynamic>? fileNames = [];
                 String name = messageContent['sender_name'];
+
+                String? profileName = messageContent['profile_image'];
 
                 if (messageContent.containsKey('files')) {
                   var files = messageContent['files'];
                   if (files != null) {
                     fileUrls = files.map((file) => file['file']).toList();
+                  }
+                }
+                if (messageContent.containsKey('files')) {
+                  var files = messageContent['files'];
+                  if (files != null) {
+                    fileNames = files.map((file) => file['file_name']).toList();
                   }
                 }
 
@@ -339,7 +358,9 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                       created_at: date,
                       sendUserId: mUserId,
                       name: name,
-                      fileUrls: fileUrls));
+                      fileUrls: fileUrls,
+                      fileName: fileNames,
+                      profileName: profileName));
                 });
               } else {}
             } else if (messageContent.containsKey('messaged_star')) {
@@ -545,9 +566,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     if (selection.isCollapsed) {
       return;
     }
-    // final doc = _quilcontroller.document;
-    // final text = doc.toPlainText();
-    // final selectedText = text.substring(selection.start, selection.end).trim();
 
     final checkSelectedBold = _isSelectedTextFormatted(
         selection.start, selection.end, quill.Attribute.bold);
@@ -1053,17 +1071,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
       document: quill.Document.fromDelta(delta),
       selection: const TextSelection.collapsed(offset: 0),
     );
-
-    // final int len = delta.length - 2;
-    // if (delta[len].attributes!.containsKey("code")) {
-    //   setState(() {
-    //     isCode = true;
-    //   });
-    // } else {
-    //   setState(() {
-    //     isCode = false;
-    //   });
-    // }
   }
 
   void _showUserList() {
@@ -1240,32 +1247,53 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.only(right: 10),
-                              child: Column(
+                              child: Stack(
                                 children: [
                                   Container(
+                                    height: 40,
+                                    width: 40,
                                     decoration: BoxDecoration(
-                                        color: Colors.amber,
-                                        borderRadius:
-                                            BorderRadius.circular(20)),
-                                    height: 50,
-                                    width: 50,
-                                    child: FittedBox(
-                                      alignment: Alignment.center,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(3.0),
-                                        child: Text(
-                                          groupName.toUpperCase(),
-                                          style: const TextStyle(
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.bold),
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: Colors.grey[300],
+                                    ),
+                                    child: Center(
+                                      child: widget.profileImage == null ||
+                                              widget.profileImage!.isEmpty
+                                          ? Icon(Icons.person)
+                                          : ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              child: Image.network(
+                                                widget.profileImage!,
+                                                fit: BoxFit.cover,
+                                                width: 40,
+                                                height: 40,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 0,
+                                    bottom: 0,
+                                    child: Container(
+                                      height: 10,
+                                      width: 10,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(7),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 1,
                                         ),
+                                        color: widget.activeStatus == true
+                                            ? Colors.green
+                                            : Colors.black,
                                       ),
                                     ),
-                                  )
+                                  ),
                                 ],
                               ),
                             ),
-                            Expanded(
+                            SingleChildScrollView(
                               child: Container(
                                 width: MediaQuery.of(context).size.width * 0.7,
                                 child: Column(
@@ -1345,6 +1373,17 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                         ),
                                       ),
                                     ),
+                                    widget.files == 1
+                                        ? singleFile.buildSingleFile(
+                                            widget.files?.first ?? '',
+                                            context,
+                                            platform,
+                                            widget.fileNames?.first ?? '')
+                                        : mulitFile.buildMultipleFiles(
+                                            widget.files ?? [],
+                                            platform,
+                                            context,
+                                            widget.fileNames ?? [])
                                   ],
                                 ),
                               ),
@@ -1397,6 +1436,26 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                             List<dynamic>? files = [];
                             files = groupThreadData![index].fileUrls;
 
+                            List<dynamic>? fileName = [];
+                            fileName = groupThreadData![index].fileName;
+
+                            String? profileName =
+                                groupThreadData![index].profileName;
+
+                            if (profileName != null && !kIsWeb) {
+                              profileName = MinioToIP.replaceMinioWithIP(
+                                  profileName, ipAddressForMinio);
+                            }
+
+                            bool? activeStatus;
+
+                            for (var user
+                                in SessionStore.sessionData!.mUsers!) {
+                              if (user.name == name) {
+                                activeStatus = user.activeStatus;
+                              }
+                            }
+
                             List<String> initials = name
                                 .split(" ")
                                 .map((e) => e.substring(0, 1))
@@ -1417,29 +1476,52 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.only(right: 10),
-                                    child: Column(
+                                    child: Stack(
                                       children: [
                                         Container(
-                                          decoration: const BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.amber,
+                                          height: 40,
+                                          width: 40,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            color: Colors.grey[300],
                                           ),
-                                          height: 50,
-                                          width: 50,
-                                          child: FittedBox(
-                                            alignment: Alignment.center,
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.all(3.0),
-                                              child: Text(
-                                                groupThread.toUpperCase(),
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold),
+                                          child: Center(
+                                            child: profileName == null ||
+                                                    profileName.isEmpty
+                                                ? const Icon(Icons.person)
+                                                : ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                    child: Image.network(
+                                                      profileName,
+                                                      fit: BoxFit.cover,
+                                                      width: 40,
+                                                      height: 40,
+                                                    ),
+                                                  ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          right: 0,
+                                          bottom: 0,
+                                          child: Container(
+                                            height: 10,
+                                            width: 10,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(7),
+                                              border: Border.all(
+                                                color: Colors.white,
+                                                width: 1,
                                               ),
+                                              color: activeStatus == true
+                                                  ? Colors.green
+                                                  : Colors.black,
                                             ),
                                           ),
-                                        )
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -1469,6 +1551,13 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.start,
                                                   children: [
+                                                    Text(name,
+                                                        style: const TextStyle(
+                                                          fontSize: 15,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors.black,
+                                                        )),
                                                     if (message.isNotEmpty)
                                                       flutter_html.Html(
                                                         data: message,
@@ -1551,13 +1640,16 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                           .buildSingleFile(
                                                               files[0],
                                                               context,
-                                                              platform),
-                                                    if (files.length > 2)
+                                                              platform,
+                                                              fileName?.first ??
+                                                                  ''),
+                                                    if (files.length >= 2)
                                                       mulitFile
                                                           .buildMultipleFiles(
                                                               files,
                                                               platform,
-                                                              context),
+                                                              context,
+                                                              fileName ?? []),
                                                     const SizedBox(height: 8),
                                                     const SizedBox(height: 8),
                                                     Text(

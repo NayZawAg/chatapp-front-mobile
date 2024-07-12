@@ -62,14 +62,27 @@ class DirectStar {
   String? directmsg;
   DateTime? createdAt;
   String? name;
+  List<dynamic>? files;
+  List<dynamic>? fileNames;
+  String? profileImage;
 
-  DirectStar({this.id, this.directmsg, this.createdAt, this.name});
+  DirectStar(
+      {this.id,
+      this.directmsg,
+      this.createdAt,
+      this.name,
+      this.files,
+      this.fileNames,
+      this.profileImage});
 
   DirectStar.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     directmsg = json['directmsg'];
     createdAt = DateTime.parse(json['created_at']);
     name = json['name'];
+    files = json['file_urls'] as List<dynamic>?;
+    fileNames = json['file_names'] as List<dynamic>?;
+    profileImage = json['profile_image'];
   }
 
   Map<String, dynamic> toJson() {
@@ -78,6 +91,10 @@ class DirectStar {
     data['directmsg'] = this.directmsg;
     data['created_at'] = this.createdAt;
     data['name'] = this.name;
+
+    data['file_urls'] = this.files;
+    data['profile_image'] = this.profileImage;
+    data['file_names'] = this.fileNames;
     return data;
   }
 }
@@ -87,14 +104,27 @@ class DirectStarThread {
   String? directthreadmsg;
   DateTime? createdAt;
   String? name;
+  List<dynamic>? files;
+  List<dynamic>? fileNames;
+  String? profileImage;
 
-  DirectStarThread({this.id, this.directthreadmsg, this.createdAt, this.name});
+  DirectStarThread(
+      {this.id,
+      this.directthreadmsg,
+      this.files,
+      this.fileNames,
+      this.profileImage,
+      this.createdAt,
+      this.name});
 
   DirectStarThread.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     directthreadmsg = json['directthreadmsg'];
     createdAt = DateTime.parse(json['created_at']);
     name = json['name'];
+    files = json['file_urls'] as List<dynamic>?;
+    fileNames = json['file_names'] as List<dynamic>?;
+    profileImage = json['profile_image'];
   }
 
   Map<String, dynamic> toJson() {
@@ -103,6 +133,9 @@ class DirectStarThread {
     data['directthreadmsg'] = this.directthreadmsg;
     data['created_at'] = this.createdAt;
     data['name'] = this.name;
+    data['file_urls'] = this.files;
+    data['profile_image'] = this.profileImage;
+    data['file_names'] = this.fileNames;
     return data;
   }
 }
@@ -110,9 +143,12 @@ class DirectStarThread {
 class GroupStar {
   int? id;
   String? groupmsg;
- DateTime? createdAt;
+  DateTime? createdAt;
   String? name;
   String? channelName;
+  List<dynamic>? files;
+  List<dynamic>? fileNames;
+  String? profileImage;
 
   GroupStar(
       {this.id, this.groupmsg, this.createdAt, this.name, this.channelName});
@@ -120,9 +156,12 @@ class GroupStar {
   GroupStar.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     groupmsg = json['groupmsg'];
-   createdAt = DateTime.parse(json['created_at']);
+    createdAt = DateTime.parse(json['created_at']);
     name = json['name'];
     channelName = json['channel_name'];
+    files = json['file_urls'] as List<dynamic>?;
+    fileNames = json['file_names'] as List<dynamic>?;
+    profileImage = json['profile_image'];
   }
 
   Map<String, dynamic> toJson() {
@@ -132,6 +171,9 @@ class GroupStar {
     data['created_at'] = this.createdAt;
     data['name'] = this.name;
     data['channel_name'] = this.channelName;
+    data['file_urls'] = this.files;
+    data['profile_image'] = this.profileImage;
+    data['file_names'] = this.fileNames;
     return data;
   }
 }
@@ -142,20 +184,29 @@ class GroupStarThread {
   DateTime? createdAt;
   String? name;
   String? channelName;
+  List<dynamic>? files;
+  List<dynamic>? fileNames;
+  String? profileImage;
 
   GroupStarThread(
       {this.id,
       this.groupthreadmsg,
       this.createdAt,
       this.name,
-      this.channelName});
+      this.channelName,
+      this.files,
+      this.fileNames,
+      this.profileImage});
 
   GroupStarThread.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     groupthreadmsg = json['groupthreadmsg'];
-   createdAt = DateTime.parse(json['created_at']);
+    createdAt = DateTime.parse(json['created_at']);
     name = json['name'];
     channelName = json['channel_name'];
+    files = json['file_urls'] as List<dynamic>?;
+    fileNames = json['file_names'] as List<dynamic>?;
+    profileImage = json['profile_image'];
   }
 
   Map<String, dynamic> toJson() {
@@ -165,6 +216,9 @@ class GroupStarThread {
     data['created_at'] = this.createdAt;
     data['name'] = this.name;
     data['channel_name'] = this.channelName;
+    data['file_urls'] = this.files;
+    data['profile_image'] = this.profileImage;
+    data['file_names'] = this.fileNames;
     return data;
   }
 }

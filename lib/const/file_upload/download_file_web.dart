@@ -8,12 +8,13 @@ import 'package:path_provider/path_provider.dart';
 
 class DownloadFile {
   static Future<void> downloadFile(
-      String fileUrl, String filename, BuildContext context) async {
+      String fileUrl, BuildContext context, String? fileName) async {
     try {
       final PermissionClass permission = PermissionClass();
       bool permissionGranted = await permission.checkPermission();
       if (permissionGranted) {
         Directory? dir = await getExternalStorageDirectory();
+        String? filename = fileName ?? fileUrl.split('/').last;
         String fullPath = '${dir?.path}/$filename';
         await Dio().download(fileUrl, fullPath);
         if (fileUrl.endsWith('.png') ||

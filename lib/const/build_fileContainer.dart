@@ -3,7 +3,7 @@ import 'package:flutter_frontend/const/file_upload/download_file_web.dart';
 
 class BuildFilecontainer {
   static Widget buildFileContainer(String fileUrl, bool isExcel, bool isTxt,
-      bool isPdf, BuildContext context) {
+      String? fileName, bool isPdf, BuildContext context) {
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -66,7 +66,7 @@ class BuildFilecontainer {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      fileUrl,
+                      fileName ?? '',
                       softWrap: true,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -88,7 +88,7 @@ class BuildFilecontainer {
                 ),
                 onPressed: () async {
                   await DownloadFile.downloadFile(
-                      fileUrl, fileUrl.split('/').last, context);
+                      fileUrl, context, fileName ?? '');
                 },
               ),
             ],

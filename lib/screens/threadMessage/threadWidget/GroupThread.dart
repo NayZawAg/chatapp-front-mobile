@@ -5,8 +5,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
+import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/constants.dart';
-import 'package:flutter_frontend/model/group_thread_list.dart';
+import 'package:flutter_frontend/dotenv.dart';
+import 'package:flutter_frontend/screens/groupMessage/groupMessage.dart';
 import 'package:flutter_frontend/screens/groupMessage/groupThread.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -137,49 +139,40 @@ class _GroupThreadState extends State<GroupThread> {
                   (element) => element != null,
                 )
                 .toList();
+            List<dynamic>? groupFileName = [];
+            groupFileName = directGroupList[index].fileName;
+
+            int channelId = directGroupList[index].channelId!.toInt();
+
             String channelName = directGroupList[index].channelName.toString();
+            bool? chaneelStatus = directGroupList[index].channelStatus;
+
+            String? groupProfileImage = directGroupList[index].profileName;
+
+            if (groupProfileImage != null && !kIsWeb) {
+              groupProfileImage = MinioToIP.replaceMinioWithIP(
+                  groupProfileImage, ipAddressForMinio);
+            }
+
+            bool? activeStatus;
+            for (var user in SessionStore.sessionData!.mUsers!) {
+              if (user.name == name) {
+                activeStatus = user.activeStatus;
+              }
+            }
+
+            int currentWorkSpaceId =
+                SessionStore.sessionData!.mWorkspace!.id!.toInt();
 
             return Container(
-              padding: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.only(top: 5),
               width: MediaQuery.of(context).size.width * 0.9,
               child: Column(
                 children: [
-                  Text(
-                    channelName,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
                   Text(result),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            height: 50,
-                            width: 50,
-                            decoration: BoxDecoration(
-                              color: Colors.amber,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: FittedBox(
-                              alignment: Alignment.center,
-                              child: Padding(
-                                padding: const EdgeInsets.all(3.0),
-                                child: Text(
-                                  channelName.toUpperCase(),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 5)
-                        ],
-                      ),
-                      const SizedBox(width: 5),
                       Expanded(
                         child: Container(
                           decoration: BoxDecoration(
@@ -193,12 +186,38 @@ class _GroupThreadState extends State<GroupThread> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                                Text.rich(TextSpan(children: [
+                                  WidgetSpan(
+                                      child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => GroupMessage(
+                                            channelID: channelId,
+                                            channelName: channelName,
+                                            channelStatus: chaneelStatus,
+                                            workspace_id: currentWorkSpaceId,
+                                          ),
+                                        )),
+                                    child: Row(
+                                      children: [
+                                        Icon(chaneelStatus!
+                                            ? Icons.tag
+                                            : Icons.lock),
+                                        const SizedBox(
+                                          width: 5,
+                                        ),
+                                        Text(
+                                          channelName,
+                                          style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold),
+                                        )
+                                      ],
+                                    ),
+                                  ))
+                                ])),
+                                const Divider(),
                                 Container(
                                   width:
                                       MediaQuery.of(context).size.width * 0.7,
@@ -249,10 +268,13 @@ class _GroupThreadState extends State<GroupThread> {
                                 ),
                                 if (groupFiles!.length == 1)
                                   singleFile.buildSingleFile(
-                                      groupFiles[0], context, platform),
-                                if (groupFiles.length > 2)
-                                  mulitFile.buildMultipleFiles(
-                                      groupFiles, platform, context),
+                                      groupFiles[0],
+                                      context,
+                                      platform,
+                                      groupFileName?.first ?? ''),
+                                if (groupFiles.length >= 2)
+                                  mulitFile.buildMultipleFiles(groupFiles,
+                                      platform, context, groupFileName ?? []),
                                 const SizedBox(
                                   height: 16,
                                 ),
@@ -287,6 +309,22 @@ class _GroupThreadState extends State<GroupThread> {
                                         .where((files) => files != null)
                                         .toList();
 
+                                    List<dynamic>? threadFileName = [];
+                                    threadFileName =
+                                        groupMessageThreadList[index].fileName;
+
+                                    String? groupThreadProfileName =
+                                        groupMessageThreadList[index]
+                                            .profileName;
+
+                                    if (groupThreadProfileName != null &&
+                                        !kIsWeb) {
+                                      groupThreadProfileName =
+                                          MinioToIP.replaceMinioWithIP(
+                                              groupThreadProfileName,
+                                              ipAddressForMinio);
+                                    }
+
                                     return Container(
                                       padding: const EdgeInsets.only(top: 10),
                                       width: MediaQuery.of(context).size.width *
@@ -302,32 +340,32 @@ class _GroupThreadState extends State<GroupThread> {
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
                                               Container(
-                                                height: 50,
-                                                width: 50,
+                                                height: 40,
+                                                width: 40,
                                                 decoration: BoxDecoration(
-                                                  color: Colors.amber,
                                                   borderRadius:
                                                       BorderRadius.circular(10),
+                                                  color: Colors.grey[300],
                                                 ),
-                                                child: FittedBox(
-                                                  alignment: Alignment.center,
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            3.0),
-                                                    child: Text(
-                                                      senderName
-                                                          .toUpperCase()
-                                                          .characters
-                                                          .first,
-                                                      style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold),
-                                                    ),
-                                                  ),
+                                                child: Center(
+                                                  child: groupThreadProfileName ==
+                                                              null ||
+                                                          groupThreadProfileName
+                                                              .isEmpty
+                                                      ? const Icon(Icons.person)
+                                                      : ClipRRect(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(10),
+                                                          child: Image.network(
+                                                            groupThreadProfileName,
+                                                            fit: BoxFit.cover,
+                                                            width: 40,
+                                                            height: 40,
+                                                          ),
+                                                        ),
                                                 ),
                                               ),
-                                              const SizedBox(height: 5)
                                             ],
                                           ),
                                           const SizedBox(width: 5),
@@ -448,13 +486,24 @@ class _GroupThreadState extends State<GroupThread> {
                                                           .buildSingleFile(
                                                               threadFiles[0],
                                                               context,
-                                                              platform),
+                                                              platform,
+                                                              threadFileName
+                                                                      ?.first ??
+                                                                  ''),
+                                                    const SizedBox(
+                                                      height: 3,
+                                                    ),
                                                     if (threadFiles.length > 1)
                                                       mulitFile
                                                           .buildMultipleFiles(
                                                               threadFiles,
                                                               platform,
-                                                              context),
+                                                              context,
+                                                              threadFileName ??
+                                                                  []),
+                                                    const SizedBox(
+                                                      height: 3,
+                                                    ),
                                                     Text(
                                                       threadCreateAt,
                                                       style: const TextStyle(
@@ -465,7 +514,7 @@ class _GroupThreadState extends State<GroupThread> {
                                                 ),
                                               ),
                                             ),
-                                          )
+                                          ),
                                         ],
                                       ),
                                     );
