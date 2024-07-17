@@ -135,15 +135,19 @@ class gpThreads {
 class mChannelUser {
   String? name;
   String? email;
-  mChannelUser({this.email, this.name});
+  bool? activeStatus;
+
+  mChannelUser({this.email, this.name, this.activeStatus});
   mChannelUser.fromJson(Map<String, dynamic> json) {
     name = json['name'];
     email = json['email'];
+    activeStatus = json['active_status'];
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['name'] = this.name;
     data['email'] = this.email;
+    data['active_status'] = this.activeStatus;
     return data;
   }
 }

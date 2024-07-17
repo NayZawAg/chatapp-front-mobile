@@ -99,10 +99,10 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
   String htmlContent = "";
   quill.QuillController _quilcontroller = quill.QuillController.basic();
   final FocusNode _focusNode = FocusNode();
-  List<String> uniqueList = [];
+  List uniqueList = [];
   OverlayEntry? _overlayEntry;
-  final List<String> _userList = []; // Example user list
-  List<String> _filteredUsers = [];
+  final List _userList = []; // Example user list
+  List<dynamic> _filteredUsers = [];
   List<String> mentionnames = [];
 
   bool isBlockquote = false;
@@ -480,7 +480,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
       }
     }
 
-    // Convert Delta to HTML using vsc_quill_delta_to_html package
     var converter = QuillDeltaToHtmlConverter(updatedDelta.toJson());
 
     String html = converter.convert();
@@ -519,23 +518,40 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
   }
 
   void _onTextChanged() {
-    final text = _quilcontroller.document.toPlainText();
+    String text = _quilcontroller.document.toPlainText();
     final selection = _quilcontroller.selection;
 
     getMchannelUsers();
     // remove duplicated name
-    uniqueList = _userList.toSet().toList();
+    // uniqueList = _userList.toSet().toList();
+
+    // Define a Set to keep track of added pairs
+    final Set<String> addedPairs = {};
+
+    // Remove duplicate pairs (both name and status)
+    uniqueList = [];
+    for (var user in _userList) {
+      // Assuming _userList contains maps with 'name' and 'status' keys
+      String pair = "${user['name']}-${user['status']}";
+      if (!addedPairs.contains(pair)) {
+        uniqueList.add(user);
+        addedPairs.add(pair);
+      }
+    }
 
     if (selection.baseOffset == selection.extentOffset) {
       final offset = selection.baseOffset;
       if (selection.baseOffset > 0 && text[offset - 1] == '@') {
         // userlist won't show when String@
+        if (text.indexOf("\n") == selection.extentOffset) {
+          text = text.replaceAll("\n", "");
+        }
         List txts = text.split(" ");
         String str = "";
         for (var i = 0; i < txts.length; i++) {
           str = txts[i];
         }
-        if (str.startsWith("@")) {
+        if (str.startsWith("@") || str.contains("\n")) {
           setState(() {
             _filteredUsers = uniqueList;
           });
@@ -548,7 +564,8 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
           final query =
               text.substring(atPos + 1, selection.baseOffset).toLowerCase();
           _filteredUsers = uniqueList
-              .where((user) => user.toLowerCase().startsWith(query))
+              .where((user) =>
+                  user["name"].toString().toLowerCase().startsWith(query))
               .toList();
           if (_filteredUsers.isEmpty) {
             _hideUserList();
@@ -648,6 +665,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     if (checkLastBold) {
       setState(() {
         isBold = true;
+        discode = false;
       });
     } else {
       setState(() {
@@ -658,6 +676,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     if (checkLastItalic) {
       setState(() {
         isItalic = true;
+        discode = false;
       });
     } else {
       setState(() {
@@ -668,6 +687,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     if (checkLastStrikethrough) {
       setState(() {
         isStrike = true;
+        discode = false;
       });
     } else {
       setState(() {
@@ -678,6 +698,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     if (checkLastCode) {
       setState(() {
         isCode = true;
+        discode = false;
       });
     } else {
       setState(() {
@@ -967,8 +988,11 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
           case 'code':
             newAttributes['code'] = true;
             break;
+          case 'span':
+            newAttributes['code'] = true;
+            break;
           case 'p':
-            if (node.nodes.isNotEmpty && node.nodes.last is html_dom.Text) {
+            if (node.nodes.isNotEmpty) {
               node.append(html_dom.Element.tag('br'));
             }
             for (var child in node.nodes) {
@@ -1028,6 +1052,26 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
               discode = true;
             });
             return;
+          case "div":
+            for (var child in node.nodes) {
+              if (child.text!.isNotEmpty) {
+                if (child.text!.contains("\n")) {
+                  List txtlist = child.text!.split("\n");
+                  for (var txt in txtlist) {
+                    delta.insert(txt, {});
+                    delta.insert("\n", {'code-block': true});
+                  }
+                } else {
+                  delta.insert(child.text, {});
+                  delta.insert("\n", {'code-block': true});
+                }
+              }
+            }
+            setState(() {
+              isCodeblock = true;
+              discode = true;
+            });
+            return;
           case 'br':
             delta.insert('\n');
             return;
@@ -1049,12 +1093,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     }
 
     for (var node in document.body!.nodes) {
-      // if (node.toString().contains('"')) {
-      //   parseNode(node, {});
-      //   delta.insert("\n");
-      // } else {
       parseNode(node, {});
-      // }
     }
 
     // Ensure the last block ends with a newline
@@ -1124,9 +1163,21 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                         Icons.person,
                         color: Colors.grey[300],
                       ),
-                      title: Text(user),
+                      title: Row(
+                        children: [
+                          Text(user["name"]),
+                          SizedBox(width: 15),
+                          Icon(
+                            Icons.circle,
+                            size: 15,
+                            color: user["status"]
+                                ? Color.fromARGB(255, 19, 255, 26)
+                                : Colors.grey,
+                          )
+                        ],
+                      ),
                       onTap: () {
-                        _insertUser(user);
+                        _insertUser(user["name"]);
                         _hideUserList();
                       },
                     );
@@ -1182,10 +1233,24 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     );
   }
 
+  // void getMchannelUsers() {
+  //   for (var i = 0; i < channelUser!.length; i++) {
+  //     setState(() {
+  //       _userList.add(channelUser![i].name!);
+  //     });
+  //   }
+  // }
+
   void getMchannelUsers() {
     for (var i = 0; i < channelUser!.length; i++) {
+      var user = {
+        'name': channelUser![i].name!,
+        'status': channelUser![i].activeStatus!,
+      };
+
       setState(() {
-        _userList.add(channelUser![i].name!);
+        // _userList.add(retrieveGroupMessage!.mChannelUsers![i].name!);
+        _userList.add(user);
       });
     }
   }
@@ -1328,13 +1393,36 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                               ? widget.message.toString()
                                               : "",
                                           style: {
+                                            ".ql-code-block":
+                                                flutter_html.Style(
+                                                    backgroundColor:
+                                                        Colors.grey[300],
+                                                    padding: flutter_html
+                                                            .HtmlPaddings
+                                                        .symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 5),
+                                                    margin:
+                                                        flutter_html.Margins
+                                                            .symmetric(
+                                                                vertical: 7)),
+                                            ".highlight": flutter_html.Style(
+                                              display: flutter_html
+                                                  .Display.inlineBlock,
+                                              backgroundColor: Colors.grey[300],
+                                              color: Colors.red,
+                                              padding: flutter_html.HtmlPaddings
+                                                  .symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 5),
+                                            ),
                                             "blockquote": flutter_html.Style(
                                               border: const Border(
                                                   left: BorderSide(
                                                       color: Colors.grey,
                                                       width: 5.0)),
-                                              margin:
-                                                  flutter_html.Margins.all(0),
+                                              margin: flutter_html.Margins
+                                                  .symmetric(vertical: 10.0),
                                               padding: flutter_html.HtmlPaddings
                                                   .only(left: 10),
                                             ),
@@ -1373,7 +1461,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                         ),
                                       ),
                                     ),
-                                    widget.files == 1
+                                    widget.files!.length == 1
                                         ? singleFile.buildSingleFile(
                                             widget.files?.first ?? '',
                                             context,
@@ -1562,6 +1650,40 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                       flutter_html.Html(
                                                         data: message,
                                                         style: {
+                                                          ".ql-code-block": flutter_html.Style(
+                                                              backgroundColor:
+                                                                  Colors.grey[
+                                                                      300],
+                                                              padding: flutter_html
+                                                                      .HtmlPaddings
+                                                                  .symmetric(
+                                                                      horizontal:
+                                                                          10,
+                                                                      vertical:
+                                                                          5),
+                                                              margin: flutter_html
+                                                                      .Margins
+                                                                  .symmetric(
+                                                                      vertical:
+                                                                          7)),
+                                                          ".highlight":
+                                                              flutter_html
+                                                                  .Style(
+                                                            display: flutter_html
+                                                                .Display
+                                                                .inlineBlock,
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .grey[300],
+                                                            color: Colors.red,
+                                                            padding: flutter_html
+                                                                    .HtmlPaddings
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        10,
+                                                                    vertical:
+                                                                        5),
+                                                          ),
                                                           "blockquote":
                                                               flutter_html
                                                                   .Style(
@@ -1572,7 +1694,10 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                                     width:
                                                                         5.0)),
                                                             margin: flutter_html
-                                                                .Margins.all(0),
+                                                                    .Margins
+                                                                .symmetric(
+                                                                    vertical:
+                                                                        10.0),
                                                             padding: flutter_html
                                                                     .HtmlPaddings
                                                                 .only(left: 10),
@@ -1775,63 +1900,93 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                     children: [
                                                       if (currentUser ==
                                                           sendUserId)
-                                                        IconButton(
-                                                          onPressed: () {
-                                                            GpThreadMsg().deleteGpThread(
-                                                                groupThreadId,
-                                                                widget
-                                                                    .channelID,
-                                                                widget
-                                                                    .messageID);
-                                                          },
-                                                          icon: Icon(
-                                                            Icons.delete,
-                                                            color: Colors.red,
-                                                          ),
-                                                        ),
-                                                      IconButton(
-                                                          onPressed: () {
-                                                            editTreadId =
-                                                                groupThreadId;
-                                                            _clearEditor();
-                                                            setState(() {
-                                                              isEdit = true;
-                                                            });
-                                                            editMsg = message;
+                                                        Row(
+                                                          children: [
+                                                            IconButton(
+                                                              onPressed: () {
+                                                                GpThreadMsg().deleteGpThread(
+                                                                    groupThreadId,
+                                                                    widget
+                                                                        .channelID,
+                                                                    widget
+                                                                        .messageID);
+                                                              },
+                                                              icon: Icon(
+                                                                Icons.delete,
+                                                                color:
+                                                                    Colors.red,
+                                                              ),
+                                                            ),
+                                                            IconButton(
+                                                                onPressed: () {
+                                                                  editTreadId =
+                                                                      groupThreadId;
+                                                                  _clearEditor();
+                                                                  setState(() {
+                                                                    isEdit =
+                                                                        true;
+                                                                  });
+                                                                  editMsg =
+                                                                      message;
 
-                                                            insertEditText(
-                                                                editMsg);
-                                                            // Request focusr
-                                                            WidgetsBinding
-                                                                .instance
-                                                                .addPostFrameCallback(
-                                                                    (_) {
-                                                              _focusNode
-                                                                  .requestFocus();
-                                                              _quilcontroller
-                                                                  .addListener(
-                                                                      _onTextChanged);
-                                                              _quilcontroller
-                                                                  .addListener(
-                                                                      _onSelectionChanged);
-                                                              // move cursor to end
-                                                              final length =
-                                                                  _quilcontroller
-                                                                      .document
-                                                                      .length;
-                                                              _quilcontroller
-                                                                  .updateSelection(
-                                                                TextSelection
-                                                                    .collapsed(
-                                                                        offset:
-                                                                            length),
-                                                                ChangeSource
-                                                                    .local,
-                                                              );
-                                                            });
-                                                          },
-                                                          icon: const Icon(
-                                                              Icons.edit))
+                                                                  if (!(editMsg
+                                                                      .contains(
+                                                                          "<br/><div class='ql-code-block'>"))) {
+                                                                    if (editMsg
+                                                                        .contains(
+                                                                            "<div class='ql-code-block'>")) {
+                                                                      editMsg = editMsg.replaceAll(
+                                                                          "<div class='ql-code-block'>",
+                                                                          "<br/><div class='ql-code-block'>");
+                                                                    }
+                                                                  }
+
+                                                                  if (!(editMsg
+                                                                      .contains(
+                                                                          "<br/><blockquote>"))) {
+                                                                    if (editMsg
+                                                                        .contains(
+                                                                            "<blockquote>")) {
+                                                                      editMsg = editMsg.replaceAll(
+                                                                          "<blockquote>",
+                                                                          "<br/><blockquote>");
+                                                                    }
+                                                                  }
+
+                                                                  insertEditText(
+                                                                      editMsg);
+                                                                  // Request focusr
+                                                                  WidgetsBinding
+                                                                      .instance
+                                                                      .addPostFrameCallback(
+                                                                          (_) {
+                                                                    _focusNode
+                                                                        .requestFocus();
+                                                                    _quilcontroller
+                                                                        .addListener(
+                                                                            _onTextChanged);
+                                                                    _quilcontroller
+                                                                        .addListener(
+                                                                            _onSelectionChanged);
+                                                                    // move cursor to end
+                                                                    final length =
+                                                                        _quilcontroller
+                                                                            .document
+                                                                            .length;
+                                                                    _quilcontroller
+                                                                        .updateSelection(
+                                                                      TextSelection.collapsed(
+                                                                          offset:
+                                                                              length),
+                                                                      ChangeSource
+                                                                          .local,
+                                                                    );
+                                                                  });
+                                                                },
+                                                                icon: const Icon(
+                                                                    Icons.edit))
+                                                          ],
+                                                        ),
                                                     ],
                                                   )
                                                 ],
@@ -2151,10 +2306,10 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                               for (var i = 0;
                                                   i < uniqueList.length;
                                                   i++) {
-                                                if (plaintext
-                                                    .contains(uniqueList[i])) {
-                                                  currentMentions
-                                                      .add("@${uniqueList[i]}");
+                                                if (plaintext.contains(
+                                                    uniqueList[i]["name"])) {
+                                                  currentMentions.add(
+                                                      "@${uniqueList[i]["name"]}");
                                                 }
                                               }
 
@@ -2165,6 +2320,30 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                     .replaceAll("<p>", "");
                                                 htmlContent = htmlContent
                                                     .replaceAll("</p>", "");
+                                              }
+
+                                              if (htmlContent
+                                                  .contains("<code>")) {
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "<code>",
+                                                        "<span class='highlight'>");
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "</code>", "</span>");
+                                              }
+
+                                              if (htmlContent
+                                                  .contains("<pre>")) {
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "<pre>",
+                                                        "<div class='ql-code-block'>");
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "</pre>", "</div>");
+                                                htmlContent = htmlContent
+                                                    .replaceAll("\n", "<br/>");
                                               }
 
                                               setState(() {
@@ -2207,10 +2386,10 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                           for (var i = 0;
                                               i < uniqueList.length;
                                               i++) {
-                                            if (plaintext
-                                                .contains(uniqueList[i])) {
-                                              currentMentions
-                                                  .add("@${uniqueList[i]}");
+                                            if (plaintext.contains(
+                                                uniqueList[i]["name"])) {
+                                              currentMentions.add(
+                                                  "@${uniqueList[i]["name"]}");
                                             }
                                           }
 
@@ -2221,6 +2400,25 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                 .replaceAll("<p>", "");
                                             htmlContent = htmlContent
                                                 .replaceAll("</p>", "");
+                                          }
+
+                                          if (htmlContent.contains("<code>")) {
+                                            htmlContent =
+                                                htmlContent.replaceAll("<code>",
+                                                    "<span class='highlight'>");
+                                            htmlContent =
+                                                htmlContent.replaceAll(
+                                                    "</code>", "</span>");
+                                          }
+
+                                          if (htmlContent.contains("<pre>")) {
+                                            htmlContent = htmlContent.replaceAll(
+                                                "<pre>",
+                                                "<div class='ql-code-block'>");
+                                            htmlContent = htmlContent
+                                                .replaceAll("</pre>", "</div>");
+                                            htmlContent = htmlContent
+                                                .replaceAll("\n", "<br/>");
                                           }
 
                                           setState(() {
@@ -2279,27 +2477,37 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                 ? Colors.grey[400]
                                                 : Colors.grey[300],
                                           ),
-                                          child: IconButton(
-                                            icon: const Icon(Icons.format_bold),
-                                            onPressed: () {
-                                              setState(() {
-                                                if (isBold) {
-                                                  isBold = false;
-                                                } else {
-                                                  isBold = true;
-                                                }
-                                              });
-                                              if (isBold) {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.bold);
-                                              } else {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute.bold,
-                                                        null));
-                                              }
-                                            },
-                                          ),
+                                          child: discode
+                                              ? const IconButton(
+                                                  onPressed: null,
+                                                  icon: Icon(Icons.format_bold))
+                                              : IconButton(
+                                                  icon: const Icon(
+                                                      Icons.format_bold),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      if (isBold) {
+                                                        isBold = false;
+                                                      } else {
+                                                        isBold = true;
+                                                      }
+                                                    });
+                                                    if (isBold) {
+                                                      _quilcontroller
+                                                          .formatSelection(quill
+                                                              .Attribute.bold);
+                                                    } else {
+                                                      _quilcontroller
+                                                          .formatSelection(quill
+                                                                  .Attribute
+                                                              .clone(
+                                                                  quill
+                                                                      .Attribute
+                                                                      .bold,
+                                                                  null));
+                                                    }
+                                                  },
+                                                ),
                                         ),
                                         Container(
                                           margin: const EdgeInsets.symmetric(
@@ -2311,28 +2519,39 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                 ? Colors.grey[400]
                                                 : Colors.grey[300],
                                           ),
-                                          child: IconButton(
-                                            icon:
-                                                const Icon(Icons.format_italic),
-                                            onPressed: () {
-                                              setState(() {
-                                                if (isItalic) {
-                                                  isItalic = false;
-                                                } else {
-                                                  isItalic = true;
-                                                }
-                                              });
-                                              if (isItalic) {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.italic);
-                                              } else {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute.italic,
-                                                        null));
-                                              }
-                                            },
-                                          ),
+                                          child: discode
+                                              ? const IconButton(
+                                                  onPressed: null,
+                                                  icon:
+                                                      Icon(Icons.format_italic))
+                                              : IconButton(
+                                                  icon: const Icon(
+                                                      Icons.format_italic),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      if (isItalic) {
+                                                        isItalic = false;
+                                                      } else {
+                                                        isItalic = true;
+                                                      }
+                                                    });
+                                                    if (isItalic) {
+                                                      _quilcontroller
+                                                          .formatSelection(quill
+                                                              .Attribute
+                                                              .italic);
+                                                    } else {
+                                                      _quilcontroller
+                                                          .formatSelection(quill
+                                                                  .Attribute
+                                                              .clone(
+                                                                  quill
+                                                                      .Attribute
+                                                                      .italic,
+                                                                  null));
+                                                    }
+                                                  },
+                                                ),
                                         ),
                                         Container(
                                           margin: const EdgeInsets.symmetric(
@@ -2344,30 +2563,39 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                 ? Colors.grey[400]
                                                 : Colors.grey[300],
                                           ),
-                                          child: IconButton(
-                                            icon: const Icon(
-                                                Icons.strikethrough_s),
-                                            onPressed: () {
-                                              setState(() {
-                                                if (isStrike) {
-                                                  isStrike = false;
-                                                } else {
-                                                  isStrike = true;
-                                                }
-                                              });
-                                              if (isStrike) {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute
-                                                        .strikeThrough);
-                                              } else {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute
-                                                            .strikeThrough,
-                                                        null));
-                                              }
-                                            },
-                                          ),
+                                          child: discode
+                                              ? const IconButton(
+                                                  onPressed: null,
+                                                  icon: Icon(
+                                                      Icons.strikethrough_s))
+                                              : IconButton(
+                                                  icon: const Icon(
+                                                      Icons.strikethrough_s),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      if (isStrike) {
+                                                        isStrike = false;
+                                                      } else {
+                                                        isStrike = true;
+                                                      }
+                                                    });
+                                                    if (isStrike) {
+                                                      _quilcontroller
+                                                          .formatSelection(quill
+                                                              .Attribute
+                                                              .strikeThrough);
+                                                    } else {
+                                                      _quilcontroller
+                                                          .formatSelection(quill
+                                                                  .Attribute
+                                                              .clone(
+                                                                  quill
+                                                                      .Attribute
+                                                                      .strikeThrough,
+                                                                  null));
+                                                    }
+                                                  },
+                                                ),
                                         ),
                                         Container(
                                           margin: const EdgeInsets.symmetric(
@@ -2379,36 +2607,48 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                 ? Colors.grey[400]
                                                 : Colors.grey[300],
                                           ),
-                                          child: IconButton(
-                                              icon: const Icon(Icons.link),
-                                              onPressed: () {
-                                                setState(() {
-                                                  if (isLink) {
-                                                    isLink = false;
-                                                  } else {
-                                                    isLink = true;
-                                                    isBold = false;
-                                                    isItalic = false;
-                                                    isStrike = false;
-                                                  }
-                                                });
-                                                if (isLink) {
-                                                  _insertLink();
-                                                }
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute.bold,
-                                                        null));
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute.italic,
-                                                        null));
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute
-                                                            .strikeThrough,
-                                                        null));
-                                              }),
+                                          child: discode
+                                              ? const IconButton(
+                                                  onPressed: null,
+                                                  icon: Icon(Icons.link))
+                                              : IconButton(
+                                                  icon: const Icon(Icons.link),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      if (isLink) {
+                                                        isLink = false;
+                                                      } else {
+                                                        isLink = true;
+                                                        isBold = false;
+                                                        isItalic = false;
+                                                        isStrike = false;
+                                                      }
+                                                    });
+                                                    if (isLink) {
+                                                      _insertLink();
+                                                    }
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                                .Attribute
+                                                            .clone(
+                                                                quill.Attribute
+                                                                    .bold,
+                                                                null));
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                                .Attribute
+                                                            .clone(
+                                                                quill.Attribute
+                                                                    .italic,
+                                                                null));
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                                .Attribute
+                                                            .clone(
+                                                                quill.Attribute
+                                                                    .strikeThrough,
+                                                                null));
+                                                  }),
                                         ),
                                         Container(
                                           margin: const EdgeInsets.symmetric(
@@ -2436,6 +2676,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                     isOrderList = true;
                                                     isUnorderList = false;
                                                     isCodeblock = false;
+                                                    discode = false;
                                                   }
                                                 });
                                               });
@@ -2477,6 +2718,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                   isOrderList = false;
                                                   isUnorderList = true;
                                                   isCodeblock = false;
+                                                  discode = false;
                                                 }
                                               });
                                               if (isUnorderList) {
@@ -2517,6 +2759,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                     isOrderList = false;
                                                     isUnorderList = false;
                                                     isCodeblock = false;
+                                                    discode = false;
                                                   }
                                                 });
                                               });
@@ -2543,28 +2786,37 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                 ? Colors.grey[400]
                                                 : Colors.grey[300],
                                           ),
-                                          child: IconButton(
-                                            icon: const Icon(Icons.code),
-                                            onPressed: () {
-                                              setState(() {
-                                                if (isCode) {
-                                                  isCode = false;
-                                                } else {
-                                                  isCode = true;
-                                                }
-                                              });
-                                              if (isCode) {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.inlineCode);
-                                              } else {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute
-                                                            .inlineCode,
-                                                        null));
-                                              }
-                                            },
-                                          ),
+                                          child: discode
+                                              ? const IconButton(
+                                                  onPressed: null,
+                                                  icon: Icon(Icons.code))
+                                              : IconButton(
+                                                  icon: const Icon(Icons.code),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      if (isCode) {
+                                                        isCode = false;
+                                                      } else {
+                                                        isCode = true;
+                                                      }
+                                                    });
+                                                    if (isCode) {
+                                                      _quilcontroller
+                                                          .formatSelection(quill
+                                                              .Attribute
+                                                              .inlineCode);
+                                                    } else {
+                                                      _quilcontroller
+                                                          .formatSelection(quill
+                                                                  .Attribute
+                                                              .clone(
+                                                                  quill
+                                                                      .Attribute
+                                                                      .inlineCode,
+                                                                  null));
+                                                    }
+                                                  },
+                                                ),
                                         ),
                                         Container(
                                           margin: const EdgeInsets.symmetric(
@@ -2586,17 +2838,37 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                   isUnorderList = false;
                                                   isCodeblock = false;
                                                   isCode = false;
+                                                  discode = false;
                                                 } else {
                                                   isBlockquote = false;
                                                   isOrderList = false;
                                                   isUnorderList = false;
                                                   isCodeblock = true;
                                                   isCode = false;
+                                                  discode = true;
                                                 }
                                               });
                                               if (isCodeblock) {
                                                 _quilcontroller.formatSelection(
                                                     quill.Attribute.codeBlock);
+                                                _quilcontroller.formatSelection(
+                                                    quill.Attribute.clone(
+                                                        quill.Attribute.bold,
+                                                        null));
+                                                _quilcontroller.formatSelection(
+                                                    quill.Attribute.clone(
+                                                        quill.Attribute.italic,
+                                                        null));
+                                                _quilcontroller.formatSelection(
+                                                    quill.Attribute.clone(
+                                                        quill.Attribute
+                                                            .inlineCode,
+                                                        null));
+                                                _quilcontroller.formatSelection(
+                                                    quill.Attribute.clone(
+                                                        quill.Attribute
+                                                            .strikeThrough,
+                                                        null));
                                               } else {
                                                 _quilcontroller.formatSelection(
                                                     quill.Attribute.clone(
@@ -2655,10 +2927,10 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                               for (var i = 0;
                                                   i < uniqueList.length;
                                                   i++) {
-                                                if (plaintext
-                                                    .contains(uniqueList[i])) {
-                                                  currentMentions
-                                                      .add("@${uniqueList[i]}");
+                                                if (plaintext.contains(
+                                                    uniqueList[i]["name"])) {
+                                                  currentMentions.add(
+                                                      "@${uniqueList[i]["name"]}");
                                                 }
                                               }
 
@@ -2669,6 +2941,30 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                     .replaceAll("<p>", "");
                                                 htmlContent = htmlContent
                                                     .replaceAll("</p>", "");
+                                              }
+
+                                              if (htmlContent
+                                                  .contains("<code>")) {
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "<code>",
+                                                        "<span class='highlight'>");
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "</code>", "</span>");
+                                              }
+
+                                              if (htmlContent
+                                                  .contains("<pre>")) {
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "<pre>",
+                                                        "<div class='ql-code-block'>");
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "</pre>", "</div>");
+                                                htmlContent = htmlContent
+                                                    .replaceAll("\n", "<br/>");
                                               }
 
                                               setState(() {
@@ -2711,10 +3007,10 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                           for (var i = 0;
                                               i < uniqueList.length;
                                               i++) {
-                                            if (plaintext
-                                                .contains(uniqueList[i])) {
-                                              currentMentions
-                                                  .add("@${uniqueList[i]}");
+                                            if (plaintext.contains(
+                                                uniqueList[i]["name"])) {
+                                              currentMentions.add(
+                                                  "@${uniqueList[i]["name"]}");
                                             }
                                           }
 
@@ -2725,6 +3021,25 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                 .replaceAll("<p>", "");
                                             htmlContent = htmlContent
                                                 .replaceAll("</p>", "");
+                                          }
+
+                                          if (htmlContent.contains("<code>")) {
+                                            htmlContent =
+                                                htmlContent.replaceAll("<code>",
+                                                    "<span class='highlight'>");
+                                            htmlContent =
+                                                htmlContent.replaceAll(
+                                                    "</code>", "</span>");
+                                          }
+
+                                          if (htmlContent.contains("<pre>")) {
+                                            htmlContent = htmlContent.replaceAll(
+                                                "<pre>",
+                                                "<div class='ql-code-block'>");
+                                            htmlContent = htmlContent
+                                                .replaceAll("</pre>", "</div>");
+                                            htmlContent = htmlContent
+                                                .replaceAll("\n", "<br/>");
                                           }
 
                                           setState(() {

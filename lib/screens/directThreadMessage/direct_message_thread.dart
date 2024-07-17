@@ -563,6 +563,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
     if (checkLastBold) {
       setState(() {
         isBold = true;
+        discode = false;
       });
     } else {
       setState(() {
@@ -573,6 +574,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
     if (checkLastItalic) {
       setState(() {
         isItalic = true;
+        discode = false;
       });
     } else {
       setState(() {
@@ -583,6 +585,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
     if (checkLastStrikethrough) {
       setState(() {
         isStrike = true;
+        discode = false;
       });
     } else {
       setState(() {
@@ -593,6 +596,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
     if (checkLastCode) {
       setState(() {
         isCode = true;
+        discode = false;
       });
     } else {
       setState(() {
@@ -903,8 +907,11 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
           case 'code':
             newAttributes['code'] = true;
             break;
+          case 'span':
+            newAttributes['code'] = true;
+            break;
           case 'p':
-            if (node.nodes.isNotEmpty && node.nodes.last is html_dom.Text) {
+            if (node.nodes.isNotEmpty) {
               node.append(html_dom.Element.tag('br'));
             }
             for (var child in node.nodes) {
@@ -945,6 +952,26 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
             });
             return;
           case "pre":
+            for (var child in node.nodes) {
+              if (child.text!.isNotEmpty) {
+                if (child.text!.contains("\n")) {
+                  List txtlist = child.text!.split("\n");
+                  for (var txt in txtlist) {
+                    delta.insert(txt, {});
+                    delta.insert("\n", {'code-block': true});
+                  }
+                } else {
+                  delta.insert(child.text, {});
+                  delta.insert("\n", {'code-block': true});
+                }
+              }
+            }
+            setState(() {
+              isCodeblock = true;
+              discode = true;
+            });
+            return;
+          case "div":
             for (var child in node.nodes) {
               if (child.text!.isNotEmpty) {
                 if (child.text!.contains("\n")) {
@@ -1147,12 +1174,30 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                         ? directMessage
                                         : "",
                                     style: {
+                                      ".ql-code-block": flutter_html.Style(
+                                          backgroundColor: Colors.grey[300],
+                                          padding: flutter_html.HtmlPaddings
+                                              .symmetric(
+                                                  horizontal: 10, vertical: 5),
+                                          margin:
+                                              flutter_html.Margins.symmetric(
+                                                  vertical: 7)),
+                                      ".highlight": flutter_html.Style(
+                                        display:
+                                            flutter_html.Display.inlineBlock,
+                                        backgroundColor: Colors.grey[300],
+                                        color: Colors.red,
+                                        padding:
+                                            flutter_html.HtmlPaddings.symmetric(
+                                                horizontal: 10, vertical: 5),
+                                      ),
                                       "blockquote": flutter_html.Style(
                                         border: const Border(
                                             left: BorderSide(
                                                 color: Colors.grey,
                                                 width: 5.0)),
-                                        margin: flutter_html.Margins.all(0),
+                                        margin: flutter_html.Margins.symmetric(
+                                            vertical: 10.0),
                                         padding: flutter_html.HtmlPaddings.only(
                                             left: 10),
                                       ),
@@ -1188,7 +1233,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                       )
                                     },
                                   ),
-                                  widget.files == 1
+                                  widget.files!.length == 1
                                       ? singleFile.buildSingleFile(
                                           widget.files?.first ?? '',
                                           context,
@@ -1368,6 +1413,37 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                     flutter_html.Html(
                                                       data: replyMessages,
                                                       style: {
+                                                        ".ql-code-block": flutter_html.Style(
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .grey[300],
+                                                            padding: flutter_html
+                                                                    .HtmlPaddings
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        10,
+                                                                    vertical:
+                                                                        5),
+                                                            margin: flutter_html
+                                                                    .Margins
+                                                                .symmetric(
+                                                                    vertical:
+                                                                        7)),
+                                                        ".highlight":
+                                                            flutter_html.Style(
+                                                          display: flutter_html
+                                                              .Display
+                                                              .inlineBlock,
+                                                          backgroundColor:
+                                                              Colors.grey[300],
+                                                          color: Colors.red,
+                                                          padding: flutter_html
+                                                                  .HtmlPaddings
+                                                              .symmetric(
+                                                                  horizontal:
+                                                                      10,
+                                                                  vertical: 5),
+                                                        ),
                                                         "blockquote":
                                                             flutter_html.Style(
                                                           border: const Border(
@@ -1376,7 +1452,10 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                                       .grey,
                                                                   width: 5.0)),
                                                           margin: flutter_html
-                                                              .Margins.all(0),
+                                                                  .Margins
+                                                              .symmetric(
+                                                                  vertical:
+                                                                      10.0),
                                                           padding: flutter_html
                                                                   .HtmlPaddings
                                                               .only(left: 10),
@@ -1557,58 +1636,87 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                 Row(
                                                   children: [
                                                     if (currentUserName == name)
-                                                      IconButton(
-                                                        onPressed: () async {
-                                                          await deleteReply(
-                                                              replyMessagesIds);
-                                                        },
-                                                        icon: const Icon(
-                                                          Icons.delete,
-                                                          size: 20,
-                                                          color: Colors.red,
-                                                        ),
-                                                      ),
-                                                    IconButton(
-                                                        onPressed: () {
-                                                          _clearEditor();
-                                                          setState(() {
-                                                            isEdit = true;
-                                                          });
-                                                          editMsg =
-                                                              replyMessages;
-                                                          editMsgId =
-                                                              replyMessagesIds;
+                                                      Row(
+                                                        children: [
+                                                          IconButton(
+                                                            onPressed:
+                                                                () async {
+                                                              await deleteReply(
+                                                                  replyMessagesIds);
+                                                            },
+                                                            icon: const Icon(
+                                                              Icons.delete,
+                                                              size: 20,
+                                                              color: Colors.red,
+                                                            ),
+                                                          ),
+                                                          IconButton(
+                                                              onPressed: () {
+                                                                _clearEditor();
+                                                                setState(() {
+                                                                  isEdit = true;
+                                                                });
+                                                                editMsg =
+                                                                    replyMessages;
+                                                                editMsgId =
+                                                                    replyMessagesIds;
 
-                                                          insertEditText(
-                                                              editMsg);
-                                                          // Request focusr
-                                                          WidgetsBinding
-                                                              .instance
-                                                              .addPostFrameCallback(
-                                                                  (_) {
-                                                            _focusNode
-                                                                .requestFocus();
-                                                            _quilcontroller
-                                                                .addListener(
-                                                                    _onSelectionChanged);
-                                                            // move cursor to end
-                                                            final length =
-                                                                _quilcontroller
-                                                                    .document
-                                                                    .length;
-                                                            _quilcontroller
-                                                                .updateSelection(
-                                                              TextSelection
-                                                                  .collapsed(
-                                                                      offset:
-                                                                          length),
-                                                              ChangeSource
-                                                                  .local,
-                                                            );
-                                                          });
-                                                        },
-                                                        icon: const Icon(
-                                                            Icons.edit)),
+                                                                if (!(editMsg
+                                                                    .contains(
+                                                                        "<br/><div class='ql-code-block'>"))) {
+                                                                  if (editMsg
+                                                                      .contains(
+                                                                          "<div class='ql-code-block'>")) {
+                                                                    editMsg = editMsg.replaceAll(
+                                                                        "<div class='ql-code-block'>",
+                                                                        "<br/><div class='ql-code-block'>");
+                                                                  }
+                                                                }
+
+                                                                if (!(editMsg
+                                                                    .contains(
+                                                                        "<br/><blockquote>"))) {
+                                                                  if (editMsg
+                                                                      .contains(
+                                                                          "<blockquote>")) {
+                                                                    editMsg = editMsg.replaceAll(
+                                                                        "<blockquote>",
+                                                                        "<br/><blockquote>");
+                                                                  }
+                                                                }
+
+                                                                insertEditText(
+                                                                    editMsg);
+                                                                // Request focusr
+                                                                WidgetsBinding
+                                                                    .instance
+                                                                    .addPostFrameCallback(
+                                                                        (_) {
+                                                                  _focusNode
+                                                                      .requestFocus();
+                                                                  _quilcontroller
+                                                                      .addListener(
+                                                                          _onSelectionChanged);
+                                                                  // move cursor to end
+                                                                  final length =
+                                                                      _quilcontroller
+                                                                          .document
+                                                                          .length;
+                                                                  _quilcontroller
+                                                                      .updateSelection(
+                                                                    TextSelection
+                                                                        .collapsed(
+                                                                            offset:
+                                                                                length),
+                                                                    ChangeSource
+                                                                        .local,
+                                                                  );
+                                                                });
+                                                              },
+                                                              icon: const Icon(
+                                                                  Icons.edit)),
+                                                        ],
+                                                      ),
                                                   ],
                                                 )
                                               ],
@@ -1913,6 +2021,28 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                   .replaceAll("</p>", "");
                                             }
 
+                                            if (htmlContent
+                                                .contains("<code>")) {
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "<code>",
+                                                      "<span class='highlight'>");
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "</code>", "</span>");
+                                            }
+
+                                            if (htmlContent.contains("<pre>")) {
+                                              htmlContent = htmlContent.replaceAll(
+                                                  "<pre>",
+                                                  "<div class='ql-code-block'>");
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "</pre>", "</div>");
+                                              htmlContent = htmlContent
+                                                  .replaceAll("\n", "<br/>");
+                                            }
+
                                             editdirectThreadMessage(
                                                 htmlContent, editMsgId!);
                                             _clearEditor();
@@ -1942,6 +2072,24 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                               htmlContent.replaceAll("<p>", "");
                                           htmlContent = htmlContent.replaceAll(
                                               "</p>", "");
+                                        }
+
+                                        if (htmlContent.contains("<code>")) {
+                                          htmlContent = htmlContent.replaceAll(
+                                              "<code>",
+                                              "<span class='highlight'>");
+                                          htmlContent = htmlContent.replaceAll(
+                                              "</code>", "</span>");
+                                        }
+
+                                        if (htmlContent.contains("<pre>")) {
+                                          htmlContent = htmlContent.replaceAll(
+                                              "<pre>",
+                                              "<div class='ql-code-block'>");
+                                          htmlContent = htmlContent.replaceAll(
+                                              "</pre>", "</div>");
+                                          htmlContent = htmlContent.replaceAll(
+                                              "\n", "<br/>");
                                         }
 
                                         setState() {
@@ -1991,27 +2139,36 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                               ? Colors.grey[400]
                                               : Colors.grey[300],
                                         ),
-                                        child: IconButton(
-                                          icon: const Icon(Icons.format_bold),
-                                          onPressed: () {
-                                            setState(() {
-                                              if (isBold) {
-                                                isBold = false;
-                                              } else {
-                                                isBold = true;
-                                              }
-                                            });
-                                            if (isBold) {
-                                              _quilcontroller.formatSelection(
-                                                  quill.Attribute.bold);
-                                            } else {
-                                              _quilcontroller.formatSelection(
-                                                  quill.Attribute.clone(
-                                                      quill.Attribute.bold,
-                                                      null));
-                                            }
-                                          },
-                                        ),
+                                        child: discode
+                                            ? const IconButton(
+                                                onPressed: null,
+                                                icon: Icon(Icons.format_bold))
+                                            : IconButton(
+                                                icon: const Icon(
+                                                    Icons.format_bold),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (isBold) {
+                                                      isBold = false;
+                                                    } else {
+                                                      isBold = true;
+                                                    }
+                                                  });
+                                                  if (isBold) {
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                            .Attribute.bold);
+                                                  } else {
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                                .Attribute
+                                                            .clone(
+                                                                quill.Attribute
+                                                                    .bold,
+                                                                null));
+                                                  }
+                                                },
+                                              ),
                                       ),
                                       Container(
                                         margin: const EdgeInsets.symmetric(
@@ -2023,27 +2180,36 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                               ? Colors.grey[400]
                                               : Colors.grey[300],
                                         ),
-                                        child: IconButton(
-                                          icon: const Icon(Icons.format_italic),
-                                          onPressed: () {
-                                            setState(() {
-                                              if (isItalic) {
-                                                isItalic = false;
-                                              } else {
-                                                isItalic = true;
-                                              }
-                                            });
-                                            if (isItalic) {
-                                              _quilcontroller.formatSelection(
-                                                  quill.Attribute.italic);
-                                            } else {
-                                              _quilcontroller.formatSelection(
-                                                  quill.Attribute.clone(
-                                                      quill.Attribute.italic,
-                                                      null));
-                                            }
-                                          },
-                                        ),
+                                        child: discode
+                                            ? const IconButton(
+                                                onPressed: null,
+                                                icon: Icon(Icons.format_italic))
+                                            : IconButton(
+                                                icon: const Icon(
+                                                    Icons.format_italic),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (isItalic) {
+                                                      isItalic = false;
+                                                    } else {
+                                                      isItalic = true;
+                                                    }
+                                                  });
+                                                  if (isItalic) {
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                            .Attribute.italic);
+                                                  } else {
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                                .Attribute
+                                                            .clone(
+                                                                quill.Attribute
+                                                                    .italic,
+                                                                null));
+                                                  }
+                                                },
+                                              ),
                                       ),
                                       Container(
                                         margin: const EdgeInsets.symmetric(
@@ -2055,30 +2221,38 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                               ? Colors.grey[400]
                                               : Colors.grey[300],
                                         ),
-                                        child: IconButton(
-                                          icon:
-                                              const Icon(Icons.strikethrough_s),
-                                          onPressed: () {
-                                            setState(() {
-                                              if (isStrike) {
-                                                isStrike = false;
-                                              } else {
-                                                isStrike = true;
-                                              }
-                                            });
-                                            if (isStrike) {
-                                              _quilcontroller.formatSelection(
-                                                  quill
-                                                      .Attribute.strikeThrough);
-                                            } else {
-                                              _quilcontroller.formatSelection(
-                                                  quill.Attribute.clone(
-                                                      quill.Attribute
-                                                          .strikeThrough,
-                                                      null));
-                                            }
-                                          },
-                                        ),
+                                        child: discode
+                                            ? const IconButton(
+                                                onPressed: null,
+                                                icon:
+                                                    Icon(Icons.strikethrough_s))
+                                            : IconButton(
+                                                icon: const Icon(
+                                                    Icons.strikethrough_s),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (isStrike) {
+                                                      isStrike = false;
+                                                    } else {
+                                                      isStrike = true;
+                                                    }
+                                                  });
+                                                  if (isStrike) {
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                            .Attribute
+                                                            .strikeThrough);
+                                                  } else {
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                                .Attribute
+                                                            .clone(
+                                                                quill.Attribute
+                                                                    .strikeThrough,
+                                                                null));
+                                                  }
+                                                },
+                                              ),
                                       ),
                                       Container(
                                         margin: const EdgeInsets.symmetric(
@@ -2090,36 +2264,45 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                               ? Colors.grey[400]
                                               : Colors.grey[300],
                                         ),
-                                        child: IconButton(
-                                            icon: const Icon(Icons.link),
-                                            onPressed: () {
-                                              setState(() {
-                                                if (isLink) {
-                                                  isLink = false;
-                                                } else {
-                                                  isLink = true;
-                                                  isBold = false;
-                                                  isItalic = false;
-                                                  isStrike = false;
-                                                }
-                                              });
-                                              if (isLink) {
-                                                _insertLink();
-                                              }
-                                              _quilcontroller.formatSelection(
-                                                  quill.Attribute.clone(
-                                                      quill.Attribute.bold,
-                                                      null));
-                                              _quilcontroller.formatSelection(
-                                                  quill.Attribute.clone(
-                                                      quill.Attribute.italic,
-                                                      null));
-                                              _quilcontroller.formatSelection(
-                                                  quill.Attribute.clone(
-                                                      quill.Attribute
-                                                          .strikeThrough,
-                                                      null));
-                                            }),
+                                        child: discode
+                                            ? const IconButton(
+                                                onPressed: null,
+                                                icon: Icon(Icons.link))
+                                            : IconButton(
+                                                icon: const Icon(Icons.link),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (isLink) {
+                                                      isLink = false;
+                                                    } else {
+                                                      isLink = true;
+                                                      isBold = false;
+                                                      isItalic = false;
+                                                      isStrike = false;
+                                                    }
+                                                  });
+                                                  if (isLink) {
+                                                    _insertLink();
+                                                  }
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill.Attribute
+                                                                  .bold,
+                                                              null));
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill.Attribute
+                                                                  .italic,
+                                                              null));
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill.Attribute
+                                                                  .strikeThrough,
+                                                              null));
+                                                }),
                                       ),
                                       Container(
                                         margin: const EdgeInsets.symmetric(
@@ -2147,6 +2330,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                   isOrderList = true;
                                                   isUnorderList = false;
                                                   isCodeblock = false;
+                                                  discode = false;
                                                 }
                                               });
                                             });
@@ -2188,6 +2372,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                 isOrderList = false;
                                                 isUnorderList = true;
                                                 isCodeblock = false;
+                                                discode = false;
                                               }
                                             });
                                             if (isUnorderList) {
@@ -2228,6 +2413,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                   isOrderList = false;
                                                   isUnorderList = false;
                                                   isCodeblock = false;
+                                                  discode = false;
                                                 }
                                               });
                                             });
@@ -2254,28 +2440,36 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                               ? Colors.grey[400]
                                               : Colors.grey[300],
                                         ),
-                                        child: IconButton(
-                                          icon: const Icon(Icons.code),
-                                          onPressed: () {
-                                            setState(() {
-                                              if (isCode) {
-                                                isCode = false;
-                                              } else {
-                                                isCode = true;
-                                              }
-                                            });
-                                            if (isCode) {
-                                              _quilcontroller.formatSelection(
-                                                  quill.Attribute.inlineCode);
-                                            } else {
-                                              _quilcontroller.formatSelection(
-                                                  quill.Attribute.clone(
-                                                      quill
-                                                          .Attribute.inlineCode,
-                                                      null));
-                                            }
-                                          },
-                                        ),
+                                        child: discode
+                                            ? const IconButton(
+                                                onPressed: null,
+                                                icon: Icon(Icons.code))
+                                            : IconButton(
+                                                icon: const Icon(Icons.code),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (isCode) {
+                                                      isCode = false;
+                                                    } else {
+                                                      isCode = true;
+                                                    }
+                                                  });
+                                                  if (isCode) {
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                            .Attribute
+                                                            .inlineCode);
+                                                  } else {
+                                                    _quilcontroller
+                                                        .formatSelection(quill
+                                                                .Attribute
+                                                            .clone(
+                                                                quill.Attribute
+                                                                    .inlineCode,
+                                                                null));
+                                                  }
+                                                },
+                                              ),
                                       ),
                                       Container(
                                         margin: const EdgeInsets.symmetric(
@@ -2297,12 +2491,14 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                 isUnorderList = false;
                                                 isCodeblock = false;
                                                 isCode = false;
+                                                discode = false;
                                               } else {
                                                 isBlockquote = false;
                                                 isOrderList = false;
                                                 isUnorderList = false;
                                                 isCodeblock = true;
                                                 isCode = false;
+                                                discode = true;
                                               }
                                             });
                                             if (isCodeblock) {
@@ -2385,6 +2581,28 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                   .replaceAll("</p>", "");
                                             }
 
+                                            if (htmlContent
+                                                .contains("<code>")) {
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "<code>",
+                                                      "<span class='highlight'>");
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "</code>", "</span>");
+                                            }
+
+                                            if (htmlContent.contains("<pre>")) {
+                                              htmlContent = htmlContent.replaceAll(
+                                                  "<pre>",
+                                                  "<div class='ql-code-block'>");
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "</pre>", "</div>");
+                                              htmlContent = htmlContent
+                                                  .replaceAll("\n", "<br/>");
+                                            }
+
                                             editdirectThreadMessage(
                                                 htmlContent, editMsgId!);
                                             _clearEditor();
@@ -2414,6 +2632,24 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                               htmlContent.replaceAll("<p>", "");
                                           htmlContent = htmlContent.replaceAll(
                                               "</p>", "");
+                                        }
+
+                                        if (htmlContent.contains("<code>")) {
+                                          htmlContent = htmlContent.replaceAll(
+                                              "<code>",
+                                              "<span class='highlight'>");
+                                          htmlContent = htmlContent.replaceAll(
+                                              "</code>", "</span>");
+                                        }
+
+                                        if (htmlContent.contains("<pre>")) {
+                                          htmlContent = htmlContent.replaceAll(
+                                              "<pre>",
+                                              "<div class='ql-code-block'>");
+                                          htmlContent = htmlContent.replaceAll(
+                                              "</pre>", "</div>");
+                                          htmlContent = htmlContent.replaceAll(
+                                              "\n", "<br/>");
                                         }
 
                                         setState() {
