@@ -53,7 +53,11 @@ class DirectMsg {
   List<dynamic>? fileName;
   String? profileName;
   String? directmsg;
+  bool? activeStatus;
+  bool? senderActiveStatus;
   String? name;
+  String? receiverName;
+
   DirectMsg(
       {this.created_at,
       this.directmsg,
@@ -63,13 +67,19 @@ class DirectMsg {
       this.senderId,
       this.receiverId,
       this.profileName,
-      this.fileName});
+      this.fileName,
+      this.receiverName,
+      this.activeStatus,
+      this.senderActiveStatus});
   DirectMsg.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     receiverId = json['receiver_id'];
     fileUrls = json['file_urls'];
     senderId = json['sender_id'];
     created_at = json['created_at'];
+    receiverName = json['receiver_name'];
+    activeStatus = json['active_status'];
+    senderActiveStatus = json['sender_active_status'];
     fileName = json['file_names'] as List<dynamic>?;
     profileName = json['profile_image'];
     directmsg = json['directmsg'];
@@ -86,6 +96,9 @@ class DirectMsg {
     data['id'] = this.id;
     data['file_names'] = this.fileName;
     data['profile_image'] = this.profileName;
+    data['receiver_name'] = this.receiverName;
+    data['sender_active_status'] = this.senderActiveStatus;
+    data['active_status'] = this.activeStatus;
     return data;
   }
 }

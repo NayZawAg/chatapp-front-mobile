@@ -40,8 +40,6 @@ class _UnReadDirectThreadState extends State<UnReadDirectThread> {
     } else {
       platform = TargetPlatform.iOS;
     }
-
-    refreshFuture = _fetchData();
   }
 
   @override

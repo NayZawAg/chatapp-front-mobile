@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/dotenv.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
+import 'package:flutter_frontend/model/profileImage.dart';
 import 'package:flutter_frontend/screens/Navigation/changePw.dart';
 import 'package:flutter_frontend/screens/userEdit/user_edit.dart';
 import 'package:flutter_frontend/services/userservice/profile_upload/profile_upload_api.dart';
@@ -25,6 +26,7 @@ class _ProfileState extends State<Profile> {
   late String currentUserEmail;
   String? currentUserProfileImage;
   bool isLoading = false;
+  int? currentUserId = SessionStore.sessionData!.currentUser!.id;
 
   final ProfileUploadApi profileUploadApi = ProfileUploadApi();
 
@@ -59,18 +61,22 @@ class _ProfileState extends State<Profile> {
         setState(() {
           isLoading = true;
         });
-        await profileUploadApi.uploadProfileImage(result.files.first);
+        ProfileImage profileImage =
+            await profileUploadApi.uploadProfileImage(result.files.first);
         await Future.delayed(const Duration(seconds: 5));
 
         setState(() {
-          currentUserProfileImage =
-              SessionStore.sessionData?.currentUser?.imageUrl ?? '';
+          currentUserProfileImage = profileImage.profileImage;
+
           if (kIsWeb) {
-            currentUserProfileImage =
-                SessionStore.sessionData?.currentUser?.imageUrl ?? '';
+            SessionStore.sessionData?.currentUser?.imageUrl =
+                profileImage.profileImage;
+            currentUserProfileImage = profileImage.profileImage;
           } else {
             currentUserProfileImage = MinioToIP.replaceMinioWithIP(
                 currentUserProfileImage!, ipAddressForMinio);
+            SessionStore.sessionData?.currentUser?.imageUrl =
+                currentUserProfileImage;
           }
           isLoading = false;
         });
@@ -85,18 +91,19 @@ class _ProfileState extends State<Profile> {
             name: result.files.first.name,
             size: croppedFile.lengthSync(),
           );
-          await profileUploadApi.uploadProfileImage(file);
+          ProfileImage profileImage =
+              await profileUploadApi.uploadProfileImage(file);
           await Future.delayed(const Duration(seconds: 5));
 
           setState(() {
-            currentUserProfileImage =
-                SessionStore.sessionData?.currentUser?.imageUrl ?? '';
+            currentUserProfileImage = profileImage.profileImage;
             if (kIsWeb) {
-              currentUserProfileImage =
-                  SessionStore.sessionData?.currentUser?.imageUrl ?? '';
+              currentUserProfileImage = profileImage.profileImage;
             } else {
               currentUserProfileImage = MinioToIP.replaceMinioWithIP(
                   currentUserProfileImage!, ipAddressForMinio);
+              SessionStore.sessionData?.currentUser?.imageUrl =
+                  currentUserProfileImage;
             }
             isLoading = false;
           });
@@ -156,7 +163,7 @@ class _ProfileState extends State<Profile> {
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Container(
+        child: SizedBox(
           height: MediaQuery.of(context).size.height,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -253,8 +260,8 @@ class _ProfileState extends State<Profile> {
                                             builder: (context) => UserEdit(
                                                   username: currentUserName,
                                                   email: currentUserEmail,
-                                                  workspaceName:
-                                                      widget.currentUserWorkspace,
+                                                  workspaceName: widget
+                                                      .currentUserWorkspace,
                                                 )));
                                   },
                                   child: const Icon(Icons.edit))

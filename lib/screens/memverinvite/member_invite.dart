@@ -8,8 +8,6 @@ import 'package:flutter_frontend/model/SessionStore.dart';
 import 'package:flutter_frontend/services/memberinvite/MemberInvite.dart';
 // ignore_for_file: use_build_context_synchronously, prefer_const_constructors
 
-
-
 class MemberInvitation extends StatefulWidget {
   const MemberInvitation({Key? key}) : super(key: key);
   @override
@@ -105,15 +103,16 @@ class _MemberInvitationState extends State<MemberInvitation> {
         leading: IconButton(
           onPressed: () {
             Navigator.pop(context);
-           
           },
-          icon: const Icon(Icons.arrow_back,color: Colors.white,),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.white,
+          ),
         ),
         title: const Text(
           'Member Invitation',
           style: TextStyle(color: Colors.white),
         ),
-        
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -141,8 +140,10 @@ class _MemberInvitationState extends State<MemberInvitation> {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                         title: TextButton(
-                         style: ButtonStyle(
-                             backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                          style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.resolveWith<Color>(
+                                    (states) {
                               if (states.contains(MaterialState.pressed)) {
                                 // Change the color when button is pressed
                                 return Colors.amber.shade100;
@@ -150,7 +151,7 @@ class _MemberInvitationState extends State<MemberInvitation> {
                               // Return the default color when button is not pressed
                               return kPriamrybackground;
                             }),
-                            ),
+                          ),
                           onPressed: () {
                             setState(() {
                               for (var i = 0; i < selected.length; i++) {
@@ -216,17 +217,18 @@ class _MemberInvitationState extends State<MemberInvitation> {
                 child: const Column(
                   children: [
                     ProgressionBar(
-                      color: Colors.white,
+                        color: Colors.white,
                         imageName: 'dataSending.json',
-                         height: 100,
-                          size: 100),
+                        height: 100,
+                        size: 100),
                     SizedBox(height: 8.0),
                     Text('Sending email...'),
                   ],
                 ),
               ),
               ElevatedButton(
-                style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.blue)),
+                style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.blue)),
                 onPressed: !btnDisable
                     ? null
                     : () {
@@ -248,12 +250,12 @@ class _MemberInvitationState extends State<MemberInvitation> {
                                     r'\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b',
                                     caseSensitive: false)
                                 .hasMatch(emailController.text)) {
-                                  ScaffoldMessenger.of(context)
+                              ScaffoldMessenger.of(context)
                                   .showSnackBar(SnackBar(
-                                content: Text('Please enter a valid email address'),
+                                content:
+                                    Text('Please enter a valid email address'),
                                 backgroundColor: Colors.red,
                               ));
-                             
                             } else {
                               _submitEmail(
                                   emailController.text, channelId!, context);

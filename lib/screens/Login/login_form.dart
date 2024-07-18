@@ -28,9 +28,11 @@ class _LoginFormState extends State<LoginForm> {
         _isLoading = true;
       });
       _formKey.currentState!.save();
-      int? status = await _authController.loginUser(_nameController.text.trimRight(),
-          _passwordController.text.trimRight(), _workspaceController.text.trimRight(), context);
-
+      int? status = await _authController.loginUser(
+          _nameController.text.trimRight(),
+          _passwordController.text.trimRight(),
+          _workspaceController.text.trimRight(),
+          context);
 
       setState(() {
         _isLoading = false;
@@ -45,19 +47,18 @@ class _LoginFormState extends State<LoginForm> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text(
             'Sign In Successful!',
-           
           ),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 3),
         ));
         // ignore: use_build_context_synchronously
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Nav()));
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const Nav()));
       } else if (status == 401) {
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text(
             'Account Deactivate. Please contact admin.',
-            
           ),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
@@ -73,6 +74,12 @@ class _LoginFormState extends State<LoginForm> {
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Invalid name/password combination'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ));
+      } else if (status == 500) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('User name does not exist'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
         ));
@@ -119,9 +126,9 @@ class _LoginFormState extends State<LoginForm> {
                       keyboardType: TextInputType.name,
                       textInputAction: TextInputAction.next,
                       cursorColor: kPrimaryColor,
-                      decoration:  const InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: "Your Name",
-                        prefixIcon:  Padding(
+                        prefixIcon: Padding(
                           padding: EdgeInsets.all(defaultPadding),
                           child: Icon(Icons.person),
                         ),
@@ -139,9 +146,9 @@ class _LoginFormState extends State<LoginForm> {
                       textInputAction: TextInputAction.done,
                       obscureText: true,
                       cursorColor: kPrimaryColor,
-                      decoration: const  InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: "Your password",
-                        prefixIcon:  Padding(
+                        prefixIcon: Padding(
                           padding: EdgeInsets.all(defaultPadding),
                           child: Icon(Icons.lock),
                         ),

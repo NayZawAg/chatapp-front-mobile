@@ -40,7 +40,6 @@ class _UnReadDirectGpState extends State<UnReadDirectGroup> {
     } else {
       platform = TargetPlatform.iOS;
     }
-    refreshFuture = _fetchData();
   }
 
   @override

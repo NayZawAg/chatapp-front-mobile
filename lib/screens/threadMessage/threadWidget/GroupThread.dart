@@ -41,7 +41,7 @@ class _GroupThreadState extends State<GroupThread> {
   @override
   void initState() {
     super.initState();
-    refrshFuture = _fetchData();
+   
     if (kIsWeb) {
       return;
     } else if (Platform.isAndroid) {
@@ -92,31 +92,30 @@ class _GroupThreadState extends State<GroupThread> {
           itemBuilder: (context, index) {
             var snapshot = ThreadStore.thread;
             final gpMsg = ThreadStore.thread!.groupMessage![index];
-            List senderNames = [];
             String loginUserName = "";
             String result;
+            Set<String> senderNames = {};
+
             if (gpMsg.senderId != userId) {
-              senderNames.add(gpMsg.name);
+              senderNames.add(gpMsg.name.toString());
             } else {
-              loginUserName = 'とあなた';
+              loginUserName = 'You';
             }
 
-            for (dynamic gp_thread in ThreadStore.thread!.groupThread!) {
-              if (gpMsg.id == gp_thread.groupMessageId) {
-                if (userId != gp_thread.senderId) {
-                  senderNames.add(gp_thread.name);
+            for (var groupThread in ThreadStore.thread!.groupThread!) {
+              if (gpMsg.id == groupThread.groupMessageId) {
+                if (userId != groupThread.senderId) {
+                  senderNames.add(groupThread.name!);
                 } else {
-                  loginUserName = 'とあなた';
+                  loginUserName = 'You';
                 }
               }
             }
 
-            List<dynamic> uniqueSenderNames = senderNames.toSet().toList();
-            if (uniqueSenderNames.isEmpty) {
-              result = "自分のみ";
-            } else {
-              result = uniqueSenderNames.join("さん, ") + "さん、" + loginUserName;
-            }
+            List<String> uniqueSenderNames = senderNames.toList();
+            result = uniqueSenderNames.isEmpty
+                ? "You"
+                : "$loginUserName, ${uniqueSenderNames.join(", ")}";
 
             // Group message
             var directGroupList = snapshot!.groupMessage;
@@ -164,12 +163,18 @@ class _GroupThreadState extends State<GroupThread> {
             int currentWorkSpaceId =
                 SessionStore.sessionData!.mWorkspace!.id!.toInt();
 
+            int groupThreadLastLength = groupMessageThreadList.length <= 2
+                ? groupMessageThreadList.length
+                : (groupMessageThreadList.length + 3) -
+                    groupMessageThreadList.length;
+            int leftMessageLength =
+                groupMessageThreadList.length - groupThreadLastLength;
+
             return Container(
               padding: const EdgeInsets.only(top: 5),
               width: MediaQuery.of(context).size.width * 0.9,
               child: Column(
                 children: [
-                  Text(result),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -199,89 +204,199 @@ class _GroupThreadState extends State<GroupThread> {
                                             workspace_id: currentWorkSpaceId,
                                           ),
                                         )),
-                                    child: Row(
-                                      children: [
-                                        Icon(chaneelStatus!
-                                            ? Icons.tag
-                                            : Icons.lock),
-                                        const SizedBox(
-                                          width: 5,
-                                        ),
-                                        Text(
-                                          channelName,
-                                          style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold),
-                                        )
-                                      ],
-                                    ),
-                                  ))
+                                    child: Column(children: [
+                                      Row(
+                                        children: [
+                                          Icon(chaneelStatus!
+                                              ? Icons.tag
+                                              : Icons.lock),
+                                          const SizedBox(
+                                            width: 5,
+                                          ),
+                                          Text(
+                                            channelName,
+                                            style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold),
+                                          )
+                                        ],
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(result),
+                                        ],
+                                      )
+                                    ]),
+                                  )),
                                 ])),
                                 const Divider(),
-                                Container(
-                                  width:
-                                      MediaQuery.of(context).size.width * 0.7,
-                                  child: flutter_html.Html(
-                                    data: groupMessage,
-                                    style: {
-                                      "blockquote": flutter_html.Style(
-                                        border: const Border(
-                                            left: BorderSide(
-                                                color: Colors.grey,
-                                                width: 5.0)),
-                                        margin: flutter_html.Margins.all(0),
-                                        padding: flutter_html.HtmlPaddings.only(
-                                            left: 10),
+                                Text.rich(TextSpan(children: [
+                                  WidgetSpan(
+                                      child: Row(
+                                    children: [
+                                      Container(
+                                        height: 40,
+                                        width: 40,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          color: Colors.white,
+                                        ),
+                                        child: Center(
+                                          child: groupProfileImage == null ||
+                                                  groupProfileImage.isEmpty
+                                              ? const Icon(Icons.person)
+                                              : ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  child: Image.network(
+                                                    groupProfileImage,
+                                                    fit: BoxFit.cover,
+                                                    width: 40,
+                                                    height: 40,
+                                                  ),
+                                                ),
+                                        ),
                                       ),
-                                      "ol": flutter_html.Style(
-                                        margin: flutter_html.Margins.symmetric(
-                                            horizontal: 10),
-                                        padding:
-                                            flutter_html.HtmlPaddings.symmetric(
-                                                horizontal: 10),
+                                      const SizedBox(
+                                        width: 10,
                                       ),
-                                      "ul": flutter_html.Style(
-                                        display:
-                                            flutter_html.Display.inlineBlock,
-                                        padding:
-                                            flutter_html.HtmlPaddings.symmetric(
-                                                horizontal: 10),
-                                        margin: flutter_html.Margins.all(0),
-                                      ),
-                                      "pre": flutter_html.Style(
-                                        backgroundColor: Colors.grey[200],
-                                        padding:
-                                            flutter_html.HtmlPaddings.symmetric(
-                                                horizontal: 10, vertical: 5),
-                                      ),
-                                      "code": flutter_html.Style(
-                                        display:
-                                            flutter_html.Display.inlineBlock,
-                                        backgroundColor: Colors.grey[300],
-                                        color: Colors.red,
-                                        padding:
-                                            flutter_html.HtmlPaddings.symmetric(
-                                                horizontal: 10, vertical: 5),
+                                      Text(
+                                        name,
+                                        style: const TextStyle(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.bold),
                                       )
-                                    },
+                                    ],
+                                  ))
+                                ])),
+                                Container(
+                                  child: Column(
+                                    children: [
+                                      if (groupMessage.isNotEmpty)
+                                        flutter_html.Html(
+                                          data: groupMessage,
+                                          style: {
+                                            "blockquote": flutter_html.Style(
+                                              border: const Border(
+                                                  left: BorderSide(
+                                                      color: Colors.grey,
+                                                      width: 5.0)),
+                                              margin:
+                                                  flutter_html.Margins.all(0),
+                                              padding: flutter_html.HtmlPaddings
+                                                  .only(left: 10),
+                                            ),
+                                            "ol": flutter_html.Style(
+                                              margin: flutter_html.Margins
+                                                  .symmetric(horizontal: 10),
+                                              padding: flutter_html.HtmlPaddings
+                                                  .symmetric(horizontal: 10),
+                                            ),
+                                            "ul": flutter_html.Style(
+                                              display: flutter_html
+                                                  .Display.inlineBlock,
+                                              padding: flutter_html.HtmlPaddings
+                                                  .symmetric(horizontal: 10),
+                                              margin:
+                                                  flutter_html.Margins.all(0),
+                                            ),
+                                            "pre": flutter_html.Style(
+                                              backgroundColor: Colors.grey[200],
+                                              padding: flutter_html.HtmlPaddings
+                                                  .symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 5),
+                                            ),
+                                            "code": flutter_html.Style(
+                                              display: flutter_html
+                                                  .Display.inlineBlock,
+                                              backgroundColor: Colors.grey[300],
+                                              color: Colors.red,
+                                              padding: flutter_html.HtmlPaddings
+                                                  .symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 5),
+                                            )
+                                          },
+                                        ),
+                                      if (groupFiles!.length == 1)
+                                        singleFile.buildSingleFile(
+                                            groupFiles[0],
+                                            context,
+                                            platform,
+                                            groupFileName?.first ?? ''),
+                                      if (groupFiles.length >= 2)
+                                        mulitFile.buildMultipleFiles(
+                                            groupFiles,
+                                            platform,
+                                            context,
+                                            groupFileName ?? []),
+                                      const SizedBox(
+                                        height: 16,
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                if (groupFiles!.length == 1)
-                                  singleFile.buildSingleFile(
-                                      groupFiles[0],
-                                      context,
-                                      platform,
-                                      groupFileName?.first ?? ''),
-                                if (groupFiles.length >= 2)
-                                  mulitFile.buildMultipleFiles(groupFiles,
-                                      platform, context, groupFileName ?? []),
                                 const SizedBox(
-                                  height: 16,
+                                  height: 8,
                                 ),
+                                leftMessageLength != 0
+                                    ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        children: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          GpThreadMessage(
+                                                            channelID:
+                                                                directGroupList[
+                                                                        index]
+                                                                    .channelId,
+                                                            channelStatus:
+                                                                directGroupList[
+                                                                        index]
+                                                                    .channelStatus,
+                                                            channelName:
+                                                                directGroupList[
+                                                                        index]
+                                                                    .channelName,
+                                                            messageID:
+                                                                directGroupList[
+                                                                        index]
+                                                                    .id,
+                                                            message:
+                                                                groupMessage,
+                                                            name: name,
+                                                            time: directmsgTime,
+                                                            fname: name,
+                                                            activeStatus:
+                                                                activeStatus,
+                                                            fileNames:
+                                                                groupFileName,
+                                                            files: groupFiles,
+                                                            profileImage:
+                                                                groupProfileImage,
+                                                          )));
+                                            },
+                                            child: Text(
+                                              "$leftMessageLength more replies",
+                                              style: const TextStyle(
+                                                  fontSize: 15,
+                                                  color: Colors.blue),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : const SizedBox(),
                                 ListView.builder(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: groupMessageThreadList.length,
+                                  itemCount: groupThreadLastLength,
                                   itemBuilder: (context, index) {
                                     String message =
                                         groupMessageThreadList[index]
@@ -345,7 +460,8 @@ class _GroupThreadState extends State<GroupThread> {
                                                 decoration: BoxDecoration(
                                                   borderRadius:
                                                       BorderRadius.circular(10),
-                                                  color: Colors.grey[300],
+                                                  color: Color.fromARGB(
+                                                      255, 247, 243, 243),
                                                 ),
                                                 child: Center(
                                                   child: groupThreadProfileName ==
@@ -493,7 +609,7 @@ class _GroupThreadState extends State<GroupThread> {
                                                     const SizedBox(
                                                       height: 3,
                                                     ),
-                                                    if (threadFiles.length > 1)
+                                                    if (threadFiles.length >= 2)
                                                       mulitFile
                                                           .buildMultipleFiles(
                                                               threadFiles,
@@ -538,26 +654,34 @@ class _GroupThreadState extends State<GroupThread> {
                                               MaterialPageRoute(
                                                   builder: (context) =>
                                                       GpThreadMessage(
-                                                          channelID:
-                                                              directGroupList[
-                                                                      index]
-                                                                  .channelId,
-                                                          channelStatus:
-                                                              directGroupList[
-                                                                      index]
-                                                                  .channelStatus,
-                                                          channelName:
-                                                              directGroupList[
-                                                                      index]
-                                                                  .channelName,
-                                                          messageID:
-                                                              directGroupList[
-                                                                      index]
-                                                                  .id,
-                                                          message: groupMessage,
-                                                          name: name,
-                                                          time: directmsgTime,
-                                                          fname: name)));
+                                                        channelID:
+                                                            directGroupList[
+                                                                    index]
+                                                                .channelId,
+                                                        channelStatus:
+                                                            directGroupList[
+                                                                    index]
+                                                                .channelStatus,
+                                                        channelName:
+                                                            directGroupList[
+                                                                    index]
+                                                                .channelName,
+                                                        messageID:
+                                                            directGroupList[
+                                                                    index]
+                                                                .id,
+                                                        message: groupMessage,
+                                                        name: name,
+                                                        time: directmsgTime,
+                                                        fname: name,
+                                                        activeStatus:
+                                                            activeStatus,
+                                                        fileNames:
+                                                            groupFileName,
+                                                        files: groupFiles,
+                                                        profileImage:
+                                                            groupProfileImage,
+                                                      )));
                                         },
                                         child: const Text(
                                           "reply",

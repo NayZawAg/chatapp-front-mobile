@@ -43,7 +43,6 @@ class _DirectStarsState extends State<DirectStars> {
     } else {
       platform = TargetPlatform.iOS;
     }
-    refreshFuture = _fetchData();
   }
 
   @override

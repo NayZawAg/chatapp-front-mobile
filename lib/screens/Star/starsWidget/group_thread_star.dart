@@ -47,7 +47,6 @@ class _GroupThreadStarState extends State<GroupThreadStar> {
     } else {
       platform = TargetPlatform.iOS;
     }
-    _refreshFuture = _fetchData();
   }
 
   Future<void> _fetchData() async {

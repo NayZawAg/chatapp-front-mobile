@@ -50,7 +50,6 @@ class _GroupThreadState extends State<GroupThreads> {
     } else {
       platform = TargetPlatform.iOS;
     }
-    _refreshFuture = _fetchData();
   }
 
   @override
