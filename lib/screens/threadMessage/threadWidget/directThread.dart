@@ -321,13 +321,38 @@ class _DirectThreadState extends State<DirectThread> {
                                           child: flutter_html.Html(
                                             data: dmMessage,
                                             style: {
+                                              ".ql-code-block":
+                                                  flutter_html.Style(
+                                                      backgroundColor: Colors
+                                                          .grey[200],
+                                                      padding: flutter_html
+                                                              .HtmlPaddings
+                                                          .symmetric(
+                                                              horizontal: 10,
+                                                              vertical: 5),
+                                                      margin:
+                                                          flutter_html.Margins
+                                                              .symmetric(
+                                                                  vertical: 7)),
+                                              ".highlight": flutter_html.Style(
+                                                display: flutter_html
+                                                    .Display.inlineBlock,
+                                                backgroundColor:
+                                                    Colors.grey[200],
+                                                color: Colors.red,
+                                                padding:
+                                                    flutter_html.HtmlPaddings
+                                                        .symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 5),
+                                              ),
                                               "blockquote": flutter_html.Style(
                                                 border: const Border(
                                                     left: BorderSide(
                                                         color: Colors.grey,
                                                         width: 5.0)),
-                                                margin:
-                                                    flutter_html.Margins.all(0),
+                                                margin: flutter_html.Margins
+                                                    .symmetric(vertical: 10.0),
                                                 padding:
                                                     flutter_html.HtmlPaddings
                                                         .only(left: 10),
@@ -350,7 +375,7 @@ class _DirectThreadState extends State<DirectThread> {
                                               ),
                                               "pre": flutter_html.Style(
                                                 backgroundColor:
-                                                    Colors.grey[200],
+                                                    Colors.grey[300],
                                                 padding:
                                                     flutter_html.HtmlPaddings
                                                         .symmetric(
@@ -564,6 +589,40 @@ class _DirectThreadState extends State<DirectThread> {
                                                             flutter_html.Html(
                                                           data: message,
                                                           style: {
+                                                            ".ql-code-block": flutter_html.Style(
+                                                                backgroundColor:
+                                                                    Colors.grey[
+                                                                        200],
+                                                                padding: flutter_html
+                                                                        .HtmlPaddings
+                                                                    .symmetric(
+                                                                        horizontal:
+                                                                            10,
+                                                                        vertical:
+                                                                            5),
+                                                                margin: flutter_html
+                                                                        .Margins
+                                                                    .symmetric(
+                                                                        vertical:
+                                                                            7)),
+                                                            ".highlight":
+                                                                flutter_html
+                                                                    .Style(
+                                                              display: flutter_html
+                                                                  .Display
+                                                                  .inlineBlock,
+                                                              backgroundColor:
+                                                                  Colors.grey[
+                                                                      200],
+                                                              color: Colors.red,
+                                                              padding: flutter_html
+                                                                      .HtmlPaddings
+                                                                  .symmetric(
+                                                                      horizontal:
+                                                                          10,
+                                                                      vertical:
+                                                                          5),
+                                                            ),
                                                             "blockquote":
                                                                 flutter_html
                                                                     .Style(
@@ -575,7 +634,9 @@ class _DirectThreadState extends State<DirectThread> {
                                                                           5.0)),
                                                               margin: flutter_html
                                                                       .Margins
-                                                                  .all(0),
+                                                                  .symmetric(
+                                                                      vertical:
+                                                                          10.0),
                                                               padding: flutter_html
                                                                       .HtmlPaddings
                                                                   .only(
@@ -612,7 +673,7 @@ class _DirectThreadState extends State<DirectThread> {
                                                                 .Style(
                                                               backgroundColor:
                                                                   Colors.grey[
-                                                                      200],
+                                                                      300],
                                                               padding: flutter_html
                                                                       .HtmlPaddings
                                                                   .symmetric(
