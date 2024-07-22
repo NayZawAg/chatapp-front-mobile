@@ -31,4 +31,10 @@ abstract class ApiService {
   @GET('$baseUrl/delete_directmsg')
   Future<void> deleteMessage(
       @Query("id") int msgId, @Header('Authorization') String token);
+
+  @POST('$baseUrl/directreact')
+  Future<void>  directReactMsg(@Body() Map<String, dynamic> requestBody, @Header('Authorization') String token);
+
+  @POST('$baseUrl/update_directmsg')
+  Future<void> editdirectMessage(@Body() Map<String, dynamic> requestBody, @Header('Authorization') String token);
 }

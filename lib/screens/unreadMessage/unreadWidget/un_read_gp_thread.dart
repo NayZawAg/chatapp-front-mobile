@@ -40,7 +40,6 @@ class _UnReadGroupThreadState extends State<UnReadGroupThread> {
     } else {
       platform = TargetPlatform.iOS;
     }
-    refreshFuture = _fetchData();
   }
 
   @override

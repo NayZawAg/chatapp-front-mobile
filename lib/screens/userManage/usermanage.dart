@@ -1,4 +1,3 @@
-
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -103,35 +102,35 @@ class _UserManagementState extends State<UserManagement> {
                   }
 
                   return ListTile(
-                      leading: profileImage == null || profileImage.isEmpty
-                          ? Container(
+                      leading: Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: Stack(
+                          children: [
+                            Container(
                               height: 40,
                               width: 40,
                               decoration: BoxDecoration(
-                                color: Colors.amber,
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.grey[300],
                               ),
                               child: Center(
-                                child: Text(
-                                  userName.characters.first.toUpperCase(),
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                child: profileImage == null ||
+                                        profileImage.isEmpty
+                                    ? const Icon(Icons.person)
+                                    : ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: Image.network(
+                                          profileImage,
+                                          fit: BoxFit.cover,
+                                          width: 40,
+                                          height: 40,
+                                        ),
+                                      ),
                               ),
                             )
-                          : CircleAvatar(
-                              radius: 20,
-                              child: ClipOval(
-                                child: Image.network(
-                                  profileImage,
-                                  fit: BoxFit.cover,
-                                  width: 45,
-                                  height: 45,
-                                ),
-                              ),
-                            ),
+                          ],
+                        ),
+                      ),
                       title: Text(
                         userName,
                         style: const TextStyle(color: Colors.black),

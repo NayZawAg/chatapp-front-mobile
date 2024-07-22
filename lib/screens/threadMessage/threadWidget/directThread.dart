@@ -7,6 +7,7 @@ import 'package:flutter_frontend/const/build_single_file.dart';
 import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/constants.dart';
 import 'package:flutter_frontend/dotenv.dart';
+import 'package:flutter_frontend/screens/directMessage/direct_message.dart';
 import 'package:flutter_frontend/screens/directThreadMessage/direct_message_thread.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -40,7 +41,7 @@ class _DirectThreadState extends State<DirectThread> {
   @override
   void initState() {
     super.initState();
-    refreshFuture = _fetchData();
+
     if (kIsWeb) {
       return;
     } else if (Platform.isAndroid) {
@@ -118,6 +119,13 @@ class _DirectThreadState extends State<DirectThread> {
               int directMsgId = directMessageList![index].id!.toInt();
               int receiverId = directMessageList[index].receiverId!.toInt();
               String dmName = directMessageList[index].name.toString();
+              String receiverName =
+                  directMessageList[index].receiverName.toString();
+              int senderId = directMessageList[index].senderId!.toInt();
+              bool? receiverActiveStatus =
+                  directMessageList[index].activeStatus;
+              bool? senderActiveStatus =
+                  directMessageList[index].senderActiveStatus;
               String dmMessage = directMessageList[index].directmsg.toString();
               String dmTime = directMessageList[index].created_at.toString();
               DateTime dmConvert = DateTime.parse(dmTime).toLocal();
@@ -152,6 +160,43 @@ class _DirectThreadState extends State<DirectThread> {
                 }
               }
 
+              int threadLastLength = directThreadList.length <= 2
+                  ? directThreadList.length
+                  : (directThreadList.length + 3) - directThreadList.length;
+              int leftMessageLength =
+                  directThreadList.length - threadLastLength;
+              String? currentUserName =
+                  SessionStore.sessionData!.currentUser!.name;
+              int? currentUserId = SessionStore.sessionData!.currentUser!.id;
+
+              String? messageSendingName;
+              bool? messageSendingActiveStatus;
+              int? messageSendingId;
+              String? messageSendingProfileImage;
+
+              if (currentUserName == receiverName &&
+                  currentUserId == receiverId) {
+                messageSendingName = dmName;
+                messageSendingActiveStatus = senderActiveStatus;
+                messageSendingId = senderId;
+              } else if (currentUserName == dmName &&
+                  currentUserId == senderId) {
+                messageSendingName = receiverName;
+                messageSendingActiveStatus = receiverActiveStatus;
+                messageSendingId = receiverId;
+              }
+
+              for (var user in SessionStore.sessionData!.mUsers!) {
+                if (user.id == messageSendingId) {
+                  messageSendingProfileImage = user.profileImage;
+                }
+              }
+
+              if (messageSendingProfileImage != null && !kIsWeb) {
+                messageSendingProfileImage = MinioToIP.replaceMinioWithIP(
+                    messageSendingProfileImage, ipAddressForMinio);
+              }
+
               return Container(
                 padding: const EdgeInsets.only(top: 10),
                 width: MediaQuery.of(context).size.width * 0.9,
@@ -161,35 +206,6 @@ class _DirectThreadState extends State<DirectThread> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              height: 40,
-                              width: 40,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: Colors.grey[300],
-                              ),
-                              child: Center(
-                                child: directProfileName == null ||
-                                        directProfileName.isEmpty
-                                    ? const Icon(Icons.person)
-                                    : ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: Image.network(
-                                          directProfileName,
-                                          fit: BoxFit.cover,
-                                          width: 40,
-                                          height: 40,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(height: 5)
-                          ],
-                        ),
-                        const SizedBox(width: 5),
                         Expanded(
                           child: Container(
                             decoration: BoxDecoration(
@@ -203,107 +219,184 @@ class _DirectThreadState extends State<DirectThread> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) =>
+                                                  DirectMessageWidget(
+                                                    userId: messageSendingId!,
+                                                    receiverName:
+                                                        messageSendingName!,
+                                                    activeStatus:
+                                                        messageSendingActiveStatus,
+                                                    user_status:
+                                                        messageSendingActiveStatus,
+                                                    profileImage:
+                                                        messageSendingProfileImage,
+                                                  )));
+                                    },
+                                    child: Text.rich(TextSpan(children: [
+                                      WidgetSpan(
+                                          child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.circle,
+                                            size: 10,
+                                            color: messageSendingActiveStatus!
+                                                ? Colors.green
+                                                : Colors.grey[600],
+                                          ),
+                                          const SizedBox(
+                                            width: 4,
+                                          ),
+                                          Text(
+                                            messageSendingName!,
+                                            style: const TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ))
+                                    ])),
+                                  ),
                                   Text(
-                                    dmName,
-                                    style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold),
+                                    (otherUser == "")
+                                        ? "You"
+                                        : "You and $otherUser",
+                                    style: const TextStyle(fontSize: 14),
                                   ),
-                                  Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                  const Divider(),
+                                  Text.rich(TextSpan(children: [
+                                    WidgetSpan(
+                                        child: Row(
                                       children: [
-                                        Text(
-                                          (otherUser == "")
-                                              ? "自分のみ"
-                                              : "$otherUser さんとあなた",
-                                          style: const TextStyle(fontSize: 14),
+                                        Container(
+                                          height: 40,
+                                          width: 40,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            color: Colors.white,
+                                          ),
+                                          child: Center(
+                                            child: directProfileName == null ||
+                                                    directProfileName.isEmpty
+                                                ? const Icon(Icons.person)
+                                                : ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                    child: Image.network(
+                                                      directProfileName,
+                                                      fit: BoxFit.cover,
+                                                      width: 40,
+                                                      height: 40,
+                                                    ),
+                                                  ),
+                                          ),
                                         ),
-                                      ]),
-                                  const SizedBox(
-                                    height: 20,
-                                  ),
+                                        const SizedBox(
+                                          width: 4,
+                                        ),
+                                        Text(
+                                          dmName,
+                                          style: const TextStyle(
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ))
+                                  ])),
                                   Container(
                                       child: Column(
                                     children: [
-                                      Container(
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                                0.5,
-                                        // child: Text(directThread,
-                                        //     style: const TextStyle(fontSize: 15)),
-                                        child: flutter_html.Html(
-                                          data: dmMessage,
-                                          style: {
-                                            ".ql-code-block":
-                                                flutter_html.Style(
-                                                    backgroundColor:
-                                                        Colors.grey[200],
-                                                    padding: flutter_html
-                                                            .HtmlPaddings
+                                      if (dmMessage.isNotEmpty)
+                                        Container(
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.5,
+                                          child: flutter_html.Html(
+                                            data: dmMessage,
+                                            style: {
+                                              ".ql-code-block":
+                                                  flutter_html.Style(
+                                                      backgroundColor: Colors
+                                                          .grey[200],
+                                                      padding: flutter_html
+                                                              .HtmlPaddings
+                                                          .symmetric(
+                                                              horizontal: 10,
+                                                              vertical: 5),
+                                                      margin:
+                                                          flutter_html.Margins
+                                                              .symmetric(
+                                                                  vertical: 7)),
+                                              ".highlight": flutter_html.Style(
+                                                display: flutter_html
+                                                    .Display.inlineBlock,
+                                                backgroundColor:
+                                                    Colors.grey[200],
+                                                color: Colors.red,
+                                                padding:
+                                                    flutter_html.HtmlPaddings
                                                         .symmetric(
                                                             horizontal: 10,
                                                             vertical: 5),
-                                                    margin:
-                                                        flutter_html.Margins
-                                                            .symmetric(
-                                                                vertical: 7)),
-                                            ".highlight": flutter_html.Style(
-                                              display: flutter_html
-                                                  .Display.inlineBlock,
-                                              backgroundColor: Colors.grey[200],
-                                              color: Colors.red,
-                                              padding: flutter_html.HtmlPaddings
-                                                  .symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 5),
-                                            ),
-                                            "blockquote": flutter_html.Style(
-                                              border: const Border(
-                                                  left: BorderSide(
-                                                      color: Colors.grey,
-                                                      width: 5.0)),
-                                              margin: flutter_html.Margins
-                                                  .symmetric(vertical: 10.0),
-                                              padding: flutter_html.HtmlPaddings
-                                                  .only(left: 10),
-                                            ),
-                                            "ol": flutter_html.Style(
-                                              margin: flutter_html.Margins
-                                                  .symmetric(horizontal: 10),
-                                              padding: flutter_html.HtmlPaddings
-                                                  .symmetric(horizontal: 10),
-                                            ),
-                                            "ul": flutter_html.Style(
-                                              display: flutter_html
-                                                  .Display.inlineBlock,
-                                              padding: flutter_html.HtmlPaddings
-                                                  .symmetric(horizontal: 10),
-                                              margin:
-                                                  flutter_html.Margins.all(0),
-                                            ),
-                                            "pre": flutter_html.Style(
-                                              backgroundColor: Colors.grey[300],
-                                              padding: flutter_html.HtmlPaddings
-                                                  .symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 5),
-                                            ),
-                                            "code": flutter_html.Style(
-                                              display: flutter_html
-                                                  .Display.inlineBlock,
-                                              backgroundColor: Colors.grey[300],
-                                              color: Colors.red,
-                                              padding: flutter_html.HtmlPaddings
-                                                  .symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 5),
-                                            )
-                                          },
+                                              ),
+                                              "blockquote": flutter_html.Style(
+                                                border: const Border(
+                                                    left: BorderSide(
+                                                        color: Colors.grey,
+                                                        width: 5.0)),
+                                                margin: flutter_html.Margins
+                                                    .symmetric(vertical: 10.0),
+                                                padding:
+                                                    flutter_html.HtmlPaddings
+                                                        .only(left: 10),
+                                              ),
+                                              "ol": flutter_html.Style(
+                                                margin: flutter_html.Margins
+                                                    .symmetric(horizontal: 10),
+                                                padding: flutter_html
+                                                        .HtmlPaddings
+                                                    .symmetric(horizontal: 10),
+                                              ),
+                                              "ul": flutter_html.Style(
+                                                display: flutter_html
+                                                    .Display.inlineBlock,
+                                                padding: flutter_html
+                                                        .HtmlPaddings
+                                                    .symmetric(horizontal: 10),
+                                                margin:
+                                                    flutter_html.Margins.all(0),
+                                              ),
+                                              "pre": flutter_html.Style(
+                                                backgroundColor:
+                                                    Colors.grey[300],
+                                                padding:
+                                                    flutter_html.HtmlPaddings
+                                                        .symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 5),
+                                              ),
+                                              "code": flutter_html.Style(
+                                                display: flutter_html
+                                                    .Display.inlineBlock,
+                                                backgroundColor:
+                                                    Colors.grey[300],
+                                                color: Colors.red,
+                                                padding:
+                                                    flutter_html.HtmlPaddings
+                                                        .symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 5),
+                                              )
+                                            },
+                                          ),
                                         ),
-                                      ),
                                       if (directFiles!.length == 1 &&
                                           directFiles.isNotEmpty)
                                         singleFile.buildSingleFile(
@@ -321,12 +414,49 @@ class _DirectThreadState extends State<DirectThread> {
                                     ],
                                   )),
                                   const SizedBox(height: 8),
-                                  const SizedBox(height: 8),
+                                  leftMessageLength != 0
+                                      ? Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          children: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            DirectMessageThreadWidget(
+                                                              directMsgId:
+                                                                  directMsgId,
+                                                              receiverId:
+                                                                  receiverId,
+                                                              files:
+                                                                  directFiles,
+                                                              filesName:
+                                                                  directFileName,
+                                                              profileImage:
+                                                                  directProfileName,
+                                                              userstatus:
+                                                                  userstatus,
+                                                              receiverName:
+                                                                  dmName,
+                                                            )));
+                                              },
+                                              child: Text(
+                                                "$leftMessageLength more replies",
+                                                style: const TextStyle(
+                                                    color: Colors.blue,
+                                                    fontSize: 15),
+                                              ),
+                                            )
+                                          ],
+                                        )
+                                      : const SizedBox(height: 8),
                                   ListView.builder(
                                     shrinkWrap: true,
                                     physics:
                                         const NeverScrollableScrollPhysics(),
-                                    itemCount: directThreadList.length,
+                                    itemCount: threadLastLength,
                                     itemBuilder: (context, index) {
                                       String message = directThreadList[index]
                                           .directthreadmsg
@@ -344,6 +474,7 @@ class _DirectThreadState extends State<DirectThread> {
                                       String threadCreateAt =
                                           DateFormat('MMM d, yyyy hh:mm a')
                                               .format(time);
+
                                       List<dynamic>? threadFiles = [];
                                       threadFiles = directThreadList[index]
                                           .fileUrls
@@ -388,7 +519,8 @@ class _DirectThreadState extends State<DirectThread> {
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             10),
-                                                    color: Colors.grey[300],
+                                                    color: Color.fromARGB(
+                                                        255, 247, 243, 243),
                                                   ),
                                                   child: Center(
                                                     child: threadProfileName ==
@@ -587,7 +719,10 @@ class _DirectThreadState extends State<DirectThread> {
                                                                   threadFileName
                                                                           ?.first ??
                                                                       ''),
-                                                        if (threadFiles.length >
+                                                        const SizedBox(
+                                                            height: 4),
+                                                        if (threadFiles
+                                                                    .length >=
                                                                 2 &&
                                                             threadFiles
                                                                 .isNotEmpty)
@@ -599,12 +734,6 @@ class _DirectThreadState extends State<DirectThread> {
                                                                   threadFileName ??
                                                                       []),
                                                       ],
-                                                      const SizedBox(
-                                                        height: 8,
-                                                      ),
-                                                      const SizedBox(
-                                                        height: 8,
-                                                      ),
                                                       Text(
                                                         threadCreateAt,
                                                         style: const TextStyle(
@@ -653,6 +782,7 @@ class _DirectThreadState extends State<DirectThread> {
                                                               directProfileName,
                                                           userstatus:
                                                               userstatus,
+                                                          receiverName: dmName,
                                                         )));
                                           },
                                           child: const Text(

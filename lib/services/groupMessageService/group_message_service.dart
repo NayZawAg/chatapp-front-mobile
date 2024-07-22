@@ -79,8 +79,40 @@ class GroupMessageServiceImpl {
         }
       }
       await _apiService.sendGroupMsgData(requestBody, token!);
-      print("This is from request body");
-      print(requestBody);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> groupMessageReaction(
+      {required String emoji,
+      required int msgId,
+      required int sChannelId}) async {
+    var token = await getToken();
+
+    Map<String, dynamic> requestBody = {
+      "message_id": msgId,
+      "s_channel_id": sChannelId,
+      "emoji": emoji,
+    };
+    try {
+      await _apiService.giveGroupMessageReaction(requestBody, token!);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> editGroupMessage(
+      String message, int msgId, List<String> mentionnames) async {
+    var token = await getToken();
+
+    Map<String, dynamic> requestBody = {
+      'id': msgId,
+      'message': message,
+      'mention_name': mentionnames
+    };
+    try {
+      await _apiService.editGroupMessage(requestBody, token!);
     } catch (e) {
       rethrow;
     }
@@ -102,8 +134,12 @@ class GroupMessageServiceImpl {
     } else {}
   }
 
-  Future<void> sendGroupThreadData(String groupMessage, int channelID,
-      int messageID, List<String> mentionName, List<PlatformFile>? files) async {
+  Future<void> sendGroupThreadData(
+      String groupMessage,
+      int channelID,
+      int messageID,
+      List<String> mentionName,
+      List<PlatformFile>? files) async {
     final token = await getToken();
     Map<String, dynamic> requestBody = {
       "s_group_message_id": messageID,

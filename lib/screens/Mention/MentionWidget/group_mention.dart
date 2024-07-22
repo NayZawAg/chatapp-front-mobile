@@ -33,7 +33,6 @@ class _GroupMessageState extends State<GroupMessages> {
   late Future<void> _refreshFuture;
 
   int userId = SessionStore.sessionData!.currentUser!.id!.toInt();
-  var snapshot = MentionStore.mentionList;
   BuildMulitFile mulitFile = BuildMulitFile();
   BuildSingleFile singleFile = BuildSingleFile();
   TargetPlatform? platform;
@@ -48,7 +47,11 @@ class _GroupMessageState extends State<GroupMessages> {
     } else {
       platform = TargetPlatform.iOS;
     }
-    _refreshFuture = _fetchData();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _fetchData() async {
@@ -57,7 +60,7 @@ class _GroupMessageState extends State<GroupMessages> {
       var data = await _mentionListService.getAllMentionList(userId, token!);
       if (mounted) {
         setState(() {
-          snapshot = data;
+          MentionStore.mentionList = data;
         });
       }
     } catch (e) {
@@ -83,8 +86,9 @@ class _GroupMessageState extends State<GroupMessages> {
           animSpeedFactor: 100,
           showChildOpacityTransition: true,
           child: ListView.builder(
-            itemCount: snapshot!.groupMessage!.length,
+            itemCount: MentionStore.mentionList!.groupMessage!.length,
             itemBuilder: (context, index) {
+              final snapshot = MentionStore.mentionList;
               List gpThreadStar = snapshot!.groupStar!.toList();
               bool star =
                   gpThreadStar.contains(snapshot!.groupMessage![index].id);

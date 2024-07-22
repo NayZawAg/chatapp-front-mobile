@@ -39,4 +39,13 @@ abstract class DirectMsgThreadService {
       @Query('s_user_id') int receiveUserId,
       @Query('id') int threadId,
       @Header('Authorization') String token);
+
+  @POST('$baseUrl/update_directthreadmsg')
+  Future<void> editdirectThreadMessage(@Body() Map<String, dynamic> requestBody,
+      @Header('Authorization') String token);
+
+  @POST('$baseUrl/directthreadreact')
+  Future<void> directThreadMessageReaction(
+      @Body() Map<String, dynamic> requestBody,
+      @Header('Authorization') String token);
 }

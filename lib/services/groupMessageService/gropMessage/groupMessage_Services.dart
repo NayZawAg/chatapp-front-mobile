@@ -12,8 +12,16 @@ abstract class GroupMessageServices {
   @GET('/m_channels/{id}')
   Future<GroupMessgeModel> getAllGpMsg(
       @Path("id") int id, @Header('Authorization') String token);
-      
+
   @POST("/groupmsg")
   Future<void> sendGroupMsgData(@Body() Map<String, dynamic> requestBody,
+      @Header('Authorization') String token);
+
+  @POST("/update_groupmsg")
+  Future<void> editGroupMessage(@Body() Map<String, dynamic> requestBody,
+      @Header('Authorization') String token);
+
+  @POST("/groupreact")
+  Future<void> giveGroupMessageReaction(@Body() Map<String, dynamic> requestBody,
       @Header('Authorization') String token);
 }

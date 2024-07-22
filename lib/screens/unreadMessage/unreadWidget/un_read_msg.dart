@@ -42,8 +42,6 @@ class _UnReadDirectMsgState extends State<UnReadDirectMsg> {
     } else {
       platform = TargetPlatform.iOS;
     }
-
-    refreshFuture = _fetchData();
   }
 
   @override

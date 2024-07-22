@@ -67,7 +67,6 @@ class _WorkHomeState extends State<WorkHome> {
 
   Future<void> getMainPage() async {
     var token = await getToken();
-
     final response = await MainPageService(Dio((BaseOptions(headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
@@ -235,7 +234,6 @@ class _WorkHomeState extends State<WorkHome> {
                             itemBuilder: (context, index) {
                               if (index < channelLengths) {
                                 final channel = data.mChannels![index];
-
                                 final messageCount = data
                                     .mChannels![index].messageCount!
                                     .toInt();

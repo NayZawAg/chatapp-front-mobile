@@ -47,7 +47,6 @@ class _MyWidgetState extends State<DirectThreadStars> {
     } else {
       platform = TargetPlatform.iOS;
     }
-    _refreshFuture = _fetchData();
   }
 
   @override

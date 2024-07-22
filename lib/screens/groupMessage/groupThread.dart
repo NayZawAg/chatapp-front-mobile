@@ -13,13 +13,13 @@ import 'package:flutter_frontend/const/build_single_file.dart';
 import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/const/permissions.dart';
 import 'package:flutter_frontend/dotenv.dart';
+import 'package:flutter_frontend/loadingScreenForThread.dart';
 import 'package:flutter_frontend/model/group_thread_list.dart';
 import 'package:flutter_frontend/services/groupMessageService/group_message_service.dart';
 import 'package:flutter_quill/quill_delta.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/constants.dart';
-import 'package:flutter_frontend/progression.dart';
 import 'package:flutter_mentions/flutter_mentions.dart';
 import 'package:flutter_frontend/model/SessionStore.dart';
 import 'package:flutter_frontend/componnets/customlogout.dart';
@@ -31,7 +31,6 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
 import 'package:html/dom.dart' as html_dom;
-import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html_parser;
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 
@@ -102,7 +101,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
   List uniqueList = [];
   OverlayEntry? _overlayEntry;
   final List _userList = []; // Example user list
-  List<dynamic> _filteredUsers = [];
+  List _filteredUsers = [];
   List<String> mentionnames = [];
 
   bool isBlockquote = false;
@@ -118,6 +117,9 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
   bool isEnter = false;
   bool discode = false;
   bool isEdit = false;
+  bool showScrollButton = false;
+  bool isScrolling = false;
+  bool isMessaging = false;
   String editMsg = "";
   int? editTreadId;
   List _previousOps = [];
@@ -131,6 +133,8 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     super.initState();
     loadMessage();
     connectWebSocket();
+    _scrollController = ScrollController();
+    _scrollController.addListener(scrollListener);
     _quilcontroller.addListener(_onSelectionChanged);
     _focusNode.addListener(_focusChange);
     _quilcontroller.addListener(_onTextChanged);
@@ -188,7 +192,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
       _previousOps = _quilcontroller.document.toDelta().toList();
     });
 
-    _scrollController = ScrollController();
     if (kIsWeb) {
       return;
     } else if (Platform.isAndroid) {
@@ -257,42 +260,28 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     return await AuthController().getToken();
   }
 
-  Future<void> giveThreadMsgReaction(
-      {required int threadId,
-      required String emoji,
-      required String emojiName,
-      required int selectedGpMsgId,
-      required int sChannelId}) async {
-    var token = await AuthController().getToken();
-    try {
-      final response =
-          await http.post(Uri.parse("http://10.0.2.2:3000/groupthreadreact"),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json; charset=UTF-8',
-              },
-              body: jsonEncode(<String, dynamic>{
-                "thread_id": threadId,
-                "s_channel_id": sChannelId,
-                "emoji": emoji,
-                "emoji_name": emojiName,
-                "s_group_message_id": selectedGpMsgId
-              }));
-    } catch (e) {
-      print("error===> $e");
-      rethrow;
+  void scrollListener() {
+    if (_scrollController.position.pixels <
+            _scrollController.position.maxScrollExtent - 100 ||
+        isMessaging == false) {
+      setState(() {
+        isMessaging = true;
+        showScrollButton = true;
+      });
+    } else {
+      setState(() {
+        isMessaging = false;
+        showScrollButton = false;
+      });
     }
   }
 
   void _scrollToBottom() {
-    if (isButtom) return;
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOut,
-      );
-    }
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent + 300,
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.ease,
+    );
   }
 
   void connectWebSocket() {
@@ -361,6 +350,11 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                       fileUrls: fileUrls,
                       fileName: fileNames,
                       profileName: profileName));
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (isMessaging == false) {
+                      _scrollToBottom();
+                    }
+                  });
                 });
               } else {}
             } else if (messageContent.containsKey('messaged_star')) {
@@ -387,11 +381,69 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                   );
                 });
               }
+            } else if (messageContent.containsKey('react_message') &&
+                messageContent['m_channel_id'] == widget.channelID) {
+              var reactmsg = messageContent['react_message'];
+              var userid = reactmsg['userid'];
+              var groupthreadid = reactmsg['groupthreadid'];
+              var emoji = reactmsg['emoji'];
+              var reactUserInfo = messageContent['reacted_user_info'];
+              var emojiCount;
+              bool emojiExists = false;
+              for (var element in emojiCounts!) {
+                if (element.emoji == emoji &&
+                    element.groupThreadId == groupthreadid) {
+                  emojiCount = element.emojiCount! + 1;
+                  element.emojiCount = emojiCount;
+                  emojiExists = true;
+                  break;
+                }
+              }
+              if (!emojiExists) {
+                emojiCount = 1;
+                emojiCounts!.add(EmojiCountsforGpThread(
+                    groupThreadId: groupthreadid,
+                    emoji: emoji,
+                    emojiCount: emojiCount));
+              }
+
+              setState(() {
+                if (emojiExists) {
+                  emojiCounts!.add(EmojiCountsforGpThread(
+                      emojiCount: emojiCount, groupThreadId: groupthreadid));
+                }
+
+                reactUserDatas!.add(ReactUserDataForGpThread(
+                    emoji: emoji,
+                    groupThreadId: groupthreadid,
+                    name: reactUserInfo,
+                    userId: userid));
+              });
+            } else if (messageContent.containsKey('remove_reaction') &&
+                messageContent['m_channel_id'] == widget.channelID) {
+              var deleteRection = messageContent['remove_reaction'];
+              var userId = deleteRection['userid'];
+              var groupthreadid = deleteRection['groupthreadid'];
+              var emoji = deleteRection['emoji'];
+              var reactUserInfo = messageContent['reacted_user_info'];
+
+              setState(() {
+                for (var element in emojiCounts!) {
+                  if (element.emoji == emoji &&
+                      element.groupThreadId == groupthreadid) {
+                    element.emojiCount = element.emojiCount! - 1;
+                    break;
+                  }
+                }
+
+                reactUserDatas?.removeWhere((element) =>
+                    element.groupThreadId == groupthreadid &&
+                    element.emoji == emoji &&
+                    element.name == reactUserInfo);
+              });
             } else {
               var deletemsg = messageContent['delete_msg'];
-
               int id = deletemsg['id'];
-
               setState(() {
                 groupThreadData?.removeWhere(
                   (element) => element.id == id,
@@ -399,7 +451,9 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
               });
             }
           } else {}
-        } catch (e) {}
+        } catch (e) {
+          rethrow;
+        }
       },
       onDone: () {
         _channel!.sink.close();
@@ -480,6 +534,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
       }
     }
 
+    // Convert Delta to HTML using vsc_quill_delta_to_html package
     var converter = QuillDeltaToHtmlConverter(updatedDelta.toJson());
 
     String html = converter.convert();
@@ -665,7 +720,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     if (checkLastBold) {
       setState(() {
         isBold = true;
-        discode = false;
       });
     } else {
       setState(() {
@@ -676,7 +730,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     if (checkLastItalic) {
       setState(() {
         isItalic = true;
-        discode = false;
       });
     } else {
       setState(() {
@@ -687,7 +740,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     if (checkLastStrikethrough) {
       setState(() {
         isStrike = true;
-        discode = false;
       });
     } else {
       setState(() {
@@ -698,7 +750,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     if (checkLastCode) {
       setState(() {
         isCode = true;
-        discode = false;
       });
     } else {
       setState(() {
@@ -946,21 +997,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     });
   }
 
-  Future<void> editGroupThreadMessage(
-      String message, int msgId, List<String> mentionnames) async {
-    var token = await AuthController().getToken();
-    http.post(Uri.parse("http://10.0.2.2:3000/update_groupthreadmsg"),
-        headers: <String, String>{
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, dynamic>{
-          'id': msgId,
-          'message': message,
-          'mention_name': mentionnames
-        }));
-  }
-
   Delta convertHtmlToDelta(String html) {
     if (html.contains("<ol>") || html.contains("<ul>")) {
       html = "<p>$html</p>";
@@ -988,11 +1024,8 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
           case 'code':
             newAttributes['code'] = true;
             break;
-          case 'span':
-            newAttributes['code'] = true;
-            break;
           case 'p':
-            if (node.nodes.isNotEmpty) {
+            if (node.nodes.isNotEmpty && node.nodes.last is html_dom.Text) {
               node.append(html_dom.Element.tag('br'));
             }
             for (var child in node.nodes) {
@@ -1052,26 +1085,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
               discode = true;
             });
             return;
-          case "div":
-            for (var child in node.nodes) {
-              if (child.text!.isNotEmpty) {
-                if (child.text!.contains("\n")) {
-                  List txtlist = child.text!.split("\n");
-                  for (var txt in txtlist) {
-                    delta.insert(txt, {});
-                    delta.insert("\n", {'code-block': true});
-                  }
-                } else {
-                  delta.insert(child.text, {});
-                  delta.insert("\n", {'code-block': true});
-                }
-              }
-            }
-            setState(() {
-              isCodeblock = true;
-              discode = true;
-            });
-            return;
           case 'br':
             delta.insert('\n');
             return;
@@ -1093,7 +1106,12 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     }
 
     for (var node in document.body!.nodes) {
+      // if (node.toString().contains('"')) {
+      //   parseNode(node, {});
+      //   delta.insert("\n");
+      // } else {
       parseNode(node, {});
+      // }
     }
 
     // Ensure the last block ends with a newline
@@ -1163,21 +1181,9 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                         Icons.person,
                         color: Colors.grey[300],
                       ),
-                      title: Row(
-                        children: [
-                          Text(user["name"]),
-                          SizedBox(width: 15),
-                          Icon(
-                            Icons.circle,
-                            size: 15,
-                            color: user["status"]
-                                ? Color.fromARGB(255, 19, 255, 26)
-                                : Colors.grey,
-                          )
-                        ],
-                      ),
+                      title: Text(user),
                       onTap: () {
-                        _insertUser(user["name"]);
+                        _insertUser(user);
                         _hideUserList();
                       },
                     );
@@ -1233,24 +1239,10 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     );
   }
 
-  // void getMchannelUsers() {
-  //   for (var i = 0; i < channelUser!.length; i++) {
-  //     setState(() {
-  //       _userList.add(channelUser![i].name!);
-  //     });
-  //   }
-  // }
-
   void getMchannelUsers() {
     for (var i = 0; i < channelUser!.length; i++) {
-      var user = {
-        'name': channelUser![i].name!,
-        'status': channelUser![i].activeStatus!,
-      };
-
       setState(() {
-        // _userList.add(retrieveGroupMessage!.mChannelUsers![i].name!);
-        _userList.add(user);
+        _userList.add(channelUser![i].name!);
       });
     }
   }
@@ -1293,364 +1285,441 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
             ),
           ),
           body: isLoading == false
-              ? ProgressionBar(
-                  imageName: 'loading.json', height: 200, size: 200)
+              ? const ShimmerThread()
               : GestureDetector(
                   onTap: () {
                     setState(() {
                       isButtom = true;
                     });
                   },
-                  child: Column(children: [
-                    Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: SizedBox(
-                        height: 100,
-                        width: 500,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(right: 10),
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    height: 40,
-                                    width: 40,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
-                                      color: Colors.grey[300],
-                                    ),
-                                    child: Center(
-                                      child: widget.profileImage == null ||
-                                              widget.profileImage!.isEmpty
-                                          ? Icon(Icons.person)
-                                          : ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              child: Image.network(
-                                                widget.profileImage!,
-                                                fit: BoxFit.cover,
-                                                width: 40,
-                                                height: 40,
-                                              ),
-                                            ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    right: 0,
-                                    bottom: 0,
-                                    child: Container(
-                                      height: 10,
-                                      width: 10,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(7),
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 1,
-                                        ),
-                                        color: widget.activeStatus == true
-                                            ? Colors.green
-                                            : Colors.black,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SingleChildScrollView(
-                              child: Container(
-                                width: MediaQuery.of(context).size.width * 0.7,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Stack(children: [
+                    Column(children: [
+                      Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: SizedBox(
+                          height: 100,
+                          width: 500,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(right: 10),
+                                child: Stack(
                                   children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          widget.name.toString(),
-                                          style: const TextStyle(fontSize: 16),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(
-                                          width: 10,
-                                        ),
-                                        Text(
-                                          widget.time.toString(),
-                                          style: const TextStyle(
-                                              fontSize: 10, color: Colors.grey),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(
-                                      width: 10,
-                                    ),
                                     Container(
-                                      height: 70,
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.vertical,
-                                        child: flutter_html.Html(
-                                          data: widget.message!.isNotEmpty
-                                              ? widget.message.toString()
-                                              : "",
-                                          style: {
-                                            ".ql-code-block":
-                                                flutter_html.Style(
-                                                    backgroundColor:
-                                                        Colors.grey[300],
-                                                    padding: flutter_html
-                                                            .HtmlPaddings
-                                                        .symmetric(
-                                                            horizontal: 10,
-                                                            vertical: 5),
-                                                    margin:
-                                                        flutter_html.Margins
-                                                            .symmetric(
-                                                                vertical: 7)),
-                                            ".highlight": flutter_html.Style(
-                                              display: flutter_html
-                                                  .Display.inlineBlock,
-                                              backgroundColor: Colors.grey[300],
-                                              color: Colors.red,
-                                              padding: flutter_html.HtmlPaddings
-                                                  .symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 5),
-                                            ),
-                                            "blockquote": flutter_html.Style(
-                                              border: const Border(
-                                                  left: BorderSide(
-                                                      color: Colors.grey,
-                                                      width: 5.0)),
-                                              margin: flutter_html.Margins
-                                                  .symmetric(vertical: 10.0),
-                                              padding: flutter_html.HtmlPaddings
-                                                  .only(left: 10),
-                                            ),
-                                            "ol": flutter_html.Style(
-                                              margin: flutter_html.Margins
-                                                  .symmetric(horizontal: 10),
-                                              padding: flutter_html.HtmlPaddings
-                                                  .symmetric(horizontal: 10),
-                                            ),
-                                            "ul": flutter_html.Style(
-                                              display: flutter_html
-                                                  .Display.inlineBlock,
-                                              padding: flutter_html.HtmlPaddings
-                                                  .symmetric(horizontal: 10),
-                                              margin:
-                                                  flutter_html.Margins.all(0),
-                                            ),
-                                            "pre": flutter_html.Style(
-                                              backgroundColor: Colors.grey[300],
-                                              padding: flutter_html.HtmlPaddings
-                                                  .symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 5),
-                                            ),
-                                            "code": flutter_html.Style(
-                                              display: flutter_html
-                                                  .Display.inlineBlock,
-                                              backgroundColor: Colors.grey[300],
-                                              color: Colors.red,
-                                              padding: flutter_html.HtmlPaddings
-                                                  .symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 5),
-                                            )
-                                          },
+                                      height: 40,
+                                      width: 40,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        color: Colors.grey[300],
+                                      ),
+                                      child: Center(
+                                        child: widget.profileImage == null ||
+                                                widget.profileImage!.isEmpty
+                                            ? Icon(Icons.person)
+                                            : ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                child: Image.network(
+                                                  widget.profileImage!,
+                                                  fit: BoxFit.cover,
+                                                  width: 40,
+                                                  height: 40,
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Container(
+                                        height: 10,
+                                        width: 10,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(7),
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 1,
+                                          ),
+                                          color: widget.activeStatus == true
+                                              ? Colors.green
+                                              : Colors.black,
                                         ),
                                       ),
                                     ),
-                                    widget.files!.length == 1
-                                        ? singleFile.buildSingleFile(
-                                            widget.files?.first ?? '',
-                                            context,
-                                            platform,
-                                            widget.fileNames?.first ?? '')
-                                        : mulitFile.buildMultipleFiles(
-                                            widget.files ?? [],
-                                            platform,
-                                            context,
-                                            widget.fileNames ?? [])
                                   ],
                                 ),
                               ),
-                            ),
-                          ],
+                              SingleChildScrollView(
+                                child: Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.7,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            widget.name.toString(),
+                                            style:
+                                                const TextStyle(fontSize: 16),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(
+                                            width: 10,
+                                          ),
+                                          Text(
+                                            widget.time.toString(),
+                                            style: const TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        width: 10,
+                                      ),
+                                      Container(
+                                        height: 70,
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.vertical,
+                                          child: flutter_html.Html(
+                                            data: widget.message!.isNotEmpty
+                                                ? widget.message.toString()
+                                                : "",
+                                            style: {
+                                              "blockquote": flutter_html.Style(
+                                                border: const Border(
+                                                    left: BorderSide(
+                                                        color: Colors.grey,
+                                                        width: 5.0)),
+                                                margin:
+                                                    flutter_html.Margins.all(0),
+                                                padding:
+                                                    flutter_html.HtmlPaddings
+                                                        .only(left: 10),
+                                              ),
+                                              "ol": flutter_html.Style(
+                                                margin: flutter_html.Margins
+                                                    .symmetric(horizontal: 10),
+                                                padding: flutter_html
+                                                        .HtmlPaddings
+                                                    .symmetric(horizontal: 10),
+                                              ),
+                                              "ul": flutter_html.Style(
+                                                display: flutter_html
+                                                    .Display.inlineBlock,
+                                                padding: flutter_html
+                                                        .HtmlPaddings
+                                                    .symmetric(horizontal: 10),
+                                                margin:
+                                                    flutter_html.Margins.all(0),
+                                              ),
+                                              "pre": flutter_html.Style(
+                                                backgroundColor:
+                                                    Colors.grey[300],
+                                                padding:
+                                                    flutter_html.HtmlPaddings
+                                                        .symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 5),
+                                              ),
+                                              "code": flutter_html.Style(
+                                                display: flutter_html
+                                                    .Display.inlineBlock,
+                                                backgroundColor:
+                                                    Colors.grey[300],
+                                                color: Colors.red,
+                                                padding:
+                                                    flutter_html.HtmlPaddings
+                                                        .symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 5),
+                                              )
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                      widget.files!.length == 1
+                                          ? singleFile.buildSingleFile(
+                                              widget.files?.first ?? '',
+                                              context,
+                                              platform,
+                                              widget.fileNames?.first ?? '')
+                                          : mulitFile.buildMultipleFiles(
+                                              widget.files ?? [],
+                                              platform,
+                                              context,
+                                              widget.fileNames ?? [])
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    Row(
-                      children: [
-                        Column(
-                          children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
-                              child: Text(
-                                '$replyLength reply',
-                                style: const TextStyle(fontSize: 16),
+                      Row(
+                        children: [
+                          Column(
+                            children: [
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                child: Text(
+                                  '$replyLength reply',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Divider(),
-                        ),
-                      ],
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          itemCount: replyLength,
-                          itemBuilder: (context, index) {
-                            int groupThreadId =
-                                groupThreadData![index].id!.toInt();
+                            ],
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Divider(),
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            itemCount: replyLength,
+                            itemBuilder: (context, index) {
+                              int groupThreadId =
+                                  groupThreadData![index].id!.toInt();
 
-                            String message = groupThreadData![index]
-                                .groupthreadmsg
-                                .toString();
-                            int currentUser = SessionStore
-                                .sessionData!.currentUser!.id!
-                                .toInt();
-                            int sendUserId =
-                                groupThreadData![index].sendUserId!.toInt();
-                            String name =
-                                groupThreadData![index].name.toString();
+                              String message = groupThreadData![index]
+                                  .groupthreadmsg
+                                  .toString();
+                              int currentUser = SessionStore
+                                  .sessionData!.currentUser!.id!
+                                  .toInt();
+                              int sendUserId =
+                                  groupThreadData![index].sendUserId!.toInt();
+                              String name =
+                                  groupThreadData![index].name.toString();
 
-                            List<dynamic>? files = [];
-                            files = groupThreadData![index].fileUrls;
+                              List<dynamic>? files = [];
+                              files = groupThreadData![index].fileUrls;
 
-                            List<dynamic>? fileName = [];
-                            fileName = groupThreadData![index].fileName;
+                              List<dynamic>? fileName = [];
+                              fileName = groupThreadData![index].fileName;
 
-                            String? profileName =
-                                groupThreadData![index].profileName;
+                              String? profileName =
+                                  groupThreadData![index].profileName;
 
-                            if (profileName != null && !kIsWeb) {
-                              profileName = MinioToIP.replaceMinioWithIP(
-                                  profileName, ipAddressForMinio);
-                            }
-
-                            bool? activeStatus;
-
-                            for (var user
-                                in SessionStore.sessionData!.mUsers!) {
-                              if (user.name == name) {
-                                activeStatus = user.activeStatus;
+                              if (profileName != null && !kIsWeb) {
+                                profileName = MinioToIP.replaceMinioWithIP(
+                                    profileName, ipAddressForMinio);
                               }
-                            }
 
-                            List<String> initials = name
-                                .split(" ")
-                                .map((e) => e.substring(0, 1))
-                                .toList();
-                            String groupThread = initials.join("");
-                            String time =
-                                groupThreadData![index].created_at.toString();
-                            DateTime date = DateTime.parse(time).toLocal();
-                            String createdAt =
-                                DateFormat('MMM d, yyyy hh:mm a').format(date);
-                            List groupThreadStarIds = groupThreadStar!.toList();
-                            bool isStar = groupThreadStarIds
-                                .contains(groupThreadData![index].id);
-                            return Container(
-                              margin: const EdgeInsets.symmetric(vertical: 10),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 10),
-                                    child: Stack(
-                                      children: [
-                                        Container(
-                                          height: 40,
-                                          width: 40,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                            color: Colors.grey[300],
-                                          ),
-                                          child: Center(
-                                            child: profileName == null ||
-                                                    profileName.isEmpty
-                                                ? const Icon(Icons.person)
-                                                : ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            10),
-                                                    child: Image.network(
-                                                      profileName,
-                                                      fit: BoxFit.cover,
-                                                      width: 40,
-                                                      height: 40,
-                                                    ),
-                                                  ),
-                                          ),
-                                        ),
-                                        Positioned(
-                                          right: 0,
-                                          bottom: 0,
-                                          child: Container(
-                                            height: 10,
-                                            width: 10,
+                              bool? activeStatus;
+
+                              for (var user
+                                  in SessionStore.sessionData!.mUsers!) {
+                                if (user.name == name) {
+                                  activeStatus = user.activeStatus;
+                                }
+                              }
+
+                              List<String> initials = name
+                                  .split(" ")
+                                  .map((e) => e.substring(0, 1))
+                                  .toList();
+                              String groupThread = initials.join("");
+                              String time =
+                                  groupThreadData![index].created_at.toString();
+                              DateTime date = DateTime.parse(time).toLocal();
+                              String createdAt =
+                                  DateFormat('MMM d, yyyy hh:mm a')
+                                      .format(date);
+                              List groupThreadStarIds =
+                                  groupThreadStar!.toList();
+                              bool isStar = groupThreadStarIds
+                                  .contains(groupThreadData![index].id);
+                              return Container(
+                                margin:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 10),
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            height: 40,
+                                            width: 40,
                                             decoration: BoxDecoration(
                                               borderRadius:
-                                                  BorderRadius.circular(7),
-                                              border: Border.all(
-                                                color: Colors.white,
-                                                width: 1,
-                                              ),
-                                              color: activeStatus == true
-                                                  ? Colors.green
-                                                  : Colors.black,
+                                                  BorderRadius.circular(10),
+                                              color: Colors.grey[300],
+                                            ),
+                                            child: Center(
+                                              child: profileName == null ||
+                                                      profileName.isEmpty
+                                                  ? const Icon(Icons.person)
+                                                  : ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                      child: Image.network(
+                                                        profileName,
+                                                        fit: BoxFit.cover,
+                                                        width: 40,
+                                                        height: 40,
+                                                      ),
+                                                    ),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                          Positioned(
+                                            right: 0,
+                                            bottom: 0,
+                                            child: Container(
+                                              height: 10,
+                                              width: 10,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(7),
+                                                border: Border.all(
+                                                  color: Colors.white,
+                                                  width: 1,
+                                                ),
+                                                color: activeStatus == true
+                                                    ? Colors.green
+                                                    : Colors.black,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(10),
-                                          decoration: BoxDecoration(
-                                              color: Colors.grey.shade200,
-                                              borderRadius:
-                                                  const BorderRadius.only(
-                                                      bottomLeft:
-                                                          Radius.circular(13),
-                                                      bottomRight:
-                                                          Radius.circular(13),
-                                                      topRight:
-                                                          Radius.circular(13))),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Flexible(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(name,
-                                                        style: const TextStyle(
-                                                          fontSize: 15,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Colors.black,
-                                                        )),
-                                                    if (message.isNotEmpty)
-                                                      flutter_html.Html(
-                                                        data: message,
-                                                        style: {
-                                                          ".ql-code-block": flutter_html.Style(
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(10),
+                                            decoration: BoxDecoration(
+                                                color: Colors.grey.shade200,
+                                                borderRadius:
+                                                    const BorderRadius.only(
+                                                        bottomLeft:
+                                                            Radius.circular(13),
+                                                        bottomRight:
+                                                            Radius.circular(13),
+                                                        topRight:
+                                                            Radius.circular(
+                                                                13))),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Flexible(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(name,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 15,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors.black,
+                                                          )),
+                                                      if (message.isNotEmpty)
+                                                        flutter_html.Html(
+                                                          data: message,
+                                                          style: {
+                                                            ".ql-code-block": flutter_html.Style(
+                                                                backgroundColor:
+                                                                    Colors.grey[
+                                                                        300],
+                                                                padding: flutter_html
+                                                                        .HtmlPaddings
+                                                                    .symmetric(
+                                                                        horizontal:
+                                                                            10,
+                                                                        vertical:
+                                                                            5),
+                                                                margin: flutter_html
+                                                                        .Margins
+                                                                    .symmetric(
+                                                                        vertical:
+                                                                            7)),
+                                                            ".highlight":
+                                                                flutter_html
+                                                                    .Style(
+                                                              display: flutter_html
+                                                                  .Display
+                                                                  .inlineBlock,
+                                                              backgroundColor:
+                                                                  Colors.grey[
+                                                                      300],
+                                                              color: Colors.red,
+                                                              padding: flutter_html
+                                                                      .HtmlPaddings
+                                                                  .symmetric(
+                                                                      horizontal:
+                                                                          10,
+                                                                      vertical:
+                                                                          5),
+                                                            ),
+                                                            "blockquote":
+                                                                flutter_html
+                                                                    .Style(
+                                                              border: const Border(
+                                                                  left: BorderSide(
+                                                                      color: Colors
+                                                                          .grey,
+                                                                      width:
+                                                                          5.0)),
+                                                              margin: flutter_html
+                                                                      .Margins
+                                                                  .symmetric(
+                                                                      vertical:
+                                                                          10.0),
+                                                              padding: flutter_html
+                                                                      .HtmlPaddings
+                                                                  .only(
+                                                                      left: 10),
+                                                            ),
+                                                            "ol": flutter_html
+                                                                .Style(
+                                                              margin: flutter_html
+                                                                      .Margins
+                                                                  .symmetric(
+                                                                      horizontal:
+                                                                          10),
+                                                              padding: flutter_html
+                                                                      .HtmlPaddings
+                                                                  .symmetric(
+                                                                      horizontal:
+                                                                          10),
+                                                            ),
+                                                            "ul": flutter_html
+                                                                .Style(
+                                                              display: flutter_html
+                                                                  .Display
+                                                                  .inlineBlock,
+                                                              padding: flutter_html
+                                                                      .HtmlPaddings
+                                                                  .symmetric(
+                                                                      horizontal:
+                                                                          10),
+                                                              margin: flutter_html
+                                                                      .Margins
+                                                                  .all(0),
+                                                            ),
+                                                            "pre": flutter_html
+                                                                .Style(
                                                               backgroundColor:
                                                                   Colors.grey[
                                                                       300],
@@ -1661,842 +1730,902 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                                           10,
                                                                       vertical:
                                                                           5),
-                                                              margin: flutter_html
-                                                                      .Margins
+                                                            ),
+                                                            "code": flutter_html
+                                                                .Style(
+                                                              display: flutter_html
+                                                                  .Display
+                                                                  .inlineBlock,
+                                                              backgroundColor:
+                                                                  Colors.grey[
+                                                                      300],
+                                                              color: Colors.red,
+                                                              padding: flutter_html
+                                                                      .HtmlPaddings
                                                                   .symmetric(
+                                                                      horizontal:
+                                                                          10,
                                                                       vertical:
-                                                                          7)),
-                                                          ".highlight":
-                                                              flutter_html
-                                                                  .Style(
-                                                            display: flutter_html
-                                                                .Display
-                                                                .inlineBlock,
-                                                            backgroundColor:
-                                                                Colors
-                                                                    .grey[300],
-                                                            color: Colors.red,
-                                                            padding: flutter_html
-                                                                    .HtmlPaddings
-                                                                .symmetric(
-                                                                    horizontal:
-                                                                        10,
-                                                                    vertical:
-                                                                        5),
-                                                          ),
-                                                          "blockquote":
-                                                              flutter_html
-                                                                  .Style(
-                                                            border: const Border(
-                                                                left: BorderSide(
-                                                                    color: Colors
-                                                                        .grey,
-                                                                    width:
-                                                                        5.0)),
-                                                            margin: flutter_html
-                                                                    .Margins
-                                                                .symmetric(
-                                                                    vertical:
-                                                                        10.0),
-                                                            padding: flutter_html
-                                                                    .HtmlPaddings
-                                                                .only(left: 10),
-                                                          ),
-                                                          "ol": flutter_html
-                                                              .Style(
-                                                            margin: flutter_html
-                                                                    .Margins
-                                                                .symmetric(
-                                                                    horizontal:
-                                                                        10),
-                                                            padding: flutter_html
-                                                                    .HtmlPaddings
-                                                                .symmetric(
-                                                                    horizontal:
-                                                                        10),
-                                                          ),
-                                                          "ul": flutter_html
-                                                              .Style(
-                                                            display: flutter_html
-                                                                .Display
-                                                                .inlineBlock,
-                                                            padding: flutter_html
-                                                                    .HtmlPaddings
-                                                                .symmetric(
-                                                                    horizontal:
-                                                                        10),
-                                                            margin: flutter_html
-                                                                .Margins.all(0),
-                                                          ),
-                                                          "pre": flutter_html
-                                                              .Style(
-                                                            backgroundColor:
-                                                                Colors
-                                                                    .grey[300],
-                                                            padding: flutter_html
-                                                                    .HtmlPaddings
-                                                                .symmetric(
-                                                                    horizontal:
-                                                                        10,
-                                                                    vertical:
-                                                                        5),
-                                                          ),
-                                                          "code": flutter_html
-                                                              .Style(
-                                                            display: flutter_html
-                                                                .Display
-                                                                .inlineBlock,
-                                                            backgroundColor:
-                                                                Colors
-                                                                    .grey[300],
-                                                            color: Colors.red,
-                                                            padding: flutter_html
-                                                                    .HtmlPaddings
-                                                                .symmetric(
-                                                                    horizontal:
-                                                                        10,
-                                                                    vertical:
-                                                                        5),
-                                                          )
-                                                        },
-                                                      ),
-                                                    if (files!.length == 1)
-                                                      singleFile
-                                                          .buildSingleFile(
-                                                              files[0],
-                                                              context,
-                                                              platform,
-                                                              fileName?.first ??
-                                                                  ''),
-                                                    if (files.length >= 2)
-                                                      mulitFile
-                                                          .buildMultipleFiles(
-                                                              files,
-                                                              platform,
-                                                              context,
-                                                              fileName ?? []),
-                                                    const SizedBox(height: 8),
-                                                    const SizedBox(height: 8),
-                                                    Text(
-                                                      createdAt,
-                                                      style: const TextStyle(
-                                                        fontSize: 10,
-                                                        color: Color.fromARGB(
-                                                            255, 15, 15, 15),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              Column(
-                                                children: [
-                                                  Row(
-                                                    children: [
-                                                      IconButton(
-                                                        icon: Icon(Icons
-                                                            .add_reaction_outlined),
-                                                        onPressed: () {
-                                                          showModalBottomSheet(
-                                                              context: context,
-                                                              builder:
-                                                                  (BuildContext
-                                                                      context) {
-                                                                return EmojiPicker(
-                                                                  onEmojiSelected:
-                                                                      (category,
-                                                                          Emoji
-                                                                              emoji) async {
-                                                                    setState(
-                                                                        () {
-                                                                      selectedEmoji =
-                                                                          emoji
-                                                                              .emoji;
-                                                                      _seletedEmojiName =
-                                                                          emoji
-                                                                              .name;
-                                                                      _isEmojiSelected =
-                                                                          true;
-                                                                    });
-
-                                                                    await giveThreadMsgReaction(
-                                                                        selectedGpMsgId:
-                                                                            widget
-                                                                                .messageID,
-                                                                        sChannelId:
-                                                                            widget
-                                                                                .channelID,
-                                                                        emoji:
-                                                                            selectedEmoji,
-                                                                        emojiName:
-                                                                            _seletedEmojiName,
-                                                                        threadId:
-                                                                            groupThreadId);
-
-                                                                    Navigator.pop(
-                                                                        context);
-                                                                  },
-                                                                  config:
-                                                                      Config(
-                                                                    height: double
-                                                                        .maxFinite,
-                                                                    checkPlatformCompatibility:
-                                                                        true,
-                                                                    emojiViewConfig:
-                                                                        EmojiViewConfig(
-                                                                      emojiSizeMax:
-                                                                          23,
-                                                                    ),
-                                                                    swapCategoryAndBottomBar:
-                                                                        false,
-                                                                    skinToneConfig:
-                                                                        const SkinToneConfig(),
-                                                                    categoryViewConfig:
-                                                                        const CategoryViewConfig(),
-                                                                    bottomActionBarConfig:
-                                                                        const BottomActionBarConfig(),
-                                                                    searchViewConfig:
-                                                                        const SearchViewConfig(),
-                                                                  ),
-                                                                );
-                                                              });
-                                                        },
-                                                      ),
-                                                      IconButton(
-                                                        onPressed: () {
-                                                          if (groupThreadStarIds
-                                                              .contains(
-                                                                  groupThreadId)) {
-                                                            try {
-                                                              GpThreadMsg().unStarThread(
-                                                                  groupThreadId,
-                                                                  widget
-                                                                      .channelID,
-                                                                  widget
-                                                                      .messageID);
-                                                            } catch (e) {
-                                                              rethrow;
-                                                            }
-                                                          } else {
-                                                            GpThreadMsg().sendStarThread(
-                                                                groupThreadId,
-                                                                widget
-                                                                    .channelID,
-                                                                widget
-                                                                    .messageID);
-                                                          }
-                                                        },
-                                                        icon: isStar
-                                                            ? Icon(
-                                                                Icons.star,
-                                                                color: Colors
-                                                                    .yellow,
-                                                              )
-                                                            : Icon(Icons
-                                                                .star_border_outlined),
+                                                                          5),
+                                                            )
+                                                          },
+                                                        ),
+                                                      if (files!.length == 1)
+                                                        singleFile
+                                                            .buildSingleFile(
+                                                                files[0],
+                                                                context,
+                                                                platform,
+                                                                fileName?.first ??
+                                                                    ''),
+                                                      if (files.length >= 2)
+                                                        mulitFile
+                                                            .buildMultipleFiles(
+                                                                files,
+                                                                platform,
+                                                                context,
+                                                                fileName ?? []),
+                                                      const SizedBox(height: 8),
+                                                      const SizedBox(height: 8),
+                                                      Text(
+                                                        createdAt,
+                                                        style: const TextStyle(
+                                                          fontSize: 10,
+                                                          color: Color.fromARGB(
+                                                              255, 15, 15, 15),
+                                                        ),
                                                       ),
                                                     ],
                                                   ),
-                                                  Row(
-                                                    children: [
-                                                      if (currentUser ==
-                                                          sendUserId)
-                                                        Row(
-                                                          children: [
-                                                            IconButton(
-                                                              onPressed: () {
-                                                                GpThreadMsg().deleteGpThread(
-                                                                    groupThreadId,
-                                                                    widget
-                                                                        .channelID,
-                                                                    widget
-                                                                        .messageID);
-                                                              },
-                                                              icon: Icon(
-                                                                Icons.delete,
-                                                                color:
-                                                                    Colors.red,
-                                                              ),
-                                                            ),
-                                                            IconButton(
-                                                                onPressed: () {
-                                                                  editTreadId =
-                                                                      groupThreadId;
-                                                                  _clearEditor();
-                                                                  setState(() {
-                                                                    isEdit =
-                                                                        true;
-                                                                  });
-                                                                  editMsg =
-                                                                      message;
-
-                                                                  if (!(editMsg
-                                                                      .contains(
-                                                                          "<br/><div class='ql-code-block'>"))) {
-                                                                    if (editMsg
-                                                                        .contains(
-                                                                            "<div class='ql-code-block'>")) {
-                                                                      editMsg = editMsg.replaceAll(
-                                                                          "<div class='ql-code-block'>",
-                                                                          "<br/><div class='ql-code-block'>");
-                                                                    }
-                                                                  }
-
-                                                                  if (!(editMsg
-                                                                      .contains(
-                                                                          "<br/><blockquote>"))) {
-                                                                    if (editMsg
-                                                                        .contains(
-                                                                            "<blockquote>")) {
-                                                                      editMsg = editMsg.replaceAll(
-                                                                          "<blockquote>",
-                                                                          "<br/><blockquote>");
-                                                                    }
-                                                                  }
-
-                                                                  insertEditText(
-                                                                      editMsg);
-                                                                  // Request focusr
-                                                                  WidgetsBinding
-                                                                      .instance
-                                                                      .addPostFrameCallback(
-                                                                          (_) {
-                                                                    _focusNode
-                                                                        .requestFocus();
-                                                                    _quilcontroller
-                                                                        .addListener(
-                                                                            _onTextChanged);
-                                                                    _quilcontroller
-                                                                        .addListener(
-                                                                            _onSelectionChanged);
-                                                                    // move cursor to end
-                                                                    final length =
-                                                                        _quilcontroller
-                                                                            .document
-                                                                            .length;
-                                                                    _quilcontroller
-                                                                        .updateSelection(
-                                                                      TextSelection.collapsed(
-                                                                          offset:
-                                                                              length),
-                                                                      ChangeSource
-                                                                          .local,
-                                                                    );
-                                                                  });
-                                                                },
-                                                                icon: const Icon(
-                                                                    Icons.edit))
-                                                          ],
-                                                        ),
-                                                    ],
-                                                  )
-                                                ],
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 300,
-                                          child: Wrap(
-                                              direction: Axis.horizontal,
-                                              spacing: 7,
-                                              children: List.generate(
-                                                  emojiCounts!.length, (index) {
-                                                List userIds = [];
-                                                List userNames = [];
-
-                                                if (emojiCounts![index]
-                                                        .groupThreadId ==
-                                                    groupThreadId) {
-                                                  for (dynamic reactUser
-                                                      in reactUserDatas!) {
-                                                    if (reactUser
-                                                                .groupThreadId ==
-                                                            emojiCounts![index]
-                                                                .groupThreadId &&
-                                                        emojiCounts![index]
-                                                                .emoji ==
-                                                            reactUser.emoji) {
-                                                      userIds.add(
-                                                          reactUser.userId);
-                                                      userNames
-                                                          .add(reactUser.name);
-                                                    }
-                                                  } //reactUser for loop end
-
-                                                  // if (userIds
-                                                  //     .contains(currentUser)) {
-                                                  //   print(
-                                                  //       'condition true================ in Thread');
-                                                  //   Container();
-                                                  // }
-                                                }
-                                                for (int i = 0;
-                                                    i < emojiCounts!.length;
-                                                    i++) {
-                                                  if (emojiCounts![i]
-                                                          .groupThreadId ==
-                                                      groupThreadId) {
-                                                    for (int j = 0;
-                                                        j <
-                                                            reactUserDatas!
-                                                                .length;
-                                                        j++) {
-                                                      if (userIds.contains(
-                                                          reactUserDatas![j]
-                                                              .userId)) {
-                                                        return Container(
-                                                          width: 50,
-                                                          height: 25,
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        16),
-                                                            border: Border.all(
-                                                              color: userIds
-                                                                      .contains(
-                                                                          currentUser)
-                                                                  ? Colors.green
-                                                                  : Colors
-                                                                      .red, // Use emojiBorderColor here
-                                                              width: 1,
-                                                            ),
-                                                            color:
-                                                                Color.fromARGB(
-                                                                    226,
-                                                                    212,
-                                                                    234,
-                                                                    250),
-                                                          ),
-                                                          padding:
-                                                              EdgeInsets.zero,
-                                                          child: TextButton(
-                                                            onPressed:
-                                                                () async {
-                                                              setState(() {
-                                                                _isEmojiSelected =
-                                                                    false;
-                                                                // groupThreadMessageID =
-                                                                //     snapshot
-                                                                //         .data!
-                                                                //         .GpThreads![
-                                                                //             index]
-                                                                //         .id!
-                                                                //         .toInt();
-                                                              });
-                                                              HapticFeedback
-                                                                  .vibrate();
-                                                              await giveThreadMsgReaction(
-                                                                selectedGpMsgId:
-                                                                    widget
-                                                                        .messageID,
-                                                                emoji:
-                                                                    emojiCounts![
-                                                                            index]
-                                                                        .emoji!,
-                                                                emojiName: "",
-                                                                threadId: emojiCounts![
-                                                                        index]
-                                                                    .groupThreadId!,
-                                                                sChannelId: widget
-                                                                    .channelID,
-                                                              );
-                                                            },
-                                                            onLongPress:
-                                                                () async {
-                                                              HapticFeedback
-                                                                  .heavyImpact();
-                                                              await showDialog(
+                                                ),
+                                                Column(
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        IconButton(
+                                                          icon: Icon(Icons
+                                                              .add_reaction_outlined),
+                                                          onPressed: () {
+                                                            showModalBottomSheet(
                                                                 context:
                                                                     context,
                                                                 builder:
                                                                     (BuildContext
                                                                         context) {
-                                                                  return SimpleDialog(
-                                                                    title:
-                                                                        Center(
-                                                                      child:
-                                                                          Text(
-                                                                        "People Who React",
-                                                                        style: TextStyle(
-                                                                            fontSize:
-                                                                                20),
+                                                                  return EmojiPicker(
+                                                                    onEmojiSelected:
+                                                                        (category,
+                                                                            Emoji
+                                                                                emoji) async {
+                                                                      setState(
+                                                                          () {
+                                                                        selectedEmoji =
+                                                                            emoji.emoji;
+                                                                        _seletedEmojiName =
+                                                                            emoji.name;
+                                                                        _isEmojiSelected =
+                                                                            true;
+                                                                      });
+
+                                                                      GpThreadMsg().groupThreadReaction(
+                                                                          threadId:
+                                                                              groupThreadId,
+                                                                          emoji:
+                                                                              selectedEmoji,
+                                                                          emojiName:
+                                                                              _seletedEmojiName,
+                                                                          selectedGpMsgId: widget
+                                                                              .messageID,
+                                                                          sChannelId:
+                                                                              widget.channelID);
+
+                                                                      Navigator.pop(
+                                                                          context);
+                                                                    },
+                                                                    config:
+                                                                        Config(
+                                                                      height: double
+                                                                          .maxFinite,
+                                                                      checkPlatformCompatibility:
+                                                                          true,
+                                                                      emojiViewConfig:
+                                                                          EmojiViewConfig(
+                                                                        emojiSizeMax:
+                                                                            23,
                                                                       ),
+                                                                      swapCategoryAndBottomBar:
+                                                                          false,
+                                                                      skinToneConfig:
+                                                                          const SkinToneConfig(),
+                                                                      categoryViewConfig:
+                                                                          const CategoryViewConfig(),
+                                                                      bottomActionBarConfig:
+                                                                          const BottomActionBarConfig(),
+                                                                      searchViewConfig:
+                                                                          const SearchViewConfig(),
                                                                     ),
-                                                                    children: [
-                                                                      SizedBox(
-                                                                        width: MediaQuery.of(context)
-                                                                            .size
-                                                                            .width,
-                                                                        child: ListView
-                                                                            .builder(
-                                                                          shrinkWrap:
-                                                                              true,
-                                                                          itemBuilder:
-                                                                              (ctx, index) {
-                                                                            return SingleChildScrollView(
-                                                                              child: SimpleDialogOption(
-                                                                                onPressed: () => Navigator.pop(context),
-                                                                                child: Center(
-                                                                                  child: Text(
-                                                                                    "${userNames[index]}さん",
-                                                                                    style: TextStyle(fontSize: 18, letterSpacing: 0.1),
+                                                                  );
+                                                                });
+                                                          },
+                                                        ),
+                                                        IconButton(
+                                                          onPressed: () {
+                                                            if (groupThreadStarIds
+                                                                .contains(
+                                                                    groupThreadId)) {
+                                                              try {
+                                                                GpThreadMsg().unStarThread(
+                                                                    groupThreadId,
+                                                                    widget
+                                                                        .channelID,
+                                                                    widget
+                                                                        .messageID);
+                                                              } catch (e) {
+                                                                rethrow;
+                                                              }
+                                                            } else {
+                                                              GpThreadMsg().sendStarThread(
+                                                                  groupThreadId,
+                                                                  widget
+                                                                      .channelID,
+                                                                  widget
+                                                                      .messageID);
+                                                            }
+                                                          },
+                                                          icon: isStar
+                                                              ? Icon(
+                                                                  Icons.star,
+                                                                  color: Colors
+                                                                      .yellow,
+                                                                )
+                                                              : Icon(Icons
+                                                                  .star_border_outlined),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    Row(
+                                                      children: [
+                                                        if (currentUser ==
+                                                            sendUserId)
+                                                          Row(
+                                                            children: [
+                                                              IconButton(
+                                                                onPressed: () {
+                                                                  GpThreadMsg().deleteGpThread(
+                                                                      groupThreadId,
+                                                                      widget
+                                                                          .channelID,
+                                                                      widget
+                                                                          .messageID);
+                                                                },
+                                                                icon: Icon(
+                                                                  Icons.delete,
+                                                                  color: Colors
+                                                                      .red,
+                                                                ),
+                                                              ),
+                                                              IconButton(
+                                                                  onPressed:
+                                                                      () {
+                                                                    editTreadId =
+                                                                        groupThreadId;
+                                                                    _clearEditor();
+                                                                    setState(
+                                                                        () {
+                                                                      isEdit =
+                                                                          true;
+                                                                    });
+                                                                    editMsg =
+                                                                        message;
+
+                                                                    if (!(editMsg
+                                                                        .contains(
+                                                                            "<br/><div class='ql-code-block'>"))) {
+                                                                      if (editMsg
+                                                                          .contains(
+                                                                              "<div class='ql-code-block'>")) {
+                                                                        editMsg = editMsg.replaceAll(
+                                                                            "<div class='ql-code-block'>",
+                                                                            "<br/><div class='ql-code-block'>");
+                                                                      }
+                                                                    }
+
+                                                                    if (!(editMsg
+                                                                        .contains(
+                                                                            "<br/><blockquote>"))) {
+                                                                      if (editMsg
+                                                                          .contains(
+                                                                              "<blockquote>")) {
+                                                                        editMsg = editMsg.replaceAll(
+                                                                            "<blockquote>",
+                                                                            "<br/><blockquote>");
+                                                                      }
+                                                                    }
+
+                                                                    insertEditText(
+                                                                        editMsg);
+                                                                    // Request focusr
+                                                                    WidgetsBinding
+                                                                        .instance
+                                                                        .addPostFrameCallback(
+                                                                            (_) {
+                                                                      _focusNode
+                                                                          .requestFocus();
+                                                                      _quilcontroller
+                                                                          .addListener(
+                                                                              _onTextChanged);
+                                                                      _quilcontroller
+                                                                          .addListener(
+                                                                              _onSelectionChanged);
+                                                                      // move cursor to end
+                                                                      final length = _quilcontroller
+                                                                          .document
+                                                                          .length;
+                                                                      _quilcontroller
+                                                                          .updateSelection(
+                                                                        TextSelection.collapsed(
+                                                                            offset:
+                                                                                length),
+                                                                        ChangeSource
+                                                                            .local,
+                                                                      );
+                                                                    });
+                                                                  },
+                                                                  icon: const Icon(
+                                                                      Icons
+                                                                          .edit))
+                                                            ],
+                                                          ),
+                                                      ],
+                                                    )
+                                                  ],
+                                                )
+                                              ],
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: 300,
+                                            child: Wrap(
+                                                direction: Axis.horizontal,
+                                                spacing: 7,
+                                                children: List.generate(
+                                                    emojiCounts!.length,
+                                                    (index) {
+                                                  List userIds = [];
+                                                  List userNames = [];
+
+                                                  if (emojiCounts![index]
+                                                          .groupThreadId ==
+                                                      groupThreadId) {
+                                                    for (dynamic reactUser
+                                                        in reactUserDatas!) {
+                                                      if (reactUser
+                                                                  .groupThreadId ==
+                                                              emojiCounts![
+                                                                      index]
+                                                                  .groupThreadId &&
+                                                          emojiCounts![index]
+                                                                  .emoji ==
+                                                              reactUser.emoji) {
+                                                        userIds.add(
+                                                            reactUser.userId);
+                                                        userNames.add(
+                                                            reactUser.name);
+                                                      }
+                                                    } //reactUser for loop end
+
+                                                    // if (userIds
+                                                    //     .contains(currentUser)) {
+                                                    //   print(
+                                                    //       'condition true================ in Thread');
+                                                    //   Container();
+                                                    // }
+                                                  }
+                                                  for (int i = 0;
+                                                      i < emojiCounts!.length;
+                                                      i++) {
+                                                    if (emojiCounts![i]
+                                                            .groupThreadId ==
+                                                        groupThreadId) {
+                                                      for (int j = 0;
+                                                          j <
+                                                              reactUserDatas!
+                                                                  .length;
+                                                          j++) {
+                                                        if (userIds.contains(
+                                                            reactUserDatas![j]
+                                                                .userId)) {
+                                                          return Container(
+                                                            width: 50,
+                                                            height: 25,
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          16),
+                                                              border:
+                                                                  Border.all(
+                                                                color: userIds.contains(
+                                                                        currentUser)
+                                                                    ? Colors
+                                                                        .green
+                                                                    : Colors
+                                                                        .red, // Use emojiBorderColor here
+                                                                width: 1,
+                                                              ),
+                                                              color: Color
+                                                                  .fromARGB(
+                                                                      226,
+                                                                      212,
+                                                                      234,
+                                                                      250),
+                                                            ),
+                                                            padding:
+                                                                EdgeInsets.zero,
+                                                            child: TextButton(
+                                                              onPressed:
+                                                                  () async {
+                                                                setState(() {
+                                                                  _isEmojiSelected =
+                                                                      false;
+                                                                });
+                                                                HapticFeedback
+                                                                    .vibrate();
+                                                                GpThreadMsg().groupThreadReaction(
+                                                                    threadId: emojiCounts![
+                                                                            index]
+                                                                        .groupThreadId!,
+                                                                    emoji: emojiCounts![
+                                                                            index]
+                                                                        .emoji!,
+                                                                    emojiName:
+                                                                        "",
+                                                                    selectedGpMsgId:
+                                                                        widget
+                                                                            .messageID,
+                                                                    sChannelId:
+                                                                        widget
+                                                                            .channelID);
+                                                              },
+                                                              onLongPress:
+                                                                  () async {
+                                                                HapticFeedback
+                                                                    .heavyImpact();
+                                                                await showDialog(
+                                                                  context:
+                                                                      context,
+                                                                  builder:
+                                                                      (BuildContext
+                                                                          context) {
+                                                                    return SimpleDialog(
+                                                                      title:
+                                                                          Center(
+                                                                        child:
+                                                                            Text(
+                                                                          "People Who React",
+                                                                          style:
+                                                                              TextStyle(fontSize: 20),
+                                                                        ),
+                                                                      ),
+                                                                      children: [
+                                                                        SizedBox(
+                                                                          width: MediaQuery.of(context)
+                                                                              .size
+                                                                              .width,
+                                                                          child:
+                                                                              ListView.builder(
+                                                                            shrinkWrap:
+                                                                                true,
+                                                                            itemBuilder:
+                                                                                (ctx, index) {
+                                                                              return SingleChildScrollView(
+                                                                                child: SimpleDialogOption(
+                                                                                  onPressed: () => Navigator.pop(context),
+                                                                                  child: Center(
+                                                                                    child: Text(
+                                                                                      "${userNames[index]}",
+                                                                                      style: TextStyle(fontSize: 18, letterSpacing: 0.1),
+                                                                                    ),
                                                                                   ),
                                                                                 ),
-                                                                              ),
-                                                                            );
-                                                                          },
-                                                                          itemCount:
-                                                                              userNames.length,
-                                                                        ),
-                                                                      )
-                                                                    ],
-                                                                  );
-                                                                },
-                                                              );
-                                                            },
-                                                            style: ButtonStyle(
-                                                              padding:
-                                                                  WidgetStateProperty.all(
-                                                                      EdgeInsets
-                                                                          .zero),
-                                                              minimumSize:
-                                                                  WidgetStateProperty
-                                                                      .all(Size(
-                                                                          50,
-                                                                          25)),
-                                                            ),
-                                                            child: Text(
-                                                              '${emojiCounts![index].emoji} ${emojiCounts![index].emojiCount}',
-                                                              style: TextStyle(
-                                                                color: Colors
-                                                                    .blueAccent,
-                                                                fontSize: 14,
+                                                                              );
+                                                                            },
+                                                                            itemCount:
+                                                                                userNames.length,
+                                                                          ),
+                                                                        )
+                                                                      ],
+                                                                    );
+                                                                  },
+                                                                );
+                                                              },
+                                                              style:
+                                                                  ButtonStyle(
+                                                                padding: WidgetStateProperty
+                                                                    .all(EdgeInsets
+                                                                        .zero),
+                                                                minimumSize:
+                                                                    WidgetStateProperty
+                                                                        .all(Size(
+                                                                            50,
+                                                                            25)),
+                                                              ),
+                                                              child: Text(
+                                                                '${emojiCounts![index].emoji} ${emojiCounts![index].emojiCount}',
+                                                                style:
+                                                                    TextStyle(
+                                                                  color: Colors
+                                                                      .blueAccent,
+                                                                  fontSize: 14,
+                                                                ),
                                                               ),
                                                             ),
-                                                          ),
-                                                        );
+                                                          );
+                                                        }
                                                       }
                                                     }
                                                   }
-                                                }
-                                                return Container();
-                                              })),
-                                        )
-                                      ],
+                                                  return Container();
+                                                })),
+                                          )
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
-                    ),
-                    if (hasFileToSEnd && files.isNotEmpty)
-                      FileDisplayWidget(files: files, platform: platform),
-
-                    Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(25),
-                                  topRight: Radius.circular(25))),
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
+                      if (hasFileToSEnd && files.isNotEmpty)
+                        FileDisplayWidget(files: files, platform: platform),
+                      Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20)),
-                            child: QuillEditor.basic(
-                              focusNode: _focusNode,
-                              configurations: QuillEditorConfigurations(
-                                minHeight: 20,
-                                maxHeight: 100,
-                                controller: _quilcontroller,
-                                placeholder: "send messages...",
-                                // readOnly: false,
-                                sharedConfigurations:
-                                    const QuillSharedConfigurations(
-                                  locale: Locale('de'),
+                                color: Colors.grey[300],
+                                borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(25),
+                                    topRight: Radius.circular(25))),
+                            child: Container(
+                              padding:
+                                  const EdgeInsets.fromLTRB(15, 10, 15, 10),
+                              decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20)),
+                              child: QuillEditor.basic(
+                                focusNode: _focusNode,
+                                configurations: QuillEditorConfigurations(
+                                  minHeight: 20,
+                                  maxHeight: 100,
+                                  controller: _quilcontroller,
+                                  placeholder: "send messages...",
+                                  // readOnly: false,
+                                  sharedConfigurations:
+                                      const QuillSharedConfigurations(
+                                    locale: Locale('de'),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        if (isCursor &&
-                            isfirstField &&
-                            isClickedTextFormat == false)
-                          Container(
-                            color: Colors.grey[300],
-                            padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                        margin: const EdgeInsets.symmetric(
-                                            horizontal: 10),
-                                        child: IconButton(
-                                            onPressed: () {
-                                              pickFiles();
-                                            },
-                                            icon: const Icon(
-                                                Icons.attach_file_outlined))),
-                                    IconButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            isfirstField = false;
-                                            isSelectText = true;
-                                            isClickedTextFormat = true;
-                                          });
-                                        },
-                                        icon: Icon(
-                                          Icons.text_format,
-                                          size: 30,
-                                          color: Colors.grey[800],
-                                        )),
-                                  ],
-                                ),
-                                if (isEdit)
+                          if (isCursor &&
+                              isfirstField &&
+                              isClickedTextFormat == false)
+                            Container(
+                              color: Colors.grey[300],
+                              padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
                                   Row(
                                     children: [
                                       Container(
-                                        width: 40,
-                                        height: 40,
-                                        margin: const EdgeInsets.fromLTRB(
-                                            0, 0, 10, 0),
-                                        decoration: BoxDecoration(
-                                            color: Colors.red,
-                                            borderRadius:
-                                                BorderRadius.circular(5)),
-                                        child: IconButton(
-                                            color: Colors.white,
-                                            onPressed: () {
-                                              // _quilcontroller.clear();
-                                              _clearEditor();
-                                              SystemChannels.textInput.invokeMethod(
-                                                  'TextInput.hide'); // Hide the keyboard
-                                              setState(() {
-                                                isEdit = false;
-                                              });
-                                            },
-                                            icon: const Icon(Icons.close)),
-                                      ),
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        margin: const EdgeInsets.fromLTRB(
-                                            0, 0, 10, 0),
-                                        decoration: BoxDecoration(
-                                            color: Colors.green,
-                                            borderRadius:
-                                                BorderRadius.circular(5)),
-                                        child: IconButton(
-                                            onPressed: () {
-                                              // for mention name
-                                              String plaintext = _quilcontroller
-                                                  .document
-                                                  .toPlainText();
-                                              List<String> currentMentions = [];
-                                              for (var i = 0;
-                                                  i < uniqueList.length;
-                                                  i++) {
-                                                if (plaintext.contains(
-                                                    uniqueList[i]["name"])) {
-                                                  currentMentions.add(
-                                                      "@${uniqueList[i]["name"]}");
-                                                }
-                                              }
-
-                                              htmlContent = detectStyles();
-
-                                              if (htmlContent.contains("<p>")) {
-                                                htmlContent = htmlContent
-                                                    .replaceAll("<p>", "");
-                                                htmlContent = htmlContent
-                                                    .replaceAll("</p>", "");
-                                              }
-
-                                              if (htmlContent
-                                                  .contains("<code>")) {
-                                                htmlContent =
-                                                    htmlContent.replaceAll(
-                                                        "<code>",
-                                                        "<span class='highlight'>");
-                                                htmlContent =
-                                                    htmlContent.replaceAll(
-                                                        "</code>", "</span>");
-                                              }
-
-                                              if (htmlContent
-                                                  .contains("<pre>")) {
-                                                htmlContent =
-                                                    htmlContent.replaceAll(
-                                                        "<pre>",
-                                                        "<div class='ql-code-block'>");
-                                                htmlContent =
-                                                    htmlContent.replaceAll(
-                                                        "</pre>", "</div>");
-                                                htmlContent = htmlContent
-                                                    .replaceAll("\n", "<br/>");
-                                              }
-
-                                              setState(() {
-                                                mentionnames.clear();
-                                                mentionnames
-                                                    .addAll(currentMentions);
-                                                isEdit = false;
-                                              });
-
-                                              editGroupThreadMessage(
-                                                  htmlContent,
-                                                  editTreadId!,
-                                                  mentionnames);
-                                              _clearEditor();
-                                              SystemChannels.textInput.invokeMethod(
-                                                  'TextInput.hide'); // Hide the keyboard
-                                            },
-                                            color: Colors.white,
-                                            icon: const Icon(Icons.check)),
-                                      ),
+                                          margin: const EdgeInsets.symmetric(
+                                              horizontal: 10),
+                                          child: IconButton(
+                                              onPressed: () {
+                                                pickFiles();
+                                              },
+                                              icon: const Icon(
+                                                  Icons.attach_file_outlined))),
+                                      IconButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              isfirstField = false;
+                                              isSelectText = true;
+                                              isClickedTextFormat = true;
+                                            });
+                                          },
+                                          icon: Icon(
+                                            Icons.text_format,
+                                            size: 30,
+                                            color: Colors.grey[800],
+                                          )),
                                     ],
-                                  )
-                                else
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    margin:
-                                        const EdgeInsets.fromLTRB(10, 0, 0, 0),
-                                    decoration: BoxDecoration(
-                                        color: const Color.fromARGB(
-                                            255, 24, 103, 167),
-                                        borderRadius: BorderRadius.circular(5)),
-                                    child: IconButton(
-                                        onPressed: () {
-                                          // for mention name
-                                          String plaintext = _quilcontroller
-                                              .document
-                                              .toPlainText();
-                                          List<String> currentMentions = [];
-                                          for (var i = 0;
-                                              i < uniqueList.length;
-                                              i++) {
-                                            if (plaintext.contains(
-                                                uniqueList[i]["name"])) {
-                                              currentMentions.add(
-                                                  "@${uniqueList[i]["name"]}");
-                                            }
-                                          }
-
-                                          htmlContent = detectStyles();
-
-                                          if (htmlContent.contains("<p>")) {
-                                            htmlContent = htmlContent
-                                                .replaceAll("<p>", "");
-                                            htmlContent = htmlContent
-                                                .replaceAll("</p>", "");
-                                          }
-
-                                          if (htmlContent.contains("<code>")) {
-                                            htmlContent =
-                                                htmlContent.replaceAll("<code>",
-                                                    "<span class='highlight'>");
-                                            htmlContent =
-                                                htmlContent.replaceAll(
-                                                    "</code>", "</span>");
-                                          }
-
-                                          if (htmlContent.contains("<pre>")) {
-                                            htmlContent = htmlContent.replaceAll(
-                                                "<pre>",
-                                                "<div class='ql-code-block'>");
-                                            htmlContent = htmlContent
-                                                .replaceAll("</pre>", "</div>");
-                                            htmlContent = htmlContent
-                                                .replaceAll("\n", "<br/>");
-                                          }
-
-                                          setState(() {
-                                            mentionnames.clear();
-                                            mentionnames
-                                                .addAll(currentMentions);
-                                            isClickedTextFormat = false;
-                                          });
-                                          _clearEditor();
-
-                                          sendGroupThreadData(
-                                              htmlContent,
-                                              widget.channelID!,
-                                              widget.messageID!,
-                                              mentionnames);
-                                        },
-                                        icon: const Icon(
-                                          Icons.send,
-                                          color: Colors.white,
-                                        )),
                                   ),
-                              ],
-                            ),
-                          ),
-                        Visibility(
-                          visible: isSelectText || isClickedTextFormat
-                              ? true
-                              : false,
-                          child: Container(
-                            color: Colors.grey[300],
-                            padding:
-                                const EdgeInsets.fromLTRB(8.0, 0, 8.0, 10.0),
-                            child: Row(
-                              children: [
-                                IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        isClickedTextFormat = false;
-                                        isSelectText = false;
-                                        isfirstField = true;
-                                      });
-                                    },
-                                    icon: const Icon(Icons.close)),
-                                Expanded(
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
+                                  if (isEdit)
+                                    Row(
                                       children: [
                                         Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 3.0),
+                                          width: 40,
+                                          height: 40,
+                                          margin: const EdgeInsets.fromLTRB(
+                                              0, 0, 10, 0),
                                           decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            color: isBold
-                                                ? Colors.grey[400]
-                                                : Colors.grey[300],
-                                          ),
-                                          child: discode
-                                              ? const IconButton(
-                                                  onPressed: null,
-                                                  icon: Icon(Icons.format_bold))
-                                              : IconButton(
-                                                  icon: const Icon(
-                                                      Icons.format_bold),
-                                                  onPressed: () {
-                                                    setState(() {
+                                              color: Colors.red,
+                                              borderRadius:
+                                                  BorderRadius.circular(5)),
+                                          child: IconButton(
+                                              color: Colors.white,
+                                              onPressed: () {
+                                                // _quilcontroller.clear();
+                                                _clearEditor();
+                                                SystemChannels.textInput
+                                                    .invokeMethod(
+                                                        'TextInput.hide'); // Hide the keyboard
+                                                setState(() {
+                                                  isEdit = false;
+                                                });
+                                              },
+                                              icon: const Icon(Icons.close)),
+                                        ),
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          margin: const EdgeInsets.fromLTRB(
+                                              0, 0, 10, 0),
+                                          decoration: BoxDecoration(
+                                              color: Colors.green,
+                                              borderRadius:
+                                                  BorderRadius.circular(5)),
+                                          child: IconButton(
+                                              onPressed: () {
+                                                // for mention name
+                                                String plaintext =
+                                                    _quilcontroller.document
+                                                        .toPlainText();
+                                                List<String> currentMentions =
+                                                    [];
+                                                for (var i = 0;
+                                                    i < uniqueList.length;
+                                                    i++) {
+                                                  if (plaintext.contains(
+                                                      uniqueList[i]["name"])) {
+                                                    currentMentions.add(
+                                                        "@${uniqueList[i]["name"]}");
+                                                  }
+                                                }
+
+                                                htmlContent = detectStyles();
+
+                                                if (htmlContent
+                                                    .contains("<p>")) {
+                                                  htmlContent = htmlContent
+                                                      .replaceAll("<p>", "");
+                                                  htmlContent = htmlContent
+                                                      .replaceAll("</p>", "");
+                                                }
+
+                                                if (htmlContent
+                                                    .contains("<code>")) {
+                                                  htmlContent =
+                                                      htmlContent.replaceAll(
+                                                          "<code>",
+                                                          "<span class='highlight'>");
+                                                  htmlContent =
+                                                      htmlContent.replaceAll(
+                                                          "</code>", "</span>");
+                                                }
+
+                                                if (htmlContent
+                                                    .contains("<pre>")) {
+                                                  htmlContent =
+                                                      htmlContent.replaceAll(
+                                                          "<pre>",
+                                                          "<div class='ql-code-block'>");
+                                                  htmlContent =
+                                                      htmlContent.replaceAll(
+                                                          "</pre>", "</div>");
+                                                  htmlContent =
+                                                      htmlContent.replaceAll(
+                                                          "\n", "<br/>");
+                                                }
+
+                                                setState(() {
+                                                  mentionnames.clear();
+                                                  mentionnames
+                                                      .addAll(currentMentions);
+                                                  isEdit = false;
+                                                });
+
+                                                GpThreadMsg()
+                                                    .editGroupThreadMessage(
+                                                        htmlContent,
+                                                        editTreadId!,
+                                                        mentionnames);
+                                                _clearEditor();
+                                                SystemChannels.textInput
+                                                    .invokeMethod(
+                                                        'TextInput.hide'); // Hide the keyboard
+                                              },
+                                              color: Colors.white,
+                                              icon: const Icon(Icons.check)),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      margin: const EdgeInsets.fromLTRB(
+                                          10, 0, 0, 0),
+                                      decoration: BoxDecoration(
+                                          color: const Color.fromARGB(
+                                              255, 24, 103, 167),
+                                          borderRadius:
+                                              BorderRadius.circular(5)),
+                                      child: IconButton(
+                                          onPressed: () {
+                                            // for mention name
+                                            String plaintext = _quilcontroller
+                                                .document
+                                                .toPlainText();
+                                            List<String> currentMentions = [];
+                                            for (var i = 0;
+                                                i < uniqueList.length;
+                                                i++) {
+                                              if (plaintext.contains(
+                                                  uniqueList[i]["name"])) {
+                                                currentMentions.add(
+                                                    "@${uniqueList[i]["name"]}");
+                                              }
+                                            }
+
+                                            htmlContent = detectStyles();
+
+                                            if (htmlContent.contains("<p>")) {
+                                              htmlContent = htmlContent
+                                                  .replaceAll("<p>", "");
+                                              htmlContent = htmlContent
+                                                  .replaceAll("</p>", "");
+                                            }
+
+                                            if (htmlContent
+                                                .contains("<code>")) {
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "<code>",
+                                                      "<span class='highlight'>");
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "</code>", "</span>");
+                                            }
+
+                                            if (htmlContent.contains("<pre>")) {
+                                              htmlContent = htmlContent.replaceAll(
+                                                  "<pre>",
+                                                  "<div class='ql-code-block'>");
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "</pre>", "</div>");
+                                              htmlContent = htmlContent
+                                                  .replaceAll("\n", "<br/>");
+                                            }
+
+                                            setState(() {
+                                              mentionnames.clear();
+                                              mentionnames
+                                                  .addAll(currentMentions);
+                                              isClickedTextFormat = false;
+                                            });
+                                            _clearEditor();
+
+                                            sendGroupThreadData(
+                                                htmlContent,
+                                                widget.channelID!,
+                                                widget.messageID!,
+                                                mentionnames);
+                                          },
+                                          icon: const Icon(
+                                            Icons.send,
+                                            color: Colors.white,
+                                          )),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          Visibility(
+                            visible: isSelectText || isClickedTextFormat
+                                ? true
+                                : false,
+                            child: Container(
+                              color: Colors.grey[300],
+                              padding:
+                                  const EdgeInsets.fromLTRB(8.0, 0, 8.0, 10.0),
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          isClickedTextFormat = false;
+                                          isSelectText = false;
+                                          isfirstField = true;
+                                        });
+                                      },
+                                      icon: const Icon(Icons.close)),
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 3.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              color: isBold
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[300],
+                                            ),
+                                            child: discode
+                                                ? const IconButton(
+                                                    onPressed: null,
+                                                    icon:
+                                                        Icon(Icons.format_bold))
+                                                : IconButton(
+                                                    icon: const Icon(
+                                                        Icons.format_bold),
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        if (isBold) {
+                                                          isBold = false;
+                                                        } else {
+                                                          isBold = true;
+                                                        }
+                                                      });
                                                       if (isBold) {
-                                                        isBold = false;
+                                                        _quilcontroller
+                                                            .formatSelection(
+                                                                quill.Attribute
+                                                                    .bold);
                                                       } else {
-                                                        isBold = true;
+                                                        _quilcontroller
+                                                            .formatSelection(quill
+                                                                    .Attribute
+                                                                .clone(
+                                                                    quill
+                                                                        .Attribute
+                                                                        .bold,
+                                                                    null));
                                                       }
-                                                    });
-                                                    if (isBold) {
-                                                      _quilcontroller
-                                                          .formatSelection(quill
-                                                              .Attribute.bold);
-                                                    } else {
+                                                    },
+                                                  ),
+                                          ),
+                                          Container(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 3.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              color: isItalic
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[300],
+                                            ),
+                                            child: discode
+                                                ? const IconButton(
+                                                    onPressed: null,
+                                                    icon: Icon(
+                                                        Icons.format_italic))
+                                                : IconButton(
+                                                    icon: const Icon(
+                                                        Icons.format_italic),
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        if (isItalic) {
+                                                          isItalic = false;
+                                                        } else {
+                                                          isItalic = true;
+                                                        }
+                                                      });
+                                                      if (isItalic) {
+                                                        _quilcontroller
+                                                            .formatSelection(
+                                                                quill.Attribute
+                                                                    .italic);
+                                                      } else {
+                                                        _quilcontroller
+                                                            .formatSelection(quill
+                                                                    .Attribute
+                                                                .clone(
+                                                                    quill
+                                                                        .Attribute
+                                                                        .italic,
+                                                                    null));
+                                                      }
+                                                    },
+                                                  ),
+                                          ),
+                                          Container(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 3.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              color: isStrike
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[300],
+                                            ),
+                                            child: discode
+                                                ? const IconButton(
+                                                    onPressed: null,
+                                                    icon: Icon(
+                                                        Icons.strikethrough_s))
+                                                : IconButton(
+                                                    icon: const Icon(
+                                                        Icons.strikethrough_s),
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        if (isStrike) {
+                                                          isStrike = false;
+                                                        } else {
+                                                          isStrike = true;
+                                                        }
+                                                      });
+                                                      if (isStrike) {
+                                                        _quilcontroller
+                                                            .formatSelection(quill
+                                                                .Attribute
+                                                                .strikeThrough);
+                                                      } else {
+                                                        _quilcontroller
+                                                            .formatSelection(quill
+                                                                    .Attribute
+                                                                .clone(
+                                                                    quill
+                                                                        .Attribute
+                                                                        .strikeThrough,
+                                                                    null));
+                                                      }
+                                                    },
+                                                  ),
+                                          ),
+                                          Container(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 3.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              color: isLink
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[300],
+                                            ),
+                                            child: discode
+                                                ? const IconButton(
+                                                    onPressed: null,
+                                                    icon: Icon(Icons.link))
+                                                : IconButton(
+                                                    icon:
+                                                        const Icon(Icons.link),
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        if (isLink) {
+                                                          isLink = false;
+                                                        } else {
+                                                          isLink = true;
+                                                          isBold = false;
+                                                          isItalic = false;
+                                                          isStrike = false;
+                                                        }
+                                                      });
+                                                      if (isLink) {
+                                                        _insertLink();
+                                                      }
                                                       _quilcontroller
                                                           .formatSelection(quill
                                                                   .Attribute
@@ -2505,42 +2634,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                                       .Attribute
                                                                       .bold,
                                                                   null));
-                                                    }
-                                                  },
-                                                ),
-                                        ),
-                                        Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 3.0),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            color: isItalic
-                                                ? Colors.grey[400]
-                                                : Colors.grey[300],
-                                          ),
-                                          child: discode
-                                              ? const IconButton(
-                                                  onPressed: null,
-                                                  icon:
-                                                      Icon(Icons.format_italic))
-                                              : IconButton(
-                                                  icon: const Icon(
-                                                      Icons.format_italic),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      if (isItalic) {
-                                                        isItalic = false;
-                                                      } else {
-                                                        isItalic = true;
-                                                      }
-                                                    });
-                                                    if (isItalic) {
-                                                      _quilcontroller
-                                                          .formatSelection(quill
-                                                              .Attribute
-                                                              .italic);
-                                                    } else {
                                                       _quilcontroller
                                                           .formatSelection(quill
                                                                   .Attribute
@@ -2549,42 +2642,6 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                                       .Attribute
                                                                       .italic,
                                                                   null));
-                                                    }
-                                                  },
-                                                ),
-                                        ),
-                                        Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 3.0),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            color: isStrike
-                                                ? Colors.grey[400]
-                                                : Colors.grey[300],
-                                          ),
-                                          child: discode
-                                              ? const IconButton(
-                                                  onPressed: null,
-                                                  icon: Icon(
-                                                      Icons.strikethrough_s))
-                                              : IconButton(
-                                                  icon: const Icon(
-                                                      Icons.strikethrough_s),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      if (isStrike) {
-                                                        isStrike = false;
-                                                      } else {
-                                                        isStrike = true;
-                                                      }
-                                                    });
-                                                    if (isStrike) {
-                                                      _quilcontroller
-                                                          .formatSelection(quill
-                                                              .Attribute
-                                                              .strikeThrough);
-                                                    } else {
                                                       _quilcontroller
                                                           .formatSelection(quill
                                                                   .Attribute
@@ -2593,565 +2650,475 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                                       .Attribute
                                                                       .strikeThrough,
                                                                   null));
-                                                    }
-                                                  },
-                                                ),
-                                        ),
-                                        Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 3.0),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            color: isLink
-                                                ? Colors.grey[400]
-                                                : Colors.grey[300],
+                                                    }),
                                           ),
-                                          child: discode
-                                              ? const IconButton(
-                                                  onPressed: null,
-                                                  icon: Icon(Icons.link))
-                                              : IconButton(
-                                                  icon: const Icon(Icons.link),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      if (isLink) {
-                                                        isLink = false;
-                                                      } else {
-                                                        isLink = true;
-                                                        isBold = false;
-                                                        isItalic = false;
-                                                        isStrike = false;
-                                                      }
-                                                    });
-                                                    if (isLink) {
-                                                      _insertLink();
-                                                    }
-                                                    _quilcontroller
-                                                        .formatSelection(quill
-                                                                .Attribute
-                                                            .clone(
-                                                                quill.Attribute
-                                                                    .bold,
-                                                                null));
-                                                    _quilcontroller
-                                                        .formatSelection(quill
-                                                                .Attribute
-                                                            .clone(
-                                                                quill.Attribute
-                                                                    .italic,
-                                                                null));
-                                                    _quilcontroller
-                                                        .formatSelection(quill
-                                                                .Attribute
-                                                            .clone(
-                                                                quill.Attribute
-                                                                    .strikeThrough,
-                                                                null));
-                                                  }),
-                                        ),
-                                        Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 3.0),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            color: isOrderList
-                                                ? Colors.grey[400]
-                                                : Colors.grey[300],
-                                          ),
-                                          child: IconButton(
-                                            icon: const Icon(
-                                                Icons.format_list_numbered),
-                                            onPressed: () {
-                                              setState(() {
+                                          Container(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 3.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              color: isOrderList
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[300],
+                                            ),
+                                            child: IconButton(
+                                              icon: const Icon(
+                                                  Icons.format_list_numbered),
+                                              onPressed: () {
                                                 setState(() {
-                                                  if (isOrderList) {
-                                                    isBlockquote = false;
-                                                    isOrderList = false;
-                                                    isUnorderList = false;
-                                                    isCodeblock = false;
-                                                  } else {
-                                                    isBlockquote = false;
-                                                    isOrderList = true;
-                                                    isUnorderList = false;
-                                                    isCodeblock = false;
-                                                    discode = false;
-                                                  }
-                                                });
-                                              });
-
-                                              if (isOrderList) {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.ol);
-                                              } else {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute.ol,
-                                                        null));
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                        Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 3.0),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            color: isUnorderList
-                                                ? Colors.grey[400]
-                                                : Colors.grey[300],
-                                          ),
-                                          child: IconButton(
-                                            icon: const Icon(
-                                                Icons.format_list_bulleted),
-                                            onPressed: () {
-                                              setState(() {
-                                                if (isUnorderList) {
-                                                  isBlockquote = false;
-                                                  isOrderList = false;
-                                                  isUnorderList = false;
-                                                  isCodeblock = false;
-                                                } else {
-                                                  isBlockquote = false;
-                                                  isOrderList = false;
-                                                  isUnorderList = true;
-                                                  isCodeblock = false;
-                                                  discode = false;
-                                                }
-                                              });
-                                              if (isUnorderList) {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.ul);
-                                              } else {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute.ul,
-                                                        null));
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                        Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 3.0),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            color: isBlockquote
-                                                ? Colors.grey[400]
-                                                : Colors.grey[300],
-                                          ),
-                                          child: IconButton(
-                                            icon: const Icon(
-                                                Icons.align_horizontal_left),
-                                            onPressed: () {
-                                              setState(() {
-                                                setState(() {
-                                                  if (isBlockquote) {
-                                                    isBlockquote = false;
-                                                    isOrderList = false;
-                                                    isUnorderList = false;
-                                                    isCodeblock = false;
-                                                  } else {
-                                                    isBlockquote = true;
-                                                    isOrderList = false;
-                                                    isUnorderList = false;
-                                                    isCodeblock = false;
-                                                    discode = false;
-                                                  }
-                                                });
-                                              });
-                                              if (isBlockquote) {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.blockQuote);
-                                              } else {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute
-                                                            .blockQuote,
-                                                        null));
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                        Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 3.0),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            color: isCode
-                                                ? Colors.grey[400]
-                                                : Colors.grey[300],
-                                          ),
-                                          child: discode
-                                              ? const IconButton(
-                                                  onPressed: null,
-                                                  icon: Icon(Icons.code))
-                                              : IconButton(
-                                                  icon: const Icon(Icons.code),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      if (isCode) {
-                                                        isCode = false;
-                                                      } else {
-                                                        isCode = true;
-                                                      }
-                                                    });
-                                                    if (isCode) {
-                                                      _quilcontroller
-                                                          .formatSelection(quill
-                                                              .Attribute
-                                                              .inlineCode);
+                                                  setState(() {
+                                                    if (isOrderList) {
+                                                      isBlockquote = false;
+                                                      isOrderList = false;
+                                                      isUnorderList = false;
+                                                      isCodeblock = false;
                                                     } else {
-                                                      _quilcontroller
-                                                          .formatSelection(quill
-                                                                  .Attribute
-                                                              .clone(
-                                                                  quill
-                                                                      .Attribute
-                                                                      .inlineCode,
-                                                                  null));
+                                                      isBlockquote = false;
+                                                      isOrderList = true;
+                                                      isUnorderList = false;
+                                                      isCodeblock = false;
+                                                      discode = false;
                                                     }
-                                                  },
-                                                ),
-                                        ),
-                                        Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 3.0),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            color: isCodeblock
-                                                ? Colors.grey[400]
-                                                : Colors.grey[300],
-                                          ),
-                                          child: IconButton(
-                                            icon: const Icon(Icons.article),
-                                            onPressed: () {
-                                              setState(() {
-                                                if (isCodeblock) {
-                                                  isBlockquote = false;
-                                                  isOrderList = false;
-                                                  isUnorderList = false;
-                                                  isCodeblock = false;
-                                                  isCode = false;
-                                                  discode = false;
+                                                  });
+                                                });
+
+                                                if (isOrderList) {
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.ol);
                                                 } else {
-                                                  isBlockquote = false;
-                                                  isOrderList = false;
-                                                  isUnorderList = false;
-                                                  isCodeblock = true;
-                                                  isCode = false;
-                                                  discode = true;
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill
+                                                                  .Attribute.ol,
+                                                              null));
                                                 }
-                                              });
-                                              if (isCodeblock) {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.codeBlock);
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute.bold,
-                                                        null));
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute.italic,
-                                                        null));
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute
-                                                            .inlineCode,
-                                                        null));
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute
-                                                            .strikeThrough,
-                                                        null));
-                                              } else {
-                                                _quilcontroller.formatSelection(
-                                                    quill.Attribute.clone(
-                                                        quill.Attribute
-                                                            .codeBlock,
-                                                        null));
-                                              }
-                                            },
+                                              },
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                          Container(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 3.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              color: isUnorderList
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[300],
+                                            ),
+                                            child: IconButton(
+                                              icon: const Icon(
+                                                  Icons.format_list_bulleted),
+                                              onPressed: () {
+                                                setState(() {
+                                                  if (isUnorderList) {
+                                                    isBlockquote = false;
+                                                    isOrderList = false;
+                                                    isUnorderList = false;
+                                                    isCodeblock = false;
+                                                  } else {
+                                                    isBlockquote = false;
+                                                    isOrderList = false;
+                                                    isUnorderList = true;
+                                                    isCodeblock = false;
+                                                    discode = false;
+                                                  }
+                                                });
+                                                if (isUnorderList) {
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.ul);
+                                                } else {
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill
+                                                                  .Attribute.ul,
+                                                              null));
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                          Container(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 3.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              color: isBlockquote
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[300],
+                                            ),
+                                            child: IconButton(
+                                              icon: const Icon(
+                                                  Icons.align_horizontal_left),
+                                              onPressed: () {
+                                                setState(() {
+                                                  setState(() {
+                                                    if (isBlockquote) {
+                                                      isBlockquote = false;
+                                                      isOrderList = false;
+                                                      isUnorderList = false;
+                                                      isCodeblock = false;
+                                                    } else {
+                                                      isBlockquote = true;
+                                                      isOrderList = false;
+                                                      isUnorderList = false;
+                                                      isCodeblock = false;
+                                                      discode = false;
+                                                    }
+                                                  });
+                                                });
+                                                if (isBlockquote) {
+                                                  _quilcontroller
+                                                      .formatSelection(quill
+                                                          .Attribute
+                                                          .blockQuote);
+                                                } else {
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill.Attribute
+                                                                  .blockQuote,
+                                                              null));
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                          Container(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 3.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              color: isCode
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[300],
+                                            ),
+                                            child: discode
+                                                ? const IconButton(
+                                                    onPressed: null,
+                                                    icon: Icon(Icons.code))
+                                                : IconButton(
+                                                    icon:
+                                                        const Icon(Icons.code),
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        if (isCode) {
+                                                          isCode = false;
+                                                        } else {
+                                                          isCode = true;
+                                                        }
+                                                      });
+                                                      if (isCode) {
+                                                        _quilcontroller
+                                                            .formatSelection(
+                                                                quill.Attribute
+                                                                    .inlineCode);
+                                                      } else {
+                                                        _quilcontroller
+                                                            .formatSelection(quill
+                                                                    .Attribute
+                                                                .clone(
+                                                                    quill
+                                                                        .Attribute
+                                                                        .inlineCode,
+                                                                    null));
+                                                      }
+                                                    },
+                                                  ),
+                                          ),
+                                          Container(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 3.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              color: isCodeblock
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[300],
+                                            ),
+                                            child: IconButton(
+                                              icon: const Icon(Icons.article),
+                                              onPressed: () {
+                                                setState(() {
+                                                  if (isCodeblock) {
+                                                    isBlockquote = false;
+                                                    isOrderList = false;
+                                                    isUnorderList = false;
+                                                    isCodeblock = false;
+                                                    isCode = false;
+                                                    discode = false;
+                                                  } else {
+                                                    isBlockquote = false;
+                                                    isOrderList = false;
+                                                    isUnorderList = false;
+                                                    isCodeblock = true;
+                                                    isCode = false;
+                                                    discode = true;
+                                                  }
+                                                });
+                                                if (isCodeblock) {
+                                                  _quilcontroller
+                                                      .formatSelection(quill
+                                                          .Attribute.codeBlock);
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill.Attribute
+                                                                  .bold,
+                                                              null));
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill.Attribute
+                                                                  .italic,
+                                                              null));
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill.Attribute
+                                                                  .inlineCode,
+                                                              null));
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill.Attribute
+                                                                  .strikeThrough,
+                                                              null));
+                                                } else {
+                                                  _quilcontroller
+                                                      .formatSelection(
+                                                          quill.Attribute.clone(
+                                                              quill.Attribute
+                                                                  .codeBlock,
+                                                              null));
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                                if (isEdit)
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        margin: const EdgeInsets.fromLTRB(
-                                            0, 0, 10, 0),
-                                        decoration: BoxDecoration(
-                                            color: Colors.red,
-                                            borderRadius:
-                                                BorderRadius.circular(5)),
-                                        child: IconButton(
-                                            color: Colors.white,
-                                            onPressed: () {
-                                              // _quilcontroller.clear();
-                                              _clearEditor();
-                                              SystemChannels.textInput.invokeMethod(
-                                                  'TextInput.hide'); // Hide the keyboard
-                                              setState(() {
-                                                isEdit = false;
-                                              });
-                                            },
-                                            icon: const Icon(Icons.close)),
-                                      ),
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        margin: const EdgeInsets.fromLTRB(
-                                            0, 0, 10, 0),
-                                        decoration: BoxDecoration(
-                                            color: Colors.green,
-                                            borderRadius:
-                                                BorderRadius.circular(5)),
-                                        child: IconButton(
-                                            onPressed: () {
-                                              // for mention name
-                                              String plaintext = _quilcontroller
-                                                  .document
-                                                  .toPlainText();
-                                              List<String> currentMentions = [];
-                                              for (var i = 0;
-                                                  i < uniqueList.length;
-                                                  i++) {
-                                                if (plaintext.contains(
-                                                    uniqueList[i]["name"])) {
-                                                  currentMentions.add(
-                                                      "@${uniqueList[i]["name"]}");
+                                  if (isEdit)
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          margin: const EdgeInsets.fromLTRB(
+                                              0, 0, 10, 0),
+                                          decoration: BoxDecoration(
+                                              color: Colors.red,
+                                              borderRadius:
+                                                  BorderRadius.circular(5)),
+                                          child: IconButton(
+                                              color: Colors.white,
+                                              onPressed: () {
+                                                // _quilcontroller.clear();
+                                                _clearEditor();
+                                                SystemChannels.textInput
+                                                    .invokeMethod(
+                                                        'TextInput.hide'); // Hide the keyboard
+                                                setState(() {
+                                                  isEdit = false;
+                                                });
+                                              },
+                                              icon: const Icon(Icons.close)),
+                                        ),
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          margin: const EdgeInsets.fromLTRB(
+                                              0, 0, 10, 0),
+                                          decoration: BoxDecoration(
+                                              color: Colors.green,
+                                              borderRadius:
+                                                  BorderRadius.circular(5)),
+                                          child: IconButton(
+                                              onPressed: () {
+                                                // for mention name
+                                                String plaintext =
+                                                    _quilcontroller.document
+                                                        .toPlainText();
+                                                List<String> currentMentions =
+                                                    [];
+                                                for (var i = 0;
+                                                    i < uniqueList.length;
+                                                    i++) {
+                                                  if (plaintext.contains(
+                                                      uniqueList[i]["name"])) {
+                                                    currentMentions.add(
+                                                        "@${uniqueList[i]["name"]}");
+                                                  }
                                                 }
+
+                                                htmlContent = detectStyles();
+
+                                                if (htmlContent
+                                                    .contains("<p>")) {
+                                                  htmlContent = htmlContent
+                                                      .replaceAll("<p>", "");
+                                                  htmlContent = htmlContent
+                                                      .replaceAll("</p>", "");
+                                                }
+
+                                                if (htmlContent
+                                                    .contains("<code>")) {
+                                                  htmlContent =
+                                                      htmlContent.replaceAll(
+                                                          "<code>",
+                                                          "<span class='highlight'>");
+                                                  htmlContent =
+                                                      htmlContent.replaceAll(
+                                                          "</code>", "</span>");
+                                                }
+
+                                                if (htmlContent
+                                                    .contains("<pre>")) {
+                                                  htmlContent =
+                                                      htmlContent.replaceAll(
+                                                          "<pre>",
+                                                          "<div class='ql-code-block'>");
+                                                  htmlContent =
+                                                      htmlContent.replaceAll(
+                                                          "</pre>", "</div>");
+                                                  htmlContent =
+                                                      htmlContent.replaceAll(
+                                                          "\n", "<br/>");
+                                                }
+
+                                                setState(() {
+                                                  mentionnames.clear();
+                                                  mentionnames
+                                                      .addAll(currentMentions);
+                                                  isEdit = false;
+                                                });
+
+                                                GpThreadMsg()
+                                                    .editGroupThreadMessage(
+                                                        htmlContent,
+                                                        editTreadId!,
+                                                        mentionnames);
+                                                _clearEditor();
+                                                SystemChannels.textInput
+                                                    .invokeMethod(
+                                                        'TextInput.hide'); // Hide the keyboard
+                                              },
+                                              color: Colors.white,
+                                              icon: const Icon(Icons.check)),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      margin: const EdgeInsets.fromLTRB(
+                                          10, 0, 0, 0),
+                                      decoration: BoxDecoration(
+                                          color: const Color.fromARGB(
+                                              255, 24, 103, 167),
+                                          borderRadius:
+                                              BorderRadius.circular(5)),
+                                      child: IconButton(
+                                          onPressed: () {
+                                            // for mention name
+                                            String plaintext = _quilcontroller
+                                                .document
+                                                .toPlainText();
+                                            List<String> currentMentions = [];
+                                            for (var i = 0;
+                                                i < uniqueList.length;
+                                                i++) {
+                                              if (plaintext.contains(
+                                                  uniqueList[i]["name"])) {
+                                                currentMentions.add(
+                                                    "@${uniqueList[i]["name"]}");
                                               }
-
-                                              htmlContent = detectStyles();
-
-                                              if (htmlContent.contains("<p>")) {
-                                                htmlContent = htmlContent
-                                                    .replaceAll("<p>", "");
-                                                htmlContent = htmlContent
-                                                    .replaceAll("</p>", "");
-                                              }
-
-                                              if (htmlContent
-                                                  .contains("<code>")) {
-                                                htmlContent =
-                                                    htmlContent.replaceAll(
-                                                        "<code>",
-                                                        "<span class='highlight'>");
-                                                htmlContent =
-                                                    htmlContent.replaceAll(
-                                                        "</code>", "</span>");
-                                              }
-
-                                              if (htmlContent
-                                                  .contains("<pre>")) {
-                                                htmlContent =
-                                                    htmlContent.replaceAll(
-                                                        "<pre>",
-                                                        "<div class='ql-code-block'>");
-                                                htmlContent =
-                                                    htmlContent.replaceAll(
-                                                        "</pre>", "</div>");
-                                                htmlContent = htmlContent
-                                                    .replaceAll("\n", "<br/>");
-                                              }
-
-                                              setState(() {
-                                                mentionnames.clear();
-                                                mentionnames
-                                                    .addAll(currentMentions);
-                                                isEdit = false;
-                                              });
-
-                                              editGroupThreadMessage(
-                                                  htmlContent,
-                                                  editTreadId!,
-                                                  mentionnames);
-                                              _clearEditor();
-                                              SystemChannels.textInput.invokeMethod(
-                                                  'TextInput.hide'); // Hide the keyboard
-                                            },
-                                            color: Colors.white,
-                                            icon: const Icon(Icons.check)),
-                                      ),
-                                    ],
-                                  )
-                                else
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    margin:
-                                        const EdgeInsets.fromLTRB(10, 0, 0, 0),
-                                    decoration: BoxDecoration(
-                                        color: const Color.fromARGB(
-                                            255, 24, 103, 167),
-                                        borderRadius: BorderRadius.circular(5)),
-                                    child: IconButton(
-                                        onPressed: () {
-                                          // for mention name
-                                          String plaintext = _quilcontroller
-                                              .document
-                                              .toPlainText();
-                                          List<String> currentMentions = [];
-                                          for (var i = 0;
-                                              i < uniqueList.length;
-                                              i++) {
-                                            if (plaintext.contains(
-                                                uniqueList[i]["name"])) {
-                                              currentMentions.add(
-                                                  "@${uniqueList[i]["name"]}");
                                             }
-                                          }
 
-                                          htmlContent = detectStyles();
+                                            htmlContent = detectStyles();
 
-                                          if (htmlContent.contains("<p>")) {
-                                            htmlContent = htmlContent
-                                                .replaceAll("<p>", "");
-                                            htmlContent = htmlContent
-                                                .replaceAll("</p>", "");
-                                          }
+                                            if (htmlContent.contains("<p>")) {
+                                              htmlContent = htmlContent
+                                                  .replaceAll("<p>", "");
+                                              htmlContent = htmlContent
+                                                  .replaceAll("</p>", "");
+                                            }
 
-                                          if (htmlContent.contains("<code>")) {
-                                            htmlContent =
-                                                htmlContent.replaceAll("<code>",
-                                                    "<span class='highlight'>");
-                                            htmlContent =
-                                                htmlContent.replaceAll(
-                                                    "</code>", "</span>");
-                                          }
+                                            if (htmlContent
+                                                .contains("<code>")) {
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "<code>",
+                                                      "<span class='highlight'>");
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "</code>", "</span>");
+                                            }
 
-                                          if (htmlContent.contains("<pre>")) {
-                                            htmlContent = htmlContent.replaceAll(
-                                                "<pre>",
-                                                "<div class='ql-code-block'>");
-                                            htmlContent = htmlContent
-                                                .replaceAll("</pre>", "</div>");
-                                            htmlContent = htmlContent
-                                                .replaceAll("\n", "<br/>");
-                                          }
+                                            if (htmlContent.contains("<pre>")) {
+                                              htmlContent = htmlContent.replaceAll(
+                                                  "<pre>",
+                                                  "<div class='ql-code-block'>");
+                                              htmlContent =
+                                                  htmlContent.replaceAll(
+                                                      "</pre>", "</div>");
+                                              htmlContent = htmlContent
+                                                  .replaceAll("\n", "<br/>");
+                                            }
 
-                                          setState(() {
-                                            mentionnames.clear();
-                                            mentionnames
-                                                .addAll(currentMentions);
-                                            isClickedTextFormat = false;
-                                          });
-                                          _clearEditor();
+                                            setState(() {
+                                              mentionnames.clear();
+                                              mentionnames
+                                                  .addAll(currentMentions);
+                                              isClickedTextFormat = false;
+                                            });
+                                            _clearEditor();
 
-                                          sendGroupThreadData(
-                                              htmlContent,
-                                              widget.channelID!,
-                                              widget.messageID!,
-                                              mentionnames);
-                                        },
-                                        icon: const Icon(
-                                          Icons.send,
-                                          color: Colors.white,
-                                        )),
-                                  ),
-                              ],
+                                            sendGroupThreadData(
+                                                htmlContent,
+                                                widget.channelID!,
+                                                widget.messageID!,
+                                                mentionnames);
+                                          },
+                                          icon: const Icon(
+                                            Icons.send,
+                                            color: Colors.white,
+                                          )),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ]),
+                    if (showScrollButton)
+                      Positioned(
+                        bottom: isCursor ? 120 : 60,
+                        left: 145,
+                        child: IconButton(
+                          onPressed: () {
+                            _scrollToBottom();
+                            setState(() {
+                              showScrollButton = false;
+                            });
+                          },
+                          icon: const CircleAvatar(
+                            backgroundColor: Color.fromARGB(117, 0, 0, 0),
+                            radius: 25,
+                            child: Icon(
+                              Icons.arrow_downward,
+                              color: Colors.white,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-
-                    // Padding(
-                    //   padding: const EdgeInsets.all(8.0),
-                    //   child: FlutterMentions(
-                    //     key: key,
-                    //     suggestionPosition: SuggestionPosition.Top,
-                    //     maxLines: 3,
-                    //     minLines: 1,
-                    //     decoration: InputDecoration(
-                    //         hintText: 'send threads',
-                    //         suffixIcon: Row(
-                    //           mainAxisSize: MainAxisSize.min,
-                    //           children: [
-                    //             GestureDetector(
-                    //               onTap: () {
-                    //                 pickFiles();
-                    //               },
-                    //               child: const Icon(
-                    //                 Icons.attach_file_outlined,
-                    //                 size: 35,
-                    //               ),
-                    //             ),
-                    //             GestureDetector(
-                    //                 onTap: () {
-                    //                   // _sendGpThread();
-                    //                   String groupThreadName = key
-                    //                       .currentState!.controller!.text
-                    //                       .trimRight();
-                    //                   int? channel_id = widget.channelID;
-
-                    //                   String mentionName = " ";
-                    //                   List<String> userSearchItems = [];
-                    //                   mention.forEach((data) {
-                    //                     if (groupThreadName.contains(
-                    //                         '@${data['display']}')) {
-                    //                       mentionName = '@${data['display']}';
-
-                    //                       userSearchItems.add(mentionName);
-                    //                     }
-                    //                   });
-
-                    //                   sendGroupThreadData(
-                    //                       groupThreadName,
-                    //                       channel_id!,
-                    //                       widget.messageID!,
-                    //                       userSearchItems);
-                    //                   key.currentState!.controller!.text =
-                    //                       " ";
-                    //                 },
-                    //                 child: Icon(
-                    //                   Icons.telegram,
-                    //                   color: Colors.blue,
-                    //                   size: 35,
-                    //                 ))
-                    //           ],
-                    //         )),
-                    //     mentions: [
-                    //       Mention(
-                    //           trigger: '@',
-                    //           style: TextStyle(
-                    //             color: Colors.blue,
-                    //           ),
-                    //           data: mention,
-                    //           matchAll: false,
-                    //           suggestionBuilder: (data) {
-                    //             return Container(
-                    //               padding: EdgeInsets.all(10.0),
-                    //               child: Row(
-                    //                 children: <Widget>[
-                    //                   SizedBox(
-                    //                     width: 20.0,
-                    //                   ),
-                    //                   Column(
-                    //                     children: <Widget>[
-                    //                       //  Text(data['display']),
-                    //                       Text('@${data['display']}'),
-                    //                     ],
-                    //                   )
-                    //                 ],
-                    //               ),
-                    //             );
-                    //           }),
-                    //     ],
-                    //   ),
-                    // )
+                      )
                   ])));
     } else {
       return CustomLogOut();

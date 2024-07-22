@@ -47,7 +47,6 @@ class _GroupStarState extends State<GroupStarWidget> {
     } else {
       platform = TargetPlatform.iOS;
     }
-    refreshFuture = _fetchData();
   }
 
   Future<void> _fetchData() async {
