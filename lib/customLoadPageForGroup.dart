@@ -20,26 +20,28 @@ class ShimmerGroup extends StatelessWidget {
           baseColor: navColor.withOpacity(0.7),
           highlightColor: navColor.withOpacity(0.5),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Container(
                 width: 40,
-                height: 40,
+                height: 10,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8.0),
                 ),
               ),
               const SizedBox(width: 10),
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  vertical: 8.0,
-                  horizontal: 16.0,
-                ),
-                width: 200,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.0),
+              Flexible(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 16.0,
+                  ),
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
                 ),
               ),
             ],
