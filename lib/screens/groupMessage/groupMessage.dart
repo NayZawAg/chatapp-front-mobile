@@ -401,6 +401,34 @@ class _GroupMessage extends State<GroupMessage> with RouteAware {
                     element.name == reactUserInfo &&
                     element.userid == userId);
               });
+            } else if (messageContent.containsKey('update_group_message')) {
+              var msg = messageContent['update_group_message'];
+              var groupMessage = msg['groupmsg'];
+              int id = msg['id'];
+              var date = msg['created_at'];
+              int mUserId = msg['m_user_id'];
+              List<dynamic> fileUrls = [];
+              List<dynamic> fileName = [];
+              String senduser = messageContent['sender_name'];
+              String? profileImage = messageContent['profile_image'];
+
+              tGroupMessages!.removeWhere((e) => e.id == id);
+              setState(() {
+                tGroupMessages!.add(TGroupMessages(
+                    createdAt: date,
+                    fileUrls: fileUrls,
+                    groupmsg: groupMessage,
+                    id: id,
+                    sendUserId: mUserId,
+                    name: senduser,
+                    profileName: profileImage,
+                    fileName: fileName));
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (isMessaging == false) {
+                    _scrollToBottom();
+                  }
+                });
+              });
             } else {
               var deletemsg = messageContent['delete_msg'];
               int id = deletemsg['id'];
