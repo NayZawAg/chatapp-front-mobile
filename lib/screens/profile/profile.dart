@@ -13,6 +13,10 @@ import 'package:flutter_frontend/services/userservice/profile_upload/profile_upl
 import 'package:image_cropper/image_cropper.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'dart:io';
+import 'package:image/image.dart' as img;
+
 class Profile extends StatefulWidget {
   final String currentUserWorkspace;
   const Profile({super.key, required this.currentUserWorkspace});
@@ -27,6 +31,8 @@ class _ProfileState extends State<Profile> {
   String? currentUserProfileImage;
   bool isLoading = false;
   int? currentUserId = SessionStore.sessionData!.currentUser!.id;
+  int? imageWidth;
+  int? imageHeight;
 
   final ProfileUploadApi profileUploadApi = ProfileUploadApi();
 
@@ -83,32 +89,55 @@ class _ProfileState extends State<Profile> {
       } else {
         File? croppedFile = await _cropImage(result.files.first);
         if (croppedFile != null) {
-          setState(() {
-            isLoading = true;
-          });
-          PlatformFile file = PlatformFile(
-            path: croppedFile.path,
-            name: result.files.first.name,
-            size: croppedFile.lengthSync(),
-          );
-          ProfileImage profileImage =
-              await profileUploadApi.uploadProfileImage(file);
-          await Future.delayed(const Duration(seconds: 5));
+          File secfile = File(croppedFile.path);
+          await _getImageSize(secfile);
 
-          setState(() {
-            currentUserProfileImage = profileImage.profileImage;
-            if (kIsWeb) {
+          if (imageWidth! <= 500 && imageHeight! <= 500) {
+            setState(() {
+              isLoading = true;
+            });
+            PlatformFile file = PlatformFile(
+              path: croppedFile.path,
+              name: result.files.first.name,
+              size: croppedFile.lengthSync(),
+            );
+            ProfileImage profileImage =
+                await profileUploadApi.uploadProfileImage(file);
+            await Future.delayed(const Duration(seconds: 5));
+
+            setState(() {
               currentUserProfileImage = profileImage.profileImage;
-            } else {
-              currentUserProfileImage = MinioToIP.replaceMinioWithIP(
-                  currentUserProfileImage!, ipAddressForMinio);
-              SessionStore.sessionData?.currentUser?.imageUrl =
-                  currentUserProfileImage;
-            }
-            isLoading = false;
-          });
+              if (kIsWeb) {
+                currentUserProfileImage = profileImage.profileImage;
+              } else {
+                currentUserProfileImage = MinioToIP.replaceMinioWithIP(
+                    currentUserProfileImage!, ipAddressForMinio);
+                SessionStore.sessionData?.currentUser?.imageUrl =
+                    currentUserProfileImage;
+              }
+              isLoading = false;
+            });
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text(
+                'The uploaded file likely exceeded the maximum width(500px) and height(500px) that this server supports.',
+              ),
+              backgroundColor: Color.fromARGB(255, 216, 40, 28),
+              duration: Duration(seconds: 5),
+            ));
+          }
         }
       }
+    }
+  }
+
+  Future<void> _getImageSize(File file) async {
+    final bytes = await file.readAsBytes();
+    final image = img.decodeImage(bytes);
+
+    if (image != null) {
+      imageWidth = image.width;
+      imageHeight = image.height;
     }
   }
 
