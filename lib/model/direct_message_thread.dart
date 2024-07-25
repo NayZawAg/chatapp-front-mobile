@@ -5,6 +5,8 @@ class DirectMessageThread {
   String? senderName;
   List<EmojiCountsforDirectThread>? emojiCounts;
   List<ReactUserDataForDirectThread>? reactUserDatas;
+  List<ReactUserDataForDirectMessage>? directReactUserDatas;
+  List<EmojiCountsforDirectMessage>? directEmojiCounts;
   DirectMessageThread(
       {this.tDirectMessage,
       this.tDirectThreads,
@@ -37,6 +39,21 @@ class DirectMessageThread {
       reactUserDatas = <ReactUserDataForDirectThread>[];
       json["react_usernames"].forEach((v) {
         reactUserDatas!.add(new ReactUserDataForDirectThread.fromJson(v));
+      });
+    }
+
+    if (json["t_direct_msg_emojiscounts"] != null) {
+      directEmojiCounts = <EmojiCountsforDirectMessage>[];
+      json["t_direct_msg_emojiscounts"].forEach((v) {
+        directEmojiCounts!.add(new EmojiCountsforDirectMessage.fromJson(v));
+      });
+    }
+
+    if (json["direct_react_usernames"] != null) {
+      directReactUserDatas = <ReactUserDataForDirectMessage>[];
+      json["direct_react_usernames"].forEach((v) {
+        directReactUserDatas!
+            .add(new ReactUserDataForDirectMessage.fromJson(v));
       });
     }
   }
@@ -191,6 +208,55 @@ class ReactUserDataForDirectThread {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['name'] = name;
     data['directthreadid'] = directThreadId;
+    data['emoji'] = emoji;
+    data['userid'] = userId;
+    return data;
+  }
+}
+
+class EmojiCountsforDirectMessage {
+  int? directmsgid;
+  String? directemoji;
+  int? directemojiCounts;
+
+  EmojiCountsforDirectMessage(
+      {this.directmsgid, this.directemoji, this.directemojiCounts});
+
+  EmojiCountsforDirectMessage.fromJson(Map<String, dynamic> json) {
+    directmsgid = json['directmsgid'];
+    directemoji = json['emoji'];
+    directemojiCounts = json['emoji_count'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['directmsgid'] = directmsgid;
+    data['emoji'] = directemoji;
+    data['emoji_count'] = directemojiCounts;
+    return data;
+  }
+}
+
+class ReactUserDataForDirectMessage {
+  String? name;
+  int? directMessageId;
+  String? emoji;
+  int? userId;
+
+  ReactUserDataForDirectMessage(
+      {this.name, this.directMessageId, this.emoji, this.userId});
+
+  ReactUserDataForDirectMessage.fromJson(Map<String, dynamic> json) {
+    name = json['name'];
+    directMessageId = json['directmsgid'];
+    emoji = json['emoji'];
+    userId = json['userid'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['directmsgid'] = directMessageId;
     data['emoji'] = emoji;
     data['userid'] = userId;
     return data;

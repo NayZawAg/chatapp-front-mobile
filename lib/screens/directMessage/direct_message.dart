@@ -380,6 +380,31 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                     user.directmsgid == directmsgid &&
                     user.name == reactUserInfo);
               });
+            } else if (messageContent.containsKey('update_message')) {
+              var updatemsg = messageContent['update_message'];
+              var directmsg = updatemsg['directmsg'];
+
+              int id = updatemsg['id'];
+              var date = updatemsg['created_at'];
+              String send = messageContent['sender_name'];
+              List<dynamic> fileUrls = [];
+              List<dynamic> fileName = [];
+
+              tDirectMessages!.removeWhere((e) => e.id == updatemsg['id']);
+              setState(() {
+                tDirectMessages!.add(TDirectMessages(
+                    id: id,
+                    directmsg: directmsg,
+                    createdAt: date,
+                    name: send,
+                    fileUrls: fileUrls,
+                    fileName: fileName));
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (isMessaging == false) {
+                    _scrollToBottom();
+                  }
+                });
+              });
             } else {
               var deletemsg = messageContent['delete_msg'];
               var id = deletemsg['id'];
@@ -939,8 +964,11 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
           case 'code':
             newAttributes['code'] = true;
             break;
+          case 'span':
+            newAttributes['code'] = true;
+            break;
           case 'p':
-            if (node.nodes.isNotEmpty && node.nodes.last is html_dom.Text) {
+            if (node.nodes.isNotEmpty) {
               node.append(html_dom.Element.tag('br'));
             }
             for (var child in node.nodes) {
@@ -1000,6 +1028,26 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
               discode = true;
             });
             return;
+          case "div":
+            for (var child in node.nodes) {
+              if (child.text!.isNotEmpty) {
+                if (child.text!.contains("\n")) {
+                  List txtlist = child.text!.split("\n");
+                  for (var txt in txtlist) {
+                    delta.insert(txt, {});
+                    delta.insert("\n", {'code-block': true});
+                  }
+                } else {
+                  delta.insert(child.text, {});
+                  delta.insert("\n", {'code-block': true});
+                }
+              }
+            }
+            setState(() {
+              isCodeblock = true;
+              discode = true;
+            });
+            return;
           case 'br':
             delta.insert('\n');
             return;
@@ -1024,6 +1072,7 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
       parseNode(node, {});
     }
 
+    // Ensure the last block ends with a newline
     if (delta.length > 0 && !(delta.last.data as String).endsWith('\n')) {
       delta.insert('\n');
     }
@@ -1346,6 +1395,32 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                               });
                                                               editMsg = message;
 
+                                                              if (!(editMsg
+                                                                  .contains(
+                                                                      "<br/><div class='ql-code-block'>"))) {
+                                                                if (editMsg
+                                                                    .contains(
+                                                                        "<div class='ql-code-block'>")) {
+                                                                  editMsg = editMsg
+                                                                      .replaceAll(
+                                                                          "<div class='ql-code-block'>",
+                                                                          "<br/><div class='ql-code-block'>");
+                                                                }
+                                                              }
+
+                                                              if (!(editMsg
+                                                                  .contains(
+                                                                      "<br/><blockquote>"))) {
+                                                                if (editMsg
+                                                                    .contains(
+                                                                        "<blockquote>")) {
+                                                                  editMsg = editMsg
+                                                                      .replaceAll(
+                                                                          "<blockquote>",
+                                                                          "<br/><blockquote>");
+                                                                }
+                                                              }
+
                                                               insertEditText(
                                                                   editMsg);
                                                               // Request focusr
@@ -1414,6 +1489,40 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                       flutter_html.Html(
                                                         data: message,
                                                         style: {
+                                                          ".ql-code-block": flutter_html.Style(
+                                                              backgroundColor:
+                                                                  Colors.grey[
+                                                                      300],
+                                                              padding: flutter_html
+                                                                      .HtmlPaddings
+                                                                  .symmetric(
+                                                                      horizontal:
+                                                                          10,
+                                                                      vertical:
+                                                                          5),
+                                                              margin: flutter_html
+                                                                      .Margins
+                                                                  .symmetric(
+                                                                      vertical:
+                                                                          7)),
+                                                          ".highlight":
+                                                              flutter_html
+                                                                  .Style(
+                                                            display: flutter_html
+                                                                .Display
+                                                                .inlineBlock,
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .grey[300],
+                                                            color: Colors.red,
+                                                            padding: flutter_html
+                                                                    .HtmlPaddings
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        10,
+                                                                    vertical:
+                                                                        5),
+                                                          ),
                                                           "blockquote":
                                                               flutter_html
                                                                   .Style(
@@ -1755,6 +1864,40 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                       flutter_html.Html(
                                                         data: message,
                                                         style: {
+                                                          ".ql-code-block": flutter_html.Style(
+                                                              backgroundColor:
+                                                                  Colors.grey[
+                                                                      300],
+                                                              padding: flutter_html
+                                                                      .HtmlPaddings
+                                                                  .symmetric(
+                                                                      horizontal:
+                                                                          10,
+                                                                      vertical:
+                                                                          5),
+                                                              margin: flutter_html
+                                                                      .Margins
+                                                                  .symmetric(
+                                                                      vertical:
+                                                                          7)),
+                                                          ".highlight":
+                                                              flutter_html
+                                                                  .Style(
+                                                            display: flutter_html
+                                                                .Display
+                                                                .inlineBlock,
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .grey[300],
+                                                            color: Colors.red,
+                                                            padding: flutter_html
+                                                                    .HtmlPaddings
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        10,
+                                                                    vertical:
+                                                                        5),
+                                                          ),
                                                           "blockquote":
                                                               flutter_html
                                                                   .Style(
@@ -2295,6 +2438,7 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                   'TextInput.hide'); // Hide the keyboard
                                               setState(() {
                                                 isEdit = false;
+                                                isClickedTextFormat = false;
                                               });
                                             },
                                             icon: const Icon(Icons.close)),
@@ -2320,8 +2464,33 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                     .replaceAll("</p>", "");
                                               }
 
+                                              if (htmlContent
+                                                  .contains("<code>")) {
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "<code>",
+                                                        "<span class='highlight'>");
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "</code>", "</span>");
+                                              }
+
+                                              if (htmlContent
+                                                  .contains("<pre>")) {
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "<pre>",
+                                                        "<div class='ql-code-block'>");
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "</pre>", "</div>");
+                                                htmlContent = htmlContent
+                                                    .replaceAll("\n", "<br/>");
+                                              }
+
                                               setState(() {
                                                 isEdit = false;
+                                                isClickedTextFormat = false;
                                               });
 
                                               directMessageService
@@ -2354,6 +2523,25 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                 .replaceAll("<p>", "");
                                             htmlContent = htmlContent
                                                 .replaceAll("</p>", "");
+                                          }
+
+                                          if (htmlContent.contains("<code>")) {
+                                            htmlContent =
+                                                htmlContent.replaceAll("<code>",
+                                                    "<span class='highlight'>");
+                                            htmlContent =
+                                                htmlContent.replaceAll(
+                                                    "</code>", "</span>");
+                                          }
+
+                                          if (htmlContent.contains("<pre>")) {
+                                            htmlContent = htmlContent.replaceAll(
+                                                "<pre>",
+                                                "<div class='ql-code-block'>");
+                                            htmlContent = htmlContent
+                                                .replaceAll("</pre>", "</div>");
+                                            htmlContent = htmlContent
+                                                .replaceAll("\n", "<br/>");
                                           }
 
                                           setState() {
@@ -2833,6 +3021,7 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                   'TextInput.hide'); // Hide the keyboard
                                               setState(() {
                                                 isEdit = false;
+                                                isClickedTextFormat = false;
                                               });
                                             },
                                             icon: const Icon(Icons.close)),
@@ -2858,8 +3047,33 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                     .replaceAll("</p>", "");
                                               }
 
+                                              if (htmlContent
+                                                  .contains("<code>")) {
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "<code>",
+                                                        "<span class='highlight'>");
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "</code>", "</span>");
+                                              }
+
+                                              if (htmlContent
+                                                  .contains("<pre>")) {
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "<pre>",
+                                                        "<div class='ql-code-block'>");
+                                                htmlContent =
+                                                    htmlContent.replaceAll(
+                                                        "</pre>", "</div>");
+                                                htmlContent = htmlContent
+                                                    .replaceAll("\n", "<br/>");
+                                              }
+
                                               setState(() {
                                                 isEdit = false;
+                                                isClickedTextFormat = false;
                                               });
 
                                               directMessageService
@@ -2892,6 +3106,25 @@ class _DirectMessageWidgetState extends State<DirectMessageWidget> {
                                                 .replaceAll("<p>", "");
                                             htmlContent = htmlContent
                                                 .replaceAll("</p>", "");
+                                          }
+
+                                          if (htmlContent.contains("<code>")) {
+                                            htmlContent =
+                                                htmlContent.replaceAll("<code>",
+                                                    "<span class='highlight'>");
+                                            htmlContent =
+                                                htmlContent.replaceAll(
+                                                    "</code>", "</span>");
+                                          }
+
+                                          if (htmlContent.contains("<pre>")) {
+                                            htmlContent = htmlContent.replaceAll(
+                                                "<pre>",
+                                                "<div class='ql-code-block'>");
+                                            htmlContent = htmlContent
+                                                .replaceAll("</pre>", "</div>");
+                                            htmlContent = htmlContent
+                                                .replaceAll("\n", "<br/>");
                                           }
 
                                           setState() {

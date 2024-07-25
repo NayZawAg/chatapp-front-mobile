@@ -441,6 +441,35 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                     element.emoji == emoji &&
                     element.name == reactUserInfo);
               });
+            } else if (messageContent.containsKey('update_group_thread')) {
+              var msg = messageContent['update_group_thread'];
+
+              var groupThreadMessage = msg['groupthreadmsg'];
+              int id = msg['id'];
+              var date = msg['created_at'];
+              int mUserId = msg['m_user_id'];
+              List<dynamic> fileUrls = [];
+              List<dynamic>? fileNames = [];
+              String name = messageContent['sender_name'];
+              String? profileName = messageContent['profile_image'];
+
+              groupThreadData!.removeWhere((e) => e.id == id);
+              setState(() {
+                groupThreadData?.add(gpThreads(
+                    id: id,
+                    groupthreadmsg: groupThreadMessage,
+                    created_at: date,
+                    sendUserId: mUserId,
+                    name: name,
+                    fileUrls: fileUrls,
+                    fileName: fileNames,
+                    profileName: profileName));
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (isMessaging == false) {
+                    _scrollToBottom();
+                  }
+                });
+              });
             } else {
               var deletemsg = messageContent['delete_msg'];
               int id = deletemsg['id'];
@@ -1024,8 +1053,11 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
           case 'code':
             newAttributes['code'] = true;
             break;
+          case 'span':
+            newAttributes['code'] = true;
+            break;
           case 'p':
-            if (node.nodes.isNotEmpty && node.nodes.last is html_dom.Text) {
+            if (node.nodes.isNotEmpty) {
               node.append(html_dom.Element.tag('br'));
             }
             for (var child in node.nodes) {
@@ -1085,6 +1117,26 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
               discode = true;
             });
             return;
+          case "div":
+            for (var child in node.nodes) {
+              if (child.text!.isNotEmpty) {
+                if (child.text!.contains("\n")) {
+                  List txtlist = child.text!.split("\n");
+                  for (var txt in txtlist) {
+                    delta.insert(txt, {});
+                    delta.insert("\n", {'code-block': true});
+                  }
+                } else {
+                  delta.insert(child.text, {});
+                  delta.insert("\n", {'code-block': true});
+                }
+              }
+            }
+            setState(() {
+              isCodeblock = true;
+              discode = true;
+            });
+            return;
           case 'br':
             delta.insert('\n');
             return;
@@ -1106,12 +1158,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     }
 
     for (var node in document.body!.nodes) {
-      // if (node.toString().contains('"')) {
-      //   parseNode(node, {});
-      //   delta.insert("\n");
-      // } else {
       parseNode(node, {});
-      // }
     }
 
     // Ensure the last block ends with a newline
@@ -1150,9 +1197,9 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
 
     return OverlayEntry(
       builder: (context) => Positioned(
-        left: 60,
-        top: 150,
-        width: 300,
+        left: 20,
+        top: 200,
+        width: 380,
         height: 250,
         child: Material(
           elevation: 4.0,
@@ -1161,7 +1208,7 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
             child: Column(
               children: [
                 Container(
-                  width: 300,
+                  width: 380,
                   height: 20,
                   decoration: BoxDecoration(
                     color: Colors.blue[800],
@@ -1181,9 +1228,21 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                         Icons.person,
                         color: Colors.grey[300],
                       ),
-                      title: Text(user),
+                      title: Row(
+                        children: [
+                          Text(user["name"]),
+                          SizedBox(width: 15),
+                          Icon(
+                            Icons.circle,
+                            size: 15,
+                            color: user["status"]
+                                ? Color.fromARGB(255, 9, 238, 17)
+                                : Colors.grey,
+                          )
+                        ],
+                      ),
                       onTap: () {
-                        _insertUser(user);
+                        _insertUser(user["name"]);
                         _hideUserList();
                       },
                     );
@@ -1239,10 +1298,24 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
     );
   }
 
+  // void getMchannelUsers() {
+  //   for (var i = 0; i < channelUser!.length; i++) {
+  //     setState(() {
+  //       _userList.add(channelUser![i].name!);
+  //     });
+  //   }
+  // }
+
   void getMchannelUsers() {
     for (var i = 0; i < channelUser!.length; i++) {
+      var user = {
+        'name': channelUser![i].name,
+        'status': channelUser![i].activeStatus,
+      };
+
       setState(() {
-        _userList.add(channelUser![i].name!);
+        // _userList.add(retrieveGroupMessage!.mChannelUsers![i].name!);
+        _userList.add(user);
       });
     }
   }
@@ -1390,6 +1463,31 @@ class _GpThreadMessageState extends State<GpThreadMessage> {
                                                 ? widget.message.toString()
                                                 : "",
                                             style: {
+                                              ".ql-code-block":
+                                                  flutter_html.Style(
+                                                      backgroundColor: Colors
+                                                          .grey[300],
+                                                      padding: flutter_html
+                                                              .HtmlPaddings
+                                                          .symmetric(
+                                                              horizontal: 10,
+                                                              vertical: 5),
+                                                      margin:
+                                                          flutter_html.Margins
+                                                              .symmetric(
+                                                                  vertical: 7)),
+                                              ".highlight": flutter_html.Style(
+                                                display: flutter_html
+                                                    .Display.inlineBlock,
+                                                backgroundColor:
+                                                    Colors.grey[300],
+                                                color: Colors.red,
+                                                padding:
+                                                    flutter_html.HtmlPaddings
+                                                        .symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 5),
+                                              ),
                                               "blockquote": flutter_html.Style(
                                                 border: const Border(
                                                     left: BorderSide(

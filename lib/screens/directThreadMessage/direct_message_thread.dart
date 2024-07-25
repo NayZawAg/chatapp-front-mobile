@@ -71,9 +71,12 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
 //　-----------------
   List<EmojiCountsforDirectThread>? emojiCounts = [];
   List<ReactUserDataForDirectThread>? reactUserDatas = [];
+  List<ReactUserDataForDirectMessage>? directReactUserDatas = [];
+  List<EmojiCountsforDirectMessage>? directEmojiCounts = [];
   String selectedEmoji = "";
   String _seletedEmojiName = "";
   bool _isEmojiSelected = false;
+  int? directMessageId;
 // ----------------
   int? selectedIndex;
 
@@ -395,6 +398,34 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                     user.directThreadId == directthreadid &&
                     user.name == reactUserInfo);
               });
+            } else if (messageContent.containsKey('update_thread_message')) {
+              var msg = messageContent['update_thread_message'];
+
+              var directThreadMsg = msg['directthreadmsg'];
+              int id = msg['id'];
+              var date = msg['created_at'];
+              String send = messageContent['sender_name'];
+              List<dynamic> fileUrls = [];
+              List<dynamic>? fileName = [];
+              String? profileImage = messageContent['profile_image'];
+
+              tDirectThreads!.removeWhere((e) => e.id == id);
+              setState(() {
+                tDirectThreads!.add(TDirectThreads(
+                  id: id,
+                  directthreadmsg: directThreadMsg,
+                  fileUrls: fileUrls,
+                  createdAt: date,
+                  name: send,
+                  fileName: fileName,
+                  profileName: profileImage,
+                ));
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (isMessaging == false) {
+                    _scrollToBottom();
+                  }
+                });
+              });
             } else {
               var deletemsg = messageContent['delete_msg_thread'];
 
@@ -427,9 +458,12 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
         tDirectStarThreadMsgIds = thread.tDirectStarThreadMsgids;
         senderName = thread.senderName!;
         directMessage = thread.tDirectMessage!.directmsg!;
+        directMessageId = thread.tDirectMessage!.id;
         times = thread.tDirectMessage!.createdAt!;
         emojiCounts = thread.emojiCounts!;
+        directEmojiCounts = thread.directEmojiCounts;
         reactUserDatas = thread.reactUserDatas!;
+        directReactUserDatas = thread.directReactUserDatas;
         isLoading = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _scrollToBottom();
@@ -1309,7 +1343,172 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                             widget.files ?? [],
                                             platform,
                                             context,
-                                            widget.filesName ?? [])
+                                            widget.filesName ?? []),
+                                    SizedBox(
+                                      width: MediaQuery.of(context).size.width *
+                                          0.7,
+                                      child: Row(
+                                        children: [
+                                          Wrap(
+                                              direction: Axis.horizontal,
+                                              spacing: 7,
+                                              children: List.generate(
+                                                  directEmojiCounts!.length,
+                                                  (index) {
+                                                List userIds = [];
+                                                List userNames = [];
+
+                                                if (directEmojiCounts![index]
+                                                        .directmsgid ==
+                                                    directMessageId) {
+                                                  for (dynamic reactUser
+                                                      in directReactUserDatas!) {
+                                                    if (reactUser
+                                                                .directMessageId ==
+                                                            directEmojiCounts![
+                                                                    index]
+                                                                .directmsgid &&
+                                                        directEmojiCounts![
+                                                                    index]
+                                                                .directemoji ==
+                                                            reactUser.emoji) {
+                                                      userIds.add(
+                                                          reactUser.userId);
+                                                      userNames
+                                                          .add(reactUser.name);
+                                                    }
+                                                  } //reactUser for loop end
+                                                }
+                                                for (int i = 0;
+                                                    i <
+                                                        directEmojiCounts!
+                                                            .length;
+                                                    i++) {
+                                                  if (directEmojiCounts![i]
+                                                          .directmsgid ==
+                                                      directMessageId) {
+                                                    for (int j = 0;
+                                                        j <
+                                                            directReactUserDatas!
+                                                                .length;
+                                                        j++) {
+                                                      if (userIds.contains(
+                                                          directReactUserDatas![
+                                                                  j]
+                                                              .userId)) {
+                                                        return Container(
+                                                          width: 50,
+                                                          height: 25,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        16),
+                                                            border: Border.all(
+                                                              color: userIds
+                                                                      .contains(
+                                                                          currentUserId)
+                                                                  ? Colors.green
+                                                                  : Colors
+                                                                      .red, // Use emojiBorderColor here
+                                                              width: 1,
+                                                            ),
+                                                            color: const Color
+                                                                .fromARGB(226,
+                                                                212, 234, 250),
+                                                          ),
+                                                          padding:
+                                                              EdgeInsets.zero,
+                                                          child: TextButton(
+                                                            onPressed: null,
+                                                            style: ButtonStyle(
+                                                              padding:
+                                                                  WidgetStateProperty.all(
+                                                                      EdgeInsets
+                                                                          .zero),
+                                                              minimumSize:
+                                                                  WidgetStateProperty.all(
+                                                                      const Size(
+                                                                          50,
+                                                                          25)),
+                                                            ),
+                                                            child: Text(
+                                                              '${directEmojiCounts![index].directemoji} ${directEmojiCounts![index].directemojiCounts}',
+                                                              style:
+                                                                  const TextStyle(
+                                                                color: Colors
+                                                                    .blueAccent,
+                                                                fontSize: 14,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                                return Container();
+                                              })),
+                                          // IconButton(
+                                          //   icon: const Icon(
+                                          //       Icons.add_reaction_outlined),
+                                          //   onPressed: () async {
+                                          //     await showModalBottomSheet(
+                                          //         context: context,
+                                          //         builder:
+                                          //             (BuildContext context) {
+                                          //           return EmojiPicker(
+                                          //             onEmojiSelected:
+                                          //                 (category,
+                                          //                     Emoji
+                                          //                         emoji) async {
+                                          //               setState(() {
+                                          //                 selectedEmoji =
+                                          //                     emoji.emoji;
+                                          //                 _seletedEmojiName =
+                                          //                     emoji.name;
+                                          //                 _isEmojiSelected =
+                                          //                     true;
+                                          //               });
+
+                                          //               _directMessageService
+                                          //                   .directReactMsg(
+                                          //                       selectedEmoji,
+                                          //                       directMessageId!,
+                                          //                       widget
+                                          //                           .receiverId,
+                                          //                       currentUserId);
+
+                                          //               Navigator.pop(context);
+                                          //             },
+                                          //             config: const Config(
+                                          //               height:
+                                          //                   double.maxFinite,
+                                          //               checkPlatformCompatibility:
+                                          //                   true,
+                                          //               emojiViewConfig:
+                                          //                   EmojiViewConfig(
+                                          //                 emojiSizeMax: 23,
+                                          //               ),
+                                          //               swapCategoryAndBottomBar:
+                                          //                   false,
+                                          //               skinToneConfig:
+                                          //                   SkinToneConfig(),
+                                          //               categoryViewConfig:
+                                          //                   CategoryViewConfig(),
+                                          //               bottomActionBarConfig:
+                                          //                   BottomActionBarConfig(),
+                                          //               searchViewConfig:
+                                          //                   SearchViewConfig(),
+                                          //             ),
+                                          //           );
+                                          //         });
+                                          //   },
+                                          // ),
+                                        ],
+                                      ),
+                                    )
                                   ],
                                 ),
                               ),
@@ -2077,6 +2276,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                   'TextInput.hide'); // Hide the keyboard
                                               setState(() {
                                                 isEdit = false;
+                                                isClickedTextFormat = false;
                                               });
                                             },
                                             icon: const Icon(Icons.close)),
@@ -2125,6 +2325,11 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                 htmlContent = htmlContent
                                                     .replaceAll("\n", "<br/>");
                                               }
+
+                                              setState(() {
+                                                isEdit = false;
+                                                isClickedTextFormat = false;
+                                              });
 
                                               editdirectThreadMessage(
                                                   htmlContent, editMsgId!);
@@ -2178,6 +2383,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
 
                                           setState() {
                                             isLoading = !isLoading;
+                                            isClickedTextFormat = false;
                                           }
 
                                           sendReplyMessage(htmlContent);
@@ -2608,6 +2814,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                   'TextInput.hide'); // Hide the keyboard
                                               setState(() {
                                                 isEdit = false;
+                                                isClickedTextFormat = false;
                                               });
                                             },
                                             icon: const Icon(Icons.close)),
@@ -2656,6 +2863,11 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
                                                 htmlContent = htmlContent
                                                     .replaceAll("\n", "<br/>");
                                               }
+
+                                              setState(() {
+                                                isEdit = false;
+                                                isClickedTextFormat = false;
+                                              });
 
                                               editdirectThreadMessage(
                                                   htmlContent, editMsgId!);
@@ -2709,6 +2921,7 @@ class _DirectMessageThreadState extends State<DirectMessageThreadWidget> {
 
                                           setState() {
                                             isLoading = !isLoading;
+                                            isClickedTextFormat = false;
                                           }
 
                                           sendReplyMessage(htmlContent);
