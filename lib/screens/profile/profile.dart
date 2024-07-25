@@ -16,6 +16,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:io';
 import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 
 class Profile extends StatefulWidget {
   final String currentUserWorkspace;
@@ -90,16 +91,22 @@ class _ProfileState extends State<Profile> {
         File? croppedFile = await _cropImage(result.files.first);
         if (croppedFile != null) {
           File secfile = File(croppedFile.path);
-          await _getImageSize(secfile);
+          final resizedBytes = await _resizeImageIfNeeded(secfile);
 
-          if (imageWidth! <= 500 && imageHeight! <= 500) {
+          if (resizedBytes != null) {
+            // Write the resized bytes to a new file
+            final tempDir = await getTemporaryDirectory();
+            final resizedFile =
+                File('${tempDir.path}/${result.files.first.name}');
+            await resizedFile.writeAsBytes(resizedBytes);
+
             setState(() {
               isLoading = true;
             });
             PlatformFile file = PlatformFile(
-              path: croppedFile.path,
+              path: resizedFile.path,
               name: result.files.first.name,
-              size: croppedFile.lengthSync(),
+              size: resizedFile.lengthSync(),
             );
             ProfileImage profileImage =
                 await profileUploadApi.uploadProfileImage(file);
@@ -131,14 +138,32 @@ class _ProfileState extends State<Profile> {
     }
   }
 
-  Future<void> _getImageSize(File file) async {
+  Future<Uint8List?> _resizeImageIfNeeded(File file) async {
     final bytes = await file.readAsBytes();
     final image = img.decodeImage(bytes);
 
     if (image != null) {
-      imageWidth = image.width;
-      imageHeight = image.height;
+      if (image.width > 500 || image.height > 500) {
+        final aspectRatio = image.width / image.height;
+        int newWidth;
+        int newHeight;
+
+        if (aspectRatio > 1) {
+          newWidth = 500;
+          newHeight = (500 / aspectRatio).round();
+        } else {
+          newHeight = 500;
+          newWidth = (500 * aspectRatio).round();
+        }
+
+        final resizedImage =
+            img.copyResize(image, width: newWidth, height: newHeight);
+        return Uint8List.fromList(img.encodePng(resizedImage));
+      } else {
+        return Uint8List.fromList(bytes);
+      }
     }
+    return null;
   }
 
   Future<File?> _cropImage(PlatformFile file) async {
