@@ -1,4 +1,5 @@
 class Un_Thread {
+  int? id;
   String? name;
   String? directthreadmsg;
   String? created_at;
@@ -6,13 +7,15 @@ class Un_Thread {
   List<dynamic>? fileNames;
   String? profileImage;
   Un_Thread(
-      {this.directthreadmsg,
+      {this.id,
+      this.directthreadmsg,
       this.name,
       this.created_at,
       this.files,
       this.fileNames,
       this.profileImage});
   Un_Thread.fromJson(Map<String, dynamic> json) {
+    id = json["threadid"];
     name = json['name'];
     directthreadmsg = json['directthreadmsg'];
     created_at = json['created_at'];
@@ -22,6 +25,7 @@ class Un_Thread {
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
+    data["threadid"] = this.id;
     data['created_at'] = this.created_at;
     data['directthreadmsg'] = this.directthreadmsg;
     data['name'] = this.name;
@@ -76,6 +80,7 @@ class Un_G_Thread {
 }
 
 class Un_DirectMsg {
+  int? id;
   String? created_at;
   String? directmsg;
   String? name;
@@ -83,13 +88,15 @@ class Un_DirectMsg {
   List<dynamic>? fileNames;
   String? profileImage;
   Un_DirectMsg(
-      {this.created_at,
+      {this.id,
+      this.created_at,
       this.directmsg,
       this.name,
       this.files,
       this.fileNames,
       this.profileImage});
   Un_DirectMsg.fromJson(Map<String, dynamic> json) {
+    id = json["id"];
     created_at = json['created_at'];
     directmsg = json['directmsg'];
     files = json['file_urls'] as List<dynamic>?;
@@ -99,6 +106,7 @@ class Un_DirectMsg {
   }
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
+    data["id"] = this.id;
     data['created_at'] = this.created_at;
     data['directmsg'] = this.directmsg;
     data['name'] = this.name;
