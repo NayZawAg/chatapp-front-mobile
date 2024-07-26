@@ -2,10 +2,12 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_frontend/const/build_mulit_file.dart';
 import 'package:flutter_frontend/const/build_single_file.dart';
 import 'package:flutter_frontend/const/minio_to_ip.dart';
 import 'package:flutter_frontend/dotenv.dart';
+import 'package:flutter_frontend/model/groupMessage.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_frontend/constants.dart';
@@ -26,6 +28,10 @@ class GroupMessages extends StatefulWidget {
 }
 
 class _GroupMessageState extends State<GroupMessages> {
+  List<EmojiCountsforGpMsg>? tGroupEmojiCounts =[];
+  List<dynamic>? tGroupReactMsgIds =[];
+  List<ReactUserDataForGpMsg>? reactUsernamesForGroupMsg=[];
+
   final _mentionListService = MentionListService(Dio(BaseOptions(headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -47,6 +53,8 @@ class _GroupMessageState extends State<GroupMessages> {
     } else {
       platform = TargetPlatform.iOS;
     }
+    _fetchData();
+    _refresh();
   }
 
   @override
@@ -61,6 +69,9 @@ class _GroupMessageState extends State<GroupMessages> {
       if (mounted) {
         setState(() {
           MentionStore.mentionList = data;
+          tGroupEmojiCounts = data.tGroupEmojiCounts;
+          tGroupReactMsgIds = data.tGroupReactMsgIds;
+          reactUsernamesForGroupMsg = data.reactUsernamesForGroupMsg;
         });
       }
     } catch (e) {
@@ -97,11 +108,13 @@ class _GroupMessageState extends State<GroupMessages> {
               DateTime dateTime = DateTime.parse(dateFormat).toLocal();
               String time = DateFormat('MMM d, yyyy hh:mm a').format(dateTime);
               String name = snapshot!.groupMessage![index].name.toString();
+
               List<String> initials =
                   name.split(" ").map((e) => e.substring(0, 1)).toList();
               String user_name = initials.join("");
               String groupmsg =
                   snapshot!.groupMessage![index].groupmsg.toString();
+              int messageId = snapshot!.groupMessage![index].id!.toInt();
               String channelName =
                   snapshot!.groupMessage![index].channelName.toString();
               List<dynamic>? files = [];
@@ -152,99 +165,236 @@ class _GroupMessageState extends State<GroupMessages> {
                       ],
                     ),
                     const SizedBox(width: 5),
-                    Container(
-                      width: MediaQuery.of(context).size.width * 0.7,
-                      decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(10),
-                              bottomLeft: Radius.circular(10),
-                              bottomRight: Radius.circular(10))),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              channelName,
-                              style: const TextStyle(
-                                  fontSize: 17, fontWeight: FontWeight.bold),
-                            ),
-                            Container(
-                              width: MediaQuery.of(context).size.width * 0.5,
-                              child: flutter_html.Html(
-                                data: groupmsg,
-                                style: {
-                                  ".ql-code-block": flutter_html.Style(
-                                      backgroundColor: Colors.grey[200],
-                                      padding:
-                                          flutter_html.HtmlPaddings.symmetric(
-                                              horizontal: 10, vertical: 5),
-                                      margin: flutter_html.Margins.symmetric(
-                                          vertical: 7)),
-                                  ".highlight": flutter_html.Style(
-                                    display: flutter_html.Display.inlineBlock,
-                                    backgroundColor: Colors.grey[200],
-                                    color: Colors.red,
-                                    padding:
-                                        flutter_html.HtmlPaddings.symmetric(
-                                            horizontal: 10, vertical: 5),
-                                  ),
-                                  "blockquote": flutter_html.Style(
-                                    border: const Border(
-                                        left: BorderSide(
-                                            color: Colors.grey, width: 5.0)),
-                                    margin: flutter_html.Margins.symmetric(
-                                        vertical: 10.0),
-                                    padding: flutter_html.HtmlPaddings.only(
-                                        left: 10),
-                                  ),
-                                  "ol": flutter_html.Style(
-                                    margin: flutter_html.Margins.symmetric(
-                                        horizontal: 10),
-                                    padding:
-                                        flutter_html.HtmlPaddings.symmetric(
+
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.7,
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: const BorderRadius.only(
+                                  topRight: Radius.circular(10),
+                                  bottomLeft: Radius.circular(10),
+                                  bottomRight: Radius.circular(10))),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  channelName,
+                                  style: const TextStyle(
+                                      fontSize: 17, fontWeight: FontWeight.bold),
+                                ),
+                                Container(
+                                  width: MediaQuery.of(context).size.width * 0.5,
+                                  child: flutter_html.Html(
+                                    data: groupmsg,
+                                    style: {
+                                      ".ql-code-block": flutter_html.Style(
+                                          backgroundColor: Colors.grey[200],
+                                          padding:
+                                              flutter_html.HtmlPaddings.symmetric(
+                                                  horizontal: 10, vertical: 5),
+                                          margin: flutter_html.Margins.symmetric(
+                                              vertical: 7)),
+                                      ".highlight": flutter_html.Style(
+                                        display: flutter_html.Display.inlineBlock,
+                                        backgroundColor: Colors.grey[200],
+                                        color: Colors.red,
+                                        padding:
+                                            flutter_html.HtmlPaddings.symmetric(
+                                                horizontal: 10, vertical: 5),
+                                      ),
+                                      "blockquote": flutter_html.Style(
+                                        border: const Border(
+                                            left: BorderSide(
+                                                color: Colors.grey, width: 5.0)),
+                                        margin: flutter_html.Margins.symmetric(
+                                            vertical: 10.0),
+                                        padding: flutter_html.HtmlPaddings.only(
+                                            left: 10),
+                                      ),
+                                      "ol": flutter_html.Style(
+                                        margin: flutter_html.Margins.symmetric(
                                             horizontal: 10),
+                                        padding:
+                                            flutter_html.HtmlPaddings.symmetric(
+                                                horizontal: 10),
+                                      ),
+                                      "ul": flutter_html.Style(
+                                        display: flutter_html.Display.inlineBlock,
+                                        padding:
+                                            flutter_html.HtmlPaddings.symmetric(
+                                                horizontal: 10),
+                                        margin: flutter_html.Margins.all(0),
+                                      ),
+                                      "pre": flutter_html.Style(
+                                        backgroundColor: Colors.grey[300],
+                                        padding:
+                                            flutter_html.HtmlPaddings.symmetric(
+                                                horizontal: 10, vertical: 5),
+                                      ),
+                                      "code": flutter_html.Style(
+                                        display: flutter_html.Display.inlineBlock,
+                                        backgroundColor: Colors.grey[300],
+                                        color: Colors.red,
+                                        padding:
+                                            flutter_html.HtmlPaddings.symmetric(
+                                                horizontal: 10, vertical: 5),
+                                      )
+                                    },
                                   ),
-                                  "ul": flutter_html.Style(
-                                    display: flutter_html.Display.inlineBlock,
-                                    padding:
-                                        flutter_html.HtmlPaddings.symmetric(
-                                            horizontal: 10),
-                                    margin: flutter_html.Margins.all(0),
-                                  ),
-                                  "pre": flutter_html.Style(
-                                    backgroundColor: Colors.grey[300],
-                                    padding:
-                                        flutter_html.HtmlPaddings.symmetric(
-                                            horizontal: 10, vertical: 5),
-                                  ),
-                                  "code": flutter_html.Style(
-                                    display: flutter_html.Display.inlineBlock,
-                                    backgroundColor: Colors.grey[300],
-                                    color: Colors.red,
-                                    padding:
-                                        flutter_html.HtmlPaddings.symmetric(
-                                            horizontal: 10, vertical: 5),
-                                  )
-                                },
-                              ),
+                                ),
+                                files?.length == 1
+                                    ? singleFile.buildSingleFile(files?.first ?? '',
+                                        context, platform, fileName?.first ?? '')
+                                    : mulitFile.buildMultipleFiles(files ?? [],
+                                        platform, context, fileName ?? []),
+                                const SizedBox(
+                                  height: 4,
+                                ),
+                                Text(
+                                  time,
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                              ],
                             ),
-                            files?.length == 1
-                                ? singleFile.buildSingleFile(files?.first ?? '',
-                                    context, platform, fileName?.first ?? '')
-                                : mulitFile.buildMultipleFiles(files ?? [],
-                                    platform, context, fileName ?? []),
-                            const SizedBox(
-                              height: 4,
-                            ),
-                            Text(
-                              time,
-                              style: const TextStyle(fontSize: 10),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width * 0.5,
+                          child: Wrap(
+                              direction: Axis.horizontal,
+                              spacing: 7,
+                              children: List.generate(tGroupEmojiCounts!.length,
+                                  (index) {
+                                bool show = false;
+                                List userIds = [];
+                                List reactUsernames = [];
+
+                                if (tGroupEmojiCounts![index].groupmsgid ==
+                                    messageId) {
+                                  for (dynamic reactUser
+                                      in reactUsernamesForGroupMsg!) {
+                                    if (reactUser.groupmsgid ==
+                                            tGroupEmojiCounts![index]
+                                                .groupmsgid &&
+                                        tGroupEmojiCounts![index].emoji ==
+                                            reactUser.emoji) {
+                                      userIds.add(reactUser.userid);
+                                      reactUsernames.add(reactUser.name);
+                                    }
+                                  } //reactUser for loop end
+
+                                  
+                                }
+                                for (int i = 0;
+                                    i < tGroupEmojiCounts!.length;
+                                    i++) {
+                                  if (tGroupEmojiCounts![i].groupmsgid ==
+                                      messageId) {
+                                    for (int j = 0;
+                                        j < reactUsernamesForGroupMsg!.length;
+                                        j++) {
+                                      if (userIds.contains(
+                                          reactUsernamesForGroupMsg![j]
+                                              .userid)) {
+                                        return Container(
+                                          width: 50,
+                                          height: 25,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                            border: Border.all(
+                                              color: Colors
+                                                      .red, // Use emojiBorderColor here
+                                              width: 1,
+                                            ),
+                                            color: const Color.fromARGB(
+                                                226, 212, 234, 250),
+                                          ),
+                                          padding: EdgeInsets.zero,
+                                          child: TextButton(
+                                            onPressed: null,
+                                            onLongPress: () async {
+                                              HapticFeedback.heavyImpact();
+                                              await showDialog(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return SimpleDialog(
+                                                      title: const Center(
+                                                        child: Text(
+                                                          "People Who React",
+                                                          style: TextStyle(
+                                                              fontSize: 20),
+                                                        ),
+                                                      ),
+                                                      children: [
+                                                        SizedBox(
+                                                          width: MediaQuery.of(
+                                                                  context)
+                                                              .size
+                                                              .width,
+                                                          child:
+                                                              ListView.builder(
+                                                            shrinkWrap: true,
+                                                            itemCount:
+                                                                reactUsernames
+                                                                    .length,
+                                                            itemBuilder:
+                                                                (context,
+                                                                    index) {
+                                                              return SingleChildScrollView(
+                                                                  child:
+                                                                      SimpleDialogOption(
+                                                                onPressed: () =>
+                                                                    Navigator.pop(
+                                                                        context),
+                                                                child: Center(
+                                                                  child: Text(
+                                                                    "${reactUsernames[index]}さん",
+                                                                    style: const TextStyle(
+                                                                        fontSize:
+                                                                            18,
+                                                                        letterSpacing:
+                                                                            0.1),
+                                                                  ),
+                                                                ),
+                                                              ));
+                                                            },
+                                                          ),
+                                                        )
+                                                      ],
+                                                    );
+                                                  });
+                                            },
+                                            style: ButtonStyle(
+                                              padding: WidgetStateProperty.all(
+                                                  EdgeInsets.zero),
+                                              minimumSize:
+                                                  WidgetStateProperty.all(
+                                                      const Size(50, 25)),
+                                            ),
+                                            child: Text(
+                                              '${tGroupEmojiCounts![index].emoji} ${tGroupEmojiCounts![index].emojiCount}',
+                                              style: const TextStyle(
+                                                color: Colors.blueAccent,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  }
+                                }
+                                return Container();
+                              })),
+                        )
+                      ],
                     )
                   ],
                 ),
